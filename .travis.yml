@@ -1,6 +1,6 @@
 language: php
 
-sudo: false
+sudo: required
 
 cache:
   directories:
@@ -12,7 +12,7 @@ php:
 
 env:
  global:
-  - MOODLE_BRANCH=MOODLE_31_STABLE
+  - MOODLE_BRANCH=master
 # Temporarily turn off checking for this file. It will be replaced.
   - IGNORE_PATHS=module.js,tests
  matrix:
@@ -40,5 +40,5 @@ script:
   - moodle-plugin-ci jshint
   - moodle-plugin-ci validate
   - moodle-plugin-ci phpunit
-  - moodle-plugin-ci behat
-#  - moodle-plugin-ci phpunit --coverage-text
+  - travis_wait 30 moodle-plugin-ci behat
+  - moodle-plugin-ci phpunit --coverage-text
