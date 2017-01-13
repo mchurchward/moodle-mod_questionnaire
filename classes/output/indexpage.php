@@ -48,8 +48,9 @@ class indexpage implements \renderable, \templatable {
      *
      * @param array $headings An array of renderable headings
      */
-    public function __construct(array $titles = array(), $content = array()) {
-        $this->headings = array();
+    public function __construct(array $titles = [], array $content = []) {
+        $this->headings = [];
+        $this->rows = [];
         $colnum = 1;
         foreach ($titles as $key => $title) {
             $this->headings['title'.$colnum++] = $title;
@@ -66,14 +67,13 @@ class indexpage implements \renderable, \templatable {
      * @return array
      */
     public function export_for_template(\renderer_base $output) {
-        $data = array('headings' => array());
+        $data = ['headings' => [], 'rows' => []];
         foreach ($this->headings as $key => $heading) {
             $data['headings'][$key] = $heading;
         }
         foreach ($this->rows as $row) {
             list($topic, $name, $responses, $type) = $row;
-            $data['rows'][] = array('topic' => $topic, 'name' => $name,
-            'responses' => $responses, 'type' => $type);
+            $data['rows'][] = ['topic' => $topic, 'name' => $name, 'responses' => $responses, 'type' => $type];
         }
         return $data;
     }
