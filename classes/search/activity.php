@@ -35,4 +35,43 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class activity extends \core_search\base_activity {
+
+    /**
+     * Returns recordset containing required data for indexing activities.
+     *
+     * @param int $modifiedfrom timestamp
+     * @return \moodle_recordset
+     */
+    public function get_recordset_by_timestamp($modifiedfrom = 0) {
+        global $DB;
+
+        $sql = 'SELECT q.*, s.subtitle, s.info ' .
+            'FROM {questionnaire} q ' .
+            'INNER JOIN {questionnaire_survey} s ON q.sid = s.id ' .
+            'WHERE q.timemodified >= ? ' .
+            'ORDER BY q.timemodified ASC';
+
+        return $DB->get_recordset_sql($sql, [$modifiedfrom]);
+    }
+
+    /**
+     * Returns the document associated with this activity.
+     *
+     * The default implementation for activities sets the activity name to title and the activity intro to
+     * content. This override takes that data and adds new fields to it for indexing.
+     *
+     * @param stdClass $record
+     * @param array    $options
+     * @return \core_search\document
+     */
+    public function get_document($record, $options = []) {
+        // Get the default implementation.
+        $doc = parent::get_document($record, $options);
+
+        // Add the subtitle and additional info fields.
+        $doc->set('description1', content_to_text($record->subtitle, false));
+        $doc->set('description2', content_to_text($record->info, $record->introformat));
+
+        return $doc;
+    }
 }
