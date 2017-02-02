@@ -455,7 +455,6 @@ $string['savedprogress'] = 'Your progress has been saved.  You may return at any
 $string['saveeditedquestion'] = 'Save question {$a}';
 $string['savesettings'] = 'Save settings';
 $string['search:activity'] = 'Questionnaire - activity information';
-$string['search:question'] = 'Questionnaire - questions';
 $string['section'] = 'Description';
 $string['sectionbreak'] = '----- Page Break -----';
 $string['sectionbreak_help'] = '----- Page Break -----';

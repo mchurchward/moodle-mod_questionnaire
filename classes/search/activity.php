@@ -65,12 +65,24 @@ class activity extends \core_search\base_activity {
      * @return \core_search\document
      */
     public function get_document($record, $options = []) {
+        global $DB;
+
         // Get the default implementation.
         $doc = parent::get_document($record, $options);
 
         // Add the subtitle and additional info fields.
-        $doc->set('description1', content_to_text($record->subtitle, false));
-        $doc->set('description2', content_to_text($record->info, $record->introformat));
+        $doc->set('description1', content_to_text($record->subtitle . "\n" . $record->info, $record->introformat));
+
+        // Because there is no database agnostic way to combine all of the possible question content data into one record in
+        // get_recordset_by_timestamp, I need to grab it all now and add it to the document.
+        $recordset = $DB->get_recordset('questionnaire_question', ['survey_id' => $record->sid, 'deleted' => 'n'],
+            'id', 'id,content');
+        $qcontent = '';
+        foreach ($recordset as $question) {
+            $qcontent .= $question->content . "\n";
+        }
+        $recordset->close();
+        $doc->set('description2', content_to_text($qcontent, $record->introformat));
 
         return $doc;
     }
