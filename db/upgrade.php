@@ -550,7 +550,35 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
         // Questionnaire savepoint reached.
          upgrade_mod_savepoint(true, 2016020204, 'questionnaire');
     }
-
+    
+    // Adding table for advanced dependencies
+    if ($oldversion < 2016111103) {
+    
+    	// Define table questionnaire_dependencies to be created.
+    	$table = new xmldb_table('questionnaire_dependencies');
+    	
+    	// Adding fields to table questionnaire_depenencies.
+    	$table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+    	$table->add_field('adv_dependquestion', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+    	$table->add_field('adv_dependchoice', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+    	$table->add_field('adv_dependlogic', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
+    	$table->add_field('question_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+    	
+    	// Adding keys to table questionnaire_depenencies.
+    	$table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+    	
+    	// Adding indexes to table questionnaire_depenencies.
+    	$table->add_index('quest_dependencie_quesidx', XMLDB_INDEX_NOTUNIQUE, array('question_id'));
+    	
+    	// Conditionally launch create table for questionnaire_depenencies.
+    	if (!$dbman->table_exists($table)) {
+    		$dbman->create_table($table);
+    	}
+    	
+    	// Questionnaire savepoint reached.
+    	upgrade_mod_savepoint(true, 2016111103, 'questionnaire');
+    }
+    
     return $result;
 }
 
