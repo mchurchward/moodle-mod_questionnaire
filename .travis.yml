@@ -1,6 +1,5 @@
 language: php
 
-# sudo: required
 sudo: false
 
 cache:
@@ -8,7 +7,7 @@ cache:
     - $HOME/.composer/cache
 
 php:
-# - 5.6 Disaabling for release because of weired Behat error.
+# - 5.6 Disaabling for release because of weird Behat error.
  - 7.0
 
 env:
@@ -44,8 +43,8 @@ script:
   - moodle-plugin-ci behat
   - moodle-plugin-ci phpunit --coverage-text
 
-after_script:
+# after_script:
 # See: https://github.com/moodlerooms/moodle-plugin-ci/issues/32
-  - killall -9 php
-  - killall -9 java
-  - killall -9 Xvfb
+#  - killall -9 php
+#  - killall -9 java
+#  - killall -9 Xvfb
