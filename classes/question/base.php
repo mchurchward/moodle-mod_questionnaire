@@ -650,13 +650,21 @@ abstract class base {
      * Override this, or any of the internal methods, to provide specific form data for editing the question type.
      * The structure of the elements here is the default layout for the question form.
      */
-    public function edit_form(\MoodleQuickForm $mform, $questionnaire, $modcontext) {
+    public function edit_form_pre_dependencies(\MoodleQuickForm $mform, $questionnaire, $modcontext) {
         $this->form_header($mform);
         $this->form_name($mform);
         $this->form_required($mform);
         $this->form_length($mform);
         $this->form_precise($mform);
+
+        //Normal branching active for $questionnaire->navigate == 1; case ==2 is handled in edit_question_form.php
         $this->form_dependencies($mform, $questionnaire);
+
+        return true;
+    }  
+
+	public function edit_form_post_dependencies(\MoodleQuickForm $mform, $questionnaire, $modcontext) {
+        
         $this->form_question_text($mform, $modcontext);
 
         if ($this->has_choices()) {
@@ -729,7 +737,7 @@ abstract class base {
     protected function form_dependencies(\MoodleQuickForm $mform, $questionnaire) {
         // Dependence fields.
 
-        if ($questionnaire->navigate) {
+        if ($questionnaire->navigate == 1) {
             $position = ($this->position !== 0) ? $this->position : count($questionnaire->questions) + 1;
             $dependencies = questionnaire_get_dependencies($questionnaire->questions, $position);
             $canchangeparent = true;
@@ -955,6 +963,9 @@ abstract class base {
             $formdata->dependquestion = $dependency[0];
             $formdata->dependchoice = $dependency[1];
         }
+        
+        //TODO add preprocessing for adv_dependencies
+        
         return true;
     }
 

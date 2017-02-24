@@ -36,10 +36,70 @@ class mod_questionnaire_edit_question_form extends moodleform {
 
         $mform =& $this->_form;
 
+        //START advnavigation
+
         // Each question can provide its own form elements to the provided form, or use the default ones.
-        if (!$question->edit_form($mform, $questionnaire, $this->_customdata['modcontext'])) {
+        //Splitting the formcreation into two parts, to fit the repeatarea in between
+        if (!$question->edit_form_pre_dependencies($mform, $questionnaire, $this->_customdata['modcontext'])) {
             print_error("Question type had an unknown error in the edit_form method.");
         }
+        
+        //Create a new area for multiple dependencies
+        //FIXME Has to be here(?), because it requires moodleform. Would be more consistent to place it in base.php
+        //Checking for $questionnaire->navigate == 1 for the original branching is still in base.php
+        if ($questionnaire->navigate == 2) {
+        	$position = ($question->position !== 0) ? $question->position : count($questionnaire->questions) + 1;
+        	
+        	//The Dropdown to select from is in here:
+        	$dependencies = questionnaire_get_dependencies($questionnaire->questions, $position);
+        	$canchangeparent = true;
+        	
+        	$mform->addElement('header', 'advdependencies_hdr', 'Dependencies');
+        	$mform->setExpanded('advdependencies_hdr');
+        	
+        	//If this question has children, you may not change it's parent
+        	if (count($dependencies) > 1) {
+	        		if (isset($question->qid)) {
+	        			$haschildren = questionnaire_get_descendants ($questionnaire->questions, $question->qid);
+	        			if (count($haschildren) !== 0) {
+	        				$canchangeparent = false;
+	        				$parent = questionnaire_get_parent ($question);
+	        				
+	        				//TODO - Change to list for all parents
+	        				$fixeddependency = $parent [$question->id]['parent'];
+	        			}
+	        		}
+	        		
+	        		if ($canchangeparent) {
+	        			
+	        			//TODO get adv_dependencies from DB and initialize the form properly
+	        			//$question->advdependencies = isset($question->dependquestion) ? $question->dependquestion.','.$question->dependchoice : '0,0';
+	 
+	        			$select = $mform->createElement('select', 'advdependencies_condition', 'Condition', array('Not this answer given', 'This answer given'));
+	        			$select->setSelected('1');
+	        			
+	        			$groupitems = array();
+	        			$groupitems[] =& $mform->createElement('selectgroups', 'advdependencies_select', 'Parent', $dependencies);
+	        			$groupitems[] =& $select;
+	        			$group = $mform->createElement('group', 'selectdependency', get_string('dependquestion', 'questionnaire'), $groupitems, ' ', false);
+	
+	        			$this->repeat_elements(array($group), 1, array(), 'numradios', 'addradios',2);
+	        			
+	        		} else {
+	        			$mform->addElement('static', 'selectdependency', get_string('dependquestion', 'questionnaire'),
+	        					'<div class="dimmed_text">'.$fixeddependency.'</div>');
+	        	}
+	        	$mform->addElement('header', 'qst_and_choices_hdr', 'Questiontext and answers');
+	        	 
+        	}
+        }
+        
+        // Each question can provide its own form elements to the provided form, or use the default ones.
+        if (!$question->edit_form_post_dependencies($mform, $questionnaire, $this->_customdata['modcontext'])) {
+        	print_error("Question type had an unknown error in the edit_form method.");
+        }
+        // END advnavigation
+        
     }
 
     public function validation($data, $files) {
