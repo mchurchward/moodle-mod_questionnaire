@@ -69,7 +69,10 @@ abstract class base {
 
     /** @var array $choices Array holding any choices for this question. */
     public $choices     = [];
-
+    
+    /** @var array $advdependencies Array holding any advanced dependencies for this question. */
+    public $advdependencies     = [];
+    
     /** @var string $response_table The table name for responses. */
     public $responsetable = '';
 
@@ -151,6 +154,8 @@ abstract class base {
             if ($qtypes[$this->type_id]->has_choices == 'y') {
                 $this->get_choices();
             }
+            //Added for advanced dependencies
+            $this->get_advdependencies(); 
         }
         $this->context = $context;
 
@@ -212,6 +217,21 @@ abstract class base {
         }
     }
 
+    private function get_advdependencies() {
+    	global $DB;
+    
+    	if ($advdependencies = $DB->get_records('questionnaire_dependencies', array('question_id' => $this->id , 'survey_id' => $this->survey_id), 'id ASC')) {
+    		foreach ($advdependencies as $advdependency) {
+    			$this->advdependencies[$advdependency->id] = new \stdClass();
+    			$this->advdependencies[$advdependency->id]->adv_dependquestion = $advdependency->adv_dependquestion;
+    			$this->advdependencies[$advdependency->id]->adv_dependchoice = $advdependency->adv_dependchoice;
+    			$this->advdependencies[$advdependency->id]->adv_dependlogic = $advdependency->adv_dependlogic;
+    		}
+    	} else {
+    		$this->advdependencies = [];
+    	}
+    }
+    
     /**
      * Insert response data method.
      */
@@ -342,7 +362,7 @@ abstract class base {
      * @param array $choicerecords An array of choice records with 'content' and 'value' properties.
      * @param boolean $calcposition Whether or not to calculate the next available position in the survey.
      */
-    public function add($questionrecord, array $choicerecords = null, boolean $calcposition = null, $advdependenciesrecord = null) {
+    public function add($questionrecord, array $choicerecords = null, boolean $calcposition = null) {
         global $DB;
 
         // Default boolean parameter to "true".
@@ -377,22 +397,6 @@ abstract class base {
                 $this->add_choice($choicerecord);
             }
         }
-        
-        //TODO Maybe check again if values are set, null might not be sufficient
-        if ($advdependenciesrecord != null) {
-        	
-        	for ($i = 0; $i < count($advdependenciesrecord->advdependquestion); $i++) {
-        		$advdependency = new \stdClass();
-        		$advdependency->adv_dependquestion = $advdependenciesrecord->advdependquestion[$i];
-        		$advdependency->adv_dependchoice = $advdependenciesrecord->advdependchoice[$i];
-        		$advdependency->adv_dependlogic = $advdependenciesrecord->advdependlogic[$i];
-        		$advdependency->question_id = $this->qid;
-        		$advdependency->survey_id = $questionrecord->survey_id;
-
-        		$adv_id = $DB->insert_record('questionnaire_dependencies', $advdependency);
-        	}
-        }
-        
     }
 
     public function update_choices() {
@@ -456,6 +460,48 @@ abstract class base {
         }
         return $retvalue;
     }
+
+	//Start advdependencies
+    public function update_advdependency($advdependencyrecord) {
+    	global $DB;
+    	return $DB->update_record('questionnaire_dependencies', $advdependencyrecord);
+    }
+    
+    public function add_advdependency($advdependencyrecord) {
+    	global $DB;
+    	$retvalue = true;
+    	if ($cid = $DB->insert_record('questionnaire_dependencies', $advdependencyrecord)) {
+    		$this->advdependencies[$cid] = new \stdClass();
+    		$this->advdependencies[$cid]->adv_dependquestion = $advdependencyrecord->adv_dependquestion;
+    		$this->advdependencies[$cid]->adv_dependchoice = $advdependencyrecord->adv_dependchoice;
+    		$this->advdependencies[$cid]->adv_dependlogic = $advdependencyrecord->adv_dependlogic;
+    	} else {
+    		$retvalue = false;
+    	}
+    	return $retvalue;
+    }
+    
+    /**
+     * Delete the advdependency from the question object and the database.
+     *
+     * @param integer|object $advdependency Either the integer id of the advdependency, or the advdependency record.
+     */
+    public function delete_advdependency($advdependency) {
+    	global $DB;
+    	$retvalue = true;
+    	if (is_int($advdependency)) {
+    		$cid = $advdependency;
+    	} else {
+    		$cid = $advdependency->id;
+    	}
+    	if ($DB->delete_records('questionnaire_dependencies', ['id' => $cid])) {
+    		unset($this->advdependencies[$cid]);
+    	} else {
+    		$retvalue = false;
+    	}
+    	return $retvalue;
+    }
+	//End advdependencies
 
     /**
      * Set the question required field in the object and database.
@@ -873,7 +919,6 @@ abstract class base {
                 }
             }
             
-            //TODO enhance for advdependencies
             $result = $this->update($questionrecord, false);
 
             if (questionnaire_has_dependencies($questionnaire->questions)) {
@@ -893,14 +938,8 @@ abstract class base {
                 }
             }
             $questionrecord->content = '';
-            
-            // Create object for advdependencies
-            $advdependenciesrecord = new \stdClass();
-            $advdependenciesrecord->advdependquestion = $formdata->advdependquestion;
-            $advdependenciesrecord->advdependchoice = $formdata->advdependchoice;
-            $advdependenciesrecord->advdependlogic = $formdata->advdependlogic_cleaned;
 
-            $this->add($questionrecord, null, null, $advdependenciesrecord);
+            $this->add($questionrecord, null, null);
 
             // Handle any attachments in the content.
             $formdata->itemid  = $formdata->content['itemid'];
@@ -968,6 +1007,66 @@ abstract class base {
                 $this->delete_choice($ekey);
                 $cidx++;
             }
+        }
+        
+        //Now handle the advdependencies the same way as choices
+        //Shouldn't the MOODLE-API provide this case of insert/update/delete?
+        if (isset($formdata->advdependquestion)) {
+        	// First handle advdependendies updates
+        	//TODO handle makecopy for advdependencies
+        	if (isset($this->advdependencies) && !isset($formdata->makecopy)) {
+        		$oldcount = count($this->advdependencies);
+        		$eadvdependency = reset($this->advdependencies);
+        		$ekey = key($this->advdependencies);
+        	} else {
+        		$oldcount = 0;
+        	}
+
+        	$cidx = 0;
+        	$nidx = 0;
+
+        	//all 3 arrays in this object have the same length
+        	$newcount = count($formdata->advdependquestion); 
+        	while (($nidx < $newcount) && ($cidx < $oldcount)) {
+        		if ($formdata->advdependquestion[$nidx] != $eadvdependency->adv_dependquestion &&
+        			$formdata->advdependchoice[$nidx] != $eadvdependency->adv_dependchoice &&
+        			$formdata->advdependlogic[$nidx] != $eadvdependency->adv_dependlogic)
+        		{
+        			$advdependencyrecord = new \stdClass();
+        			$advdependencyrecord->id = $ekey;
+        			$advdependencyrecord->question_id = $this->qid;
+        			$advdependencyrecord->survey_id = $this->survey_id;
+        			$advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
+        			$advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
+        			$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic[$nidx];
+
+        			$this->update_advdependency($advdependencyrecord);
+        		}
+        		$nidx++;
+        		$eadvdependency = next($this->advdependencies);
+        		$ekey = key($this->advdependencies);
+        		$cidx++;
+        	}
+        
+        	while ($nidx < $newcount) {
+        		// New advdependencies
+        		$advdependencyrecord = new \stdClass();
+        		$advdependencyrecord->question_id = $this->qid;
+        		$advdependencyrecord->survey_id = $this->survey_id;
+        		$advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
+        		$advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
+        		$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic[$nidx];
+        		
+        		$this->add_advdependency($advdependencyrecord);
+        		$nidx++;
+        	}
+        
+        	while ($cidx < $oldcount) {
+        		end($this->advdependencies);
+        		$ekey = key($this->advdependencies);
+        		$this->delete_advdependency($ekey);
+        		$cidx++;
+        	}
         }
     }
 
