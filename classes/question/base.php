@@ -342,7 +342,7 @@ abstract class base {
      * @param array $choicerecords An array of choice records with 'content' and 'value' properties.
      * @param boolean $calcposition Whether or not to calculate the next available position in the survey.
      */
-    public function add($questionrecord, array $choicerecords = null, boolean $calcposition = null) {
+    public function add($questionrecord, array $choicerecords = null, boolean $calcposition = null, $advdependenciesrecord = null) {
         global $DB;
 
         // Default boolean parameter to "true".
@@ -377,6 +377,22 @@ abstract class base {
                 $this->add_choice($choicerecord);
             }
         }
+        
+        //TODO Maybe check again if values are set, null might not be sufficient
+        if ($advdependenciesrecord != null) {
+        	
+        	for ($i = 0; $i < count($advdependenciesrecord->advdependquestion); $i++) {
+        		$advdependency = new \stdClass();
+        		$advdependency->adv_dependquestion = $advdependenciesrecord->advdependquestion[$i];
+        		$advdependency->adv_dependchoice = $advdependenciesrecord->advdependchoice[$i];
+        		$advdependency->adv_dependlogic = $advdependenciesrecord->advdependlogic[$i];
+        		$advdependency->question_id = $this->qid;
+        		$advdependency->survey_id = $questionrecord->survey_id;
+
+        		$adv_id = $DB->insert_record('questionnaire_dependencies', $advdependency);
+        	}
+        }
+        
     }
 
     public function update_choices() {
@@ -856,9 +872,12 @@ abstract class base {
                     $questionrecord->$f = trim($formdata->$f);
                 }
             }
+            
+            //TODO enhance for advdependencies
             $result = $this->update($questionrecord, false);
 
             if (questionnaire_has_dependencies($questionnaire->questions)) {
+            	//TODO enhance for advdependencies
                 questionnaire_check_page_breaks($questionnaire);
             }
         } else {
@@ -874,8 +893,14 @@ abstract class base {
                 }
             }
             $questionrecord->content = '';
+            
+            // Create object for advdependencies
+            $advdependenciesrecord = new \stdClass();
+            $advdependenciesrecord->advdependquestion = $formdata->advdependquestion;
+            $advdependenciesrecord->advdependchoice = $formdata->advdependchoice;
+            $advdependenciesrecord->advdependlogic = $formdata->advdependlogic_cleaned;
 
-            $this->add($questionrecord);
+            $this->add($questionrecord, null, null, $advdependenciesrecord);
 
             // Handle any attachments in the content.
             $formdata->itemid  = $formdata->content['itemid'];
@@ -964,7 +989,20 @@ abstract class base {
             $formdata->dependchoice = $dependency[1];
         }
         
-        //TODO add preprocessing for adv_dependencies
+        $advdependencies = [];
+        // advdependencies_logic does not (yet) need preprocessing, might change with more complex conditions
+        // Check, if entries exist and whether they are not only 0 (form elements created but no value selected)
+        if (isset($formdata->advdependquestions) && !(count(array_keys($formdata->advdependquestions, 0, true)) == count($formdata->advdependquestions))) {
+        	for ($i = 0; $i < count($formdata->advdependquestions); $i++) {
+        		$advdependency = explode(",", $formdata->advdependquestions[$i]);
+
+        		if ($advdependency[0] != 0) {
+	        		$formdata->advdependquestion[] = $advdependency[0];
+	        		$formdata->advdependchoice[] = $advdependency[1];
+	        		$formdata->advdependlogic_cleaned[] = $formdata->advdependlogic[$i];
+        		}
+        	}
+        } //TODO Possibly set advdependencies to 0 or null if nothing was submitted to delete properly later on
         
         return true;
     }

@@ -54,6 +54,7 @@ class mod_questionnaire_edit_question_form extends moodleform {
         	$dependencies = questionnaire_get_dependencies($questionnaire->questions, $position);
         	$canchangeparent = true;
         	
+        	//TODO Replace static strings and set language variables
         	$mform->addElement('header', 'advdependencies_hdr', 'Dependencies');
         	$mform->setExpanded('advdependencies_hdr');
         	
@@ -75,20 +76,23 @@ class mod_questionnaire_edit_question_form extends moodleform {
 	        			//TODO get adv_dependencies from DB and initialize the form properly
 	        			//$question->advdependencies = isset($question->dependquestion) ? $question->dependquestion.','.$question->dependchoice : '0,0';
 	 
-	        			$select = $mform->createElement('select', 'advdependencies_condition', 'Condition', array('Not this answer given', 'This answer given'));
+	        			//TODO Replace static strings and set language variables
+	        			$select = $mform->createElement('select', 'advdependlogic', 'Condition', array('Not this answer given', 'This answer given'));
 	        			$select->setSelected('1');
 	        			
 	        			$groupitems = array();
-	        			$groupitems[] =& $mform->createElement('selectgroups', 'advdependencies_select', 'Parent', $dependencies);
+	        			$groupitems[] =& $mform->createElement('selectgroups', 'advdependquestions', 'Parent', $dependencies);
 	        			$groupitems[] =& $select;
-	        			$group = $mform->createElement('group', 'selectdependency', get_string('dependquestion', 'questionnaire'), $groupitems, ' ', false);
+	        			$group = $mform->createElement('group', 'selectdependencies', get_string('dependquestion', 'questionnaire'), $groupitems, ' ', false);
 	
 	        			$this->repeat_elements(array($group), 1, array(), 'numradios', 'addradios',2);
 	        			
 	        		} else {
+	        			//TODO show list of advparents
 	        			$mform->addElement('static', 'selectdependency', get_string('dependquestion', 'questionnaire'),
 	        					'<div class="dimmed_text">'.$fixeddependency.'</div>');
 	        	}
+	        	//TODO Replace static strings and set language variables
 	        	$mform->addElement('header', 'qst_and_choices_hdr', 'Questiontext and answers');
 	        	 
         	}
@@ -99,7 +103,6 @@ class mod_questionnaire_edit_question_form extends moodleform {
         	print_error("Question type had an unknown error in the edit_form method.");
         }
         // END advnavigation
-        
     }
 
     public function validation($data, $files) {

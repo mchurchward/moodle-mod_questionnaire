@@ -563,7 +563,8 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
     	$table->add_field('adv_dependchoice', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
     	$table->add_field('adv_dependlogic', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
     	$table->add_field('question_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
-    	
+    	$table->add_field('survey_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
     	// Adding keys to table questionnaire_depenencies.
     	$table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
     	
