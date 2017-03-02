@@ -899,8 +899,7 @@ abstract class base {
         global $DB;
 
         $this->form_preprocess_data($formdata);
-
-        if (!empty($formdata->qid)) {
+		 if (!empty($formdata->qid)) {
 
             // Update existing question.
             // Handle any attachments in the content.
@@ -922,7 +921,7 @@ abstract class base {
             $result = $this->update($questionrecord, false);
 
             if (questionnaire_has_dependencies($questionnaire->questions)) {
-            	//TODO enhance for advdependencies
+            	//TODO enhance for advdependencies?
                 questionnaire_check_page_breaks($questionnaire);
             }
         } else {
@@ -1011,7 +1010,6 @@ abstract class base {
         
         //Now handle the advdependencies the same way as choices
         //Shouldn't the MOODLE-API provide this case of insert/update/delete?
-        if (isset($formdata->advdependquestion)) {
         	// First handle advdependendies updates
         	//TODO handle makecopy for advdependencies
         	if (isset($this->advdependencies) && !isset($formdata->makecopy)) {
@@ -1026,7 +1024,11 @@ abstract class base {
         	$nidx = 0;
 
         	//all 3 arrays in this object have the same length
-        	$newcount = count($formdata->advdependquestion); 
+        	if (isset($formdata->advdependquestion)) {
+        		$newcount = count($formdata->advdependquestion);
+        	} else {
+        		$newcount = 0;
+        	}
         	while (($nidx < $newcount) && ($cidx < $oldcount)) {
         		if ($formdata->advdependquestion[$nidx] != $eadvdependency->adv_dependquestion ||
         			$formdata->advdependchoice[$nidx] != $eadvdependency->adv_dependchoice ||
@@ -1052,7 +1054,7 @@ abstract class base {
         		// New advdependencies
         		$advdependencyrecord = new \stdClass();
         		$advdependencyrecord->question_id = $this->qid;
-        		$advdependencyrecord->survey_id = $this->survey_id;
+        		$advdependencyrecord->survey_id = $formdata->sid;
         		$advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
         		$advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
         		$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic_cleaned[$nidx];
@@ -1067,7 +1069,6 @@ abstract class base {
         		$this->delete_advdependency($ekey);
         		$cidx++;
         	}
-        }
     }
 
     /**
@@ -1101,8 +1102,7 @@ abstract class base {
 	        		$formdata->advdependlogic_cleaned[] = $formdata->advdependlogic[$i];
         		}
         	}
-        } //TODO Possibly set advdependencies to 0 or null if nothing was submitted to delete properly later on
-        
+        }
         return true;
     }
 

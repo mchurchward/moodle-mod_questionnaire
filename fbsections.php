@@ -172,6 +172,7 @@ foreach ($questionnaire->questions as $question) {
 
     // Questions to be included in feedback sections must be required, have a name
     // and must not be child of a parent question.
+    //TODO enhance for advdependencies
     if ($qtype != QUESPAGEBREAK && $qtype != QUESSECTIONTEXT) {
         $n++;
     }
