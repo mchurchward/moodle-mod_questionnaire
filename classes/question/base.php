@@ -1028,9 +1028,9 @@ abstract class base {
         	//all 3 arrays in this object have the same length
         	$newcount = count($formdata->advdependquestion); 
         	while (($nidx < $newcount) && ($cidx < $oldcount)) {
-        		if ($formdata->advdependquestion[$nidx] != $eadvdependency->adv_dependquestion &&
-        			$formdata->advdependchoice[$nidx] != $eadvdependency->adv_dependchoice &&
-        			$formdata->advdependlogic[$nidx] != $eadvdependency->adv_dependlogic)
+        		if ($formdata->advdependquestion[$nidx] != $eadvdependency->adv_dependquestion ||
+        			$formdata->advdependchoice[$nidx] != $eadvdependency->adv_dependchoice ||
+        			$formdata->advdependlogic_cleaned[$nidx] != $eadvdependency->adv_dependlogic)
         		{
         			$advdependencyrecord = new \stdClass();
         			$advdependencyrecord->id = $ekey;
@@ -1038,7 +1038,7 @@ abstract class base {
         			$advdependencyrecord->survey_id = $this->survey_id;
         			$advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
         			$advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
-        			$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic[$nidx];
+        			$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic_cleaned[$nidx];
 
         			$this->update_advdependency($advdependencyrecord);
         		}
@@ -1055,7 +1055,7 @@ abstract class base {
         		$advdependencyrecord->survey_id = $this->survey_id;
         		$advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
         		$advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
-        		$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic[$nidx];
+        		$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic_cleaned[$nidx];
         		
         		$this->add_advdependency($advdependencyrecord);
         		$nidx++;

@@ -71,11 +71,8 @@ class mod_questionnaire_edit_question_form extends moodleform {
 	        			}
 	        		}
 	        		
+	        		$advdependenciescount = count($question->advdependencies);
 	        		if ($canchangeparent) {
-	        			
-	        			//TODO get adv_dependencies from DB and initialize the form properly
-	        			//$question->advdependencies = isset($question->dependquestion) ? $question->dependquestion.','.$question->dependchoice : '0,0';
-	 
 	        			//TODO Replace static strings and set language variables
 	        			$select = $mform->createElement('select', 'advdependlogic', 'Condition', array('Not this answer given', 'This answer given'));
 	        			$select->setSelected('1');
@@ -84,9 +81,8 @@ class mod_questionnaire_edit_question_form extends moodleform {
 	        			$groupitems[] =& $mform->createElement('selectgroups', 'advdependquestions', 'Parent', $dependencies);
 	        			$groupitems[] =& $select;
 	        			$group = $mform->createElement('group', 'selectdependencies', get_string('dependquestion', 'questionnaire'), $groupitems, ' ', false);
-	
-	        			$this->repeat_elements(array($group), 1, array(), 'numradios', 'addradios',2);
-	        			
+
+	        			$this->repeat_elements(array($group), $advdependenciescount + 1, array(), 'numdependencies', 'adddependencies',2);
 	        		} else {
 	        			//TODO show list of advparents
 	        			$mform->addElement('static', 'selectdependency', get_string('dependquestion', 'questionnaire'),

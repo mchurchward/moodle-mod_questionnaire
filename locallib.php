@@ -1002,6 +1002,13 @@ function questionnaire_prep_for_questionform($questionnaire, $qid, $qtype) {
         $content = file_prepare_draft_area($draftideditor, $context->id, 'mod_questionnaire', 'question',
                                            $qid, array('subdirs' => true), $question->content);
         $question->content = array('text' => $content, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
+
+        if (isset($question->advdependencies)) {
+        	foreach ($question->advdependencies as $advdependencies) {
+        		$question->advdependquestions[] = $advdependencies->adv_dependquestion.','.$advdependencies->adv_dependchoice;
+        		$question->advdependlogic[] = $advdependencies->adv_dependlogic;
+        	}
+        } 
     } else {
         $question = \mod_questionnaire\question\base::question_builder($qtype);
         $question->sid = $questionnaire->survey->id;
