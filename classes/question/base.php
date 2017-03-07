@@ -712,21 +712,22 @@ abstract class base {
      * Override this, or any of the internal methods, to provide specific form data for editing the question type.
      * The structure of the elements here is the default layout for the question form.
      */
-    public function edit_form_pre_dependencies(\MoodleQuickForm $mform, $questionnaire, $modcontext) {
+    public function edit_form(\MoodleQuickForm $mform, $questionnaire, $modcontext, $editformobject) {
         $this->form_header($mform);
         $this->form_name($mform);
         $this->form_required($mform);
         $this->form_length($mform);
         $this->form_precise($mform);
 
-        //Normal branching active for $questionnaire->navigate == 1; case ==2 is handled in edit_question_form.php
-        $this->form_dependencies($mform, $questionnaire);
-
-        return true;
-    }  
-
-	public function edit_form_post_dependencies(\MoodleQuickForm $mform, $questionnaire, $modcontext) {
-        
+		if ($questionnaire->navigate == 1) {
+			$this->form_dependencies($mform, $questionnaire);
+		}
+		
+		//Added for advanced dependencies, parameter $editformobject is needed to use repeat_elements
+		if ($questionnaire->navigate == 2) {
+			$this->form_advdependencies($mform, $questionnaire, $editformobject);
+		}
+ 
         $this->form_question_text($mform, $modcontext);
 
         if ($this->has_choices()) {
@@ -825,6 +826,79 @@ abstract class base {
                 $mform->addHelpButton('selectdependency', 'dependquestion', 'questionnaire');
             }
         }
+    }
+
+
+    protected function form_advdependencies(\MoodleQuickForm $mform, $questionnaire, $editquestionformobject) {
+    	//Create a new area for multiple dependencies
+    	if ($questionnaire->navigate == 2) {
+    		$position = ($this->position !== 0) ? $this->position : count($questionnaire->questions) + 1;
+    		$dependencies = questionnaire_get_dependencies($questionnaire->questions, $position);
+    		$advchildren = [];
+    		if (isset($this->qid)) {
+    			//TODO this should be placed in locallib, see "questionnaire_get_descendants"
+    			//Use also for the delete dialoque later
+    			foreach ($questionnaire->questions as $questionlistitem) {
+    				if (isset($questionlistitem->advdependencies)) {
+    					foreach ($questionlistitem->advdependencies as $outeradvdependencies) {
+    						if ($outeradvdependencies->adv_dependquestion == $this->qid) {
+    							$advchildren[] = $outeradvdependencies;
+    						}
+    					}
+    				}
+    			}
+    		}
+    		 
+    		if (count($dependencies) > 1) {
+    			//TODO Replace static strings and set language variables
+    			$mform->addElement('header', 'advdependencies_hdr', 'Dependencies');
+    			$mform->setExpanded('advdependencies_hdr');
+    			 
+    			$advdependenciescount = count($this->advdependencies);
+    			 
+    			//No childs, so we can add and change dependencies
+    			if (count($advchildren) == 0) {
+    				//TODO Replace static strings and set language variables
+    				$select = $mform->createElement('select', 'advdependlogic', 'Condition', array('This answer not given', 'This answer given'));
+    				$select->setSelected('1');
+    				$groupitems = array();
+    				$groupitems[] =& $mform->createElement('selectgroups', 'advdependquestions', 'Parent', $dependencies);
+    				$groupitems[] =& $select;
+    				$group = $mform->createElement('group', 'selectdependencies', get_string('dependquestion', 'questionnaire'), $groupitems, ' ', false);
+    				$editquestionformobject->repeat_elements(array($group), $advdependenciescount + 1, array(), 'numdependencies', 'adddependencies',2);
+    			} else {
+    				// Has childs, now we have to check, whether to show just a message or the list of fixed dependencies too
+    				if ($advdependenciescount == 0){
+    					$mform->addElement('static', 'selectdependency'.$i, get_string('dependquestion', 'questionnaire'),
+    							'<div class="dimmed_text">Dependencies can not be changed, because the flow for other questions allready depends on the existing behaviour.</div>');
+    				} else {
+    					//FIXME this is a fast workaround to use existing "questionnaire_get_parent", a proper implementation should be in locallib
+    					foreach ($question->advdependencies as $advdependencyhelper) {
+    						$advdependencyhelper->dependquestion = $advdependencyhelper->adv_dependquestion;
+    						$advdependencyhelper->dependchoice = $advdependencyhelper->adv_dependchoice;
+    						$advdependencyhelper->position = 0;
+    						$advdependencyhelper->name = null;
+    						$advdependencyhelper->content = null;
+    						$advdependencyhelper->id = 0;
+    						 
+    						$parent = questionnaire_get_parent ($advdependencyhelper);
+    						$fixeddependencies[] = $parent [0]['parent'];
+    					}
+    
+    					$mform->addElement('static', 'selectdependency', null,
+    							'<div class="dimmed_text">Dependencies can not be changed, because the flow for other questions allready depends on the existing behaviour.</div>');
+    					for ($i=0;$i<count($fixeddependencies);$i++) {
+    						 
+    						$mform->addElement('static', 'selectdependency_'.$i, get_string('dependquestion', 'questionnaire'),
+    								'<div class="dimmed_text">'.$fixeddependencies[$i].'</div>');
+    					}
+    				}
+    			}
+    			//TODO Replace static strings and set language variables
+    			$mform->addElement('header', 'qst_and_choices_hdr', 'Questiontext and answers');
+    		}
+    	}
+    	return true;
     }
 
     protected function form_question_text(\MoodleQuickForm $mform, $context) {
