@@ -813,6 +813,7 @@ abstract class base {
                         $fixeddependency = $parent [$this->id]['parent'];
                     }
                 }
+                //TODO Display warning, if the parent's answers were changed and the dependend answer no longer exists!
                 if ($canchangeparent) {
                     $this->dependquestion = isset($this->dependquestion) ? $this->dependquestion.','.
                                     $this->dependchoice : '0,0';

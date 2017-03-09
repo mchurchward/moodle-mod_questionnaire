@@ -795,8 +795,8 @@ function questionnaire_get_parent ($question) {
  * Get parent position of all child questions in current questionnaire.
  * For advdependencies use the parent with the largest position value.
  * 
- * @param 	array 	$questions 	List of Questions in the Questionnaire
- * @return 	array 				An array with Child-ID->Parentposition.
+ * @param 	array 	$questionnaire
+ * @return 	array 					An array with Child-ID->Parentposition.
  */
 function questionnaire_get_parent_positions ($questionnaire) {
     $parentpositions = array();
@@ -835,8 +835,8 @@ function questionnaire_get_parent_positions ($questionnaire) {
  * Get child position of all parent questions in current questionnaire.
  * For advdependencies ues the child with the smallest position value.
  * 
- * @param 	array 	$questions 	List of Questions in the Questionnaire
- * @return 	array 				An array with Parent-ID->Childposition.
+ * @param 	array 	$questionnaire
+ * @return 	array 					An array with Parent-ID->Childposition.
  */
 function questionnaire_get_child_positions ($questionnaire) {
     $childpositions = array();
