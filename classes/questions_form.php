@@ -110,12 +110,36 @@ class mod_questionnaire_questions_form extends moodleform {
             $required = $question->required;
 
             // Does this questionnaire contain branching questions already?
-            $dependency = '';
+            $dependencies = [];
+            $parents = [];
+            $positions = [];
+            //TODO I think the plugin should ignore also the old dependencies, when branching is set to 0 later,
+            //instead of continuing to use the dependencies after switching the option off. 
             if ($questionnairehasdependencies) {
-                if ($question->dependquestion != 0) {
+                if ($question->dependquestion != 0 && $questionnaire->navigate != 2) {
                     $parent = questionnaire_get_parent ($question);
-                    $dependency = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+                    $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
                         $strposition.' '.$parent[$qid]['parentposition'].' ('.$parent[$qid]['parent'].')';
+                }
+                
+                //TODO create questionnaire_get_advparents in locallib
+                if (isset($question->advdependencies) && $questionnaire->navigate == 2) {
+                	foreach ($question->advdependencies as $advdependencyhelper) {
+               			$advdependencyhelper->dependquestion = $advdependencyhelper->adv_dependquestion;
+               			$advdependencyhelper->dependchoice = $advdependencyhelper->adv_dependchoice;
+               			$advdependencyhelper->position = 0;
+               			$advdependencyhelper->name = null;
+               			$advdependencyhelper->content = null;
+               			$advdependencyhelper->id = 0;
+               				
+               			$parent = questionnaire_get_parent ($advdependencyhelper);
+               			$parents[] = $parent [0]['parent'];
+               			$positions[] = $parent [0]['parentposition'];
+                	}
+                	for ($i=0;$i<count($parents);$i++) {
+                		$dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+                				$strposition.' '.$positions[$i].' ('.$parents[$i].')';
+                	}
                 }
             }
 
@@ -306,8 +330,10 @@ class mod_questionnaire_questions_form extends moodleform {
             }
             $manageqgroup[] =& $mform->createElement('static', 'qinfo_'.$question->id, '', $qtype.' '.$qname);
 
-            if ($dependency) {
-                $mform->addElement('static', 'qdepend_'.$question->id, '', '<div class="qdepend">'.$dependency.'</div>');
+            if (isset($dependencies)) {
+            	foreach ($dependencies as $dependency) {
+            		$mform->addElement('static', 'qdepend_'.$question->id, '', '<div class="qdepend">'.$dependency.'</div>');
+            	}
             }
             if ($tid != QUESPAGEBREAK) {
                 if ($tid != QUESSECTIONTEXT) {

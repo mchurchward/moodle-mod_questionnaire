@@ -872,7 +872,7 @@ abstract class base {
     					$mform->addElement('static', 'selectdependency'.$i, get_string('dependquestion', 'questionnaire'),
     							'<div class="dimmed_text">Dependencies can not be changed, because the flow for other questions allready depends on the existing behaviour.</div>');
     				} else {
-    					//FIXME this is a fast workaround to use existing "questionnaire_get_parent", a proper implementation should be in locallib
+    					//TODO better create questionnaire_get_advparents in locallib
     					foreach ($question->advdependencies as $advdependencyhelper) {
     						$advdependencyhelper->dependquestion = $advdependencyhelper->adv_dependquestion;
     						$advdependencyhelper->dependchoice = $advdependencyhelper->adv_dependchoice;
@@ -1085,7 +1085,6 @@ abstract class base {
         //Now handle the advdependencies the same way as choices
         //Shouldn't the MOODLE-API provide this case of insert/update/delete?
         	// First handle advdependendies updates
-        	//TODO handle makecopy for advdependencies
         	if (isset($this->advdependencies) && !isset($formdata->makecopy)) {
         		$oldcount = count($this->advdependencies);
         		$eadvdependency = reset($this->advdependencies);
