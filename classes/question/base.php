@@ -873,7 +873,7 @@ abstract class base {
     							'<div class="dimmed_text">Dependencies can not be changed, because the flow for other questions allready depends on the existing behaviour.</div>');
     				} else {
     					//TODO better create questionnaire_get_advparents in locallib
-    					foreach ($question->advdependencies as $advdependencyhelper) {
+    					foreach ($this->advdependencies as $advdependencyhelper) {
     						$advdependencyhelper->dependquestion = $advdependencyhelper->adv_dependquestion;
     						$advdependencyhelper->dependchoice = $advdependencyhelper->adv_dependchoice;
     						$advdependencyhelper->position = 0;

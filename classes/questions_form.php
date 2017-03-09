@@ -91,8 +91,8 @@ class mod_questionnaire_questions_form extends moodleform {
         // we must get now the parent and child positions.
 
         if ($questionnairehasdependencies) {
-            $parentpositions = questionnaire_get_parent_positions ($questionnaire->questions);
-            $childpositions = questionnaire_get_child_positions ($questionnaire->questions);
+            $parentpositions = questionnaire_get_parent_positions ($questionnaire);
+            $childpositions = questionnaire_get_child_positions ($questionnaire);
         }
 
         $mform->addElement('header', 'manageq', get_string('managequestions', 'questionnaire'));

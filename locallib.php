@@ -791,41 +791,100 @@ function questionnaire_get_parent ($question) {
     return $parent;
 }
 
-// Get parent position of all child questions in current questionnaire.
-function questionnaire_get_parent_positions ($questions) {
+/**
+ * Get parent position of all child questions in current questionnaire.
+ * For advdependencies use the parent with the largest position value.
+ * 
+ * @param 	array 	$questions 	List of Questions in the Questionnaire
+ * @return 	array 				An array with Child-ID->Parentposition.
+ */
+function questionnaire_get_parent_positions ($questionnaire) {
     $parentpositions = array();
-    foreach ($questions as $question) {
-        $dependquestion = $question->dependquestion;
-        if ($dependquestion != 0) {
-            $childid = $question->id;
-            $parentpos = $questions[$dependquestion]->position;
-            $parentpositions[$childid] = $parentpos;
-        }
+    if ($questionnaire->navigate != 2) { //only this check, because we don't care whether 0 or 1
+    	foreach ($questionnaire->questions as $question) {
+    		$dependquestion = $question->dependquestion;
+    		if ($dependquestion != 0) {
+    			$childid = $question->id;
+    			$parentpos = $questionnaire->questions[$dependquestion]->position;
+    			$parentpositions[$childid] = $parentpos;
+    		}
+    	}
+    }
+    if ($questionnaire->navigate == 2) {
+    	foreach ($questionnaire->questions as $question) {
+    		foreach ($question->advdependencies as $advdependency) {
+    			$dependquestion = $advdependency->adv_dependquestion;
+    			if (isset($dependquestion) && $dependquestion != 0) {
+    				$childid = $question->id;
+    				$parentpos = $questionnaire->questions[$dependquestion]->position;
+
+    				if (!isset($parentpositions[$childid])){
+    					$parentpositions[$childid] = $parentpos;
+    				}
+    				if (isset ($parentpositions[$childid]) && $parentpos > $parentpositions[$childid]) {
+    					$parentpositions[$childid] = $parentpos;
+    				}
+    			}
+    		}
+    	}
     }
     return $parentpositions;
 }
 
-// Get child position of all parent questions in current questionnaire.
-function questionnaire_get_child_positions ($questions) {
+/**
+ * Get child position of all parent questions in current questionnaire.
+ * For advdependencies ues the child with the smallest position value.
+ * 
+ * @param 	array 	$questions 	List of Questions in the Questionnaire
+ * @return 	array 				An array with Parent-ID->Childposition.
+ */
+function questionnaire_get_child_positions ($questionnaire) {
     $childpositions = array();
-    foreach ($questions as $question) {
-        $dependquestion = $question->dependquestion;
-        if ($dependquestion != 0) {
-            $parentid = $questions[$dependquestion]->id;
-            if (!isset($firstchildfound[$parentid])) {
-                $firstchildfound[$parentid] = true;
-                $childpos = $question->position;
-                $childpositions[$parentid] = $childpos;
-            }
-        }
+    if ($questionnaire->navigate != 2) { //only this check, because we don't care whether 0 or 1
+    	foreach ($questionnaire->questions as $question) {
+    		$dependquestion = $question->dependquestion;
+    		if ($dependquestion != 0) {
+    			$parentid = $questionnaire->questions[$dependquestion]->id;
+    			if (!isset($firstchildfound[$parentid])) {
+    				$firstchildfound[$parentid] = true;
+    				$childpos = $question->position;
+    				$childpositions[$parentid] = $childpos;
+    			}
+    		}
+    	}
+    }
+    if ($questionnaire->navigate == 2) {
+    	foreach ($questionnaire->questions as $question) {
+    		foreach ($question->advdependencies as $advdependency) {
+    			$dependquestion = $advdependency->adv_dependquestion;
+    			if (isset($dependquestion) && $dependquestion != 0) {
+    				$parentid = $questionnaire->questions[$dependquestion]->id; //equals $dependquestion?
+    				$childpos = $question->position;
+    				
+    				if(!isset($childpositions[$parentid])){
+    					$childpositions[$parentid] = $childpos;
+    				}
+    				
+    				if (isset ($childpositions[$parentid]) && $childpos < $childpositions[$parentid]) {
+    					$childpositions[$parentid] = $childpos;
+    				}
+    			}
+    		}
+    	}
     }
     return $childpositions;
 }
 
-// Check if current questionnaire contains child questions.
-// Also check for child questions from advanced branching.
-// TODO this is the place to check $questionnaire->navigate to toggle the
-// depending behaviour for ALL branching-modes (0=off, 1=normal, 2=advanced)
+
+/**
+ * Check if current questionnaire has (adv)dependencies set.
+ * TODO would be a good place to toggle behaviour for
+ * branching-modes (0=off, 1=normal, 2=advanced)
+ * E.g. always return false if $questionnaire->navigate == 0
+ * 
+ * @param 	array 	$questions 	List of Questions in the Questionnaire
+ * @return 	boolean				Whether dependencies are set or not.
+ */
 function questionnaire_has_dependencies($questions) {
     foreach ($questions as $question) {
         if ($question->dependquestion != 0) {
