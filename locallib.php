@@ -682,33 +682,85 @@ function questionnaire_get_editor_options($context) {
 }
 
 // Skip logic: we need to find out how many questions will actually be displayed on next page/section.
-function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questionsinsection, $rid) {
+function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questionsinsection, $rid, $navigate) {
     global $DB;
     $questionstodisplay = array();
-    foreach ($questionsinsection as $question) {
-        if ($question->dependquestion != 0) {
-            switch ($questionsinquestionnaire[$question->dependquestion]->type_id) {
-                case QUESYESNO:
-                    if ($question->dependchoice == 0) {
-                        $questiondependchoice = 'y';
-                    } else {
-                        $questiondependchoice = 'n';
-                    }
-                    $responsetable = 'response_bool';
-                    break;
-                default:
-                    $questiondependchoice = $question->dependchoice;
-                    $responsetable = 'resp_single';
-            }
-            $params = array('response_id' => $rid,
-                            'question_id' => $question->dependquestion,
-                            'choice_id' => $questiondependchoice);
-            if ($DB->record_exists('questionnaire_'.$responsetable, $params)) {
-                $questionstodisplay [] = $question->id;
-            }
-        } else {
-            $questionstodisplay [] = $question->id;
-        }
+
+    if ($navigate == 1 || $navigate == 0){ //The plugin doesn't care if navigation-mode is 0 or 1
+    	foreach ($questionsinsection as $question) {
+    		if ($question->dependquestion != 0) {
+    			switch ($questionsinquestionnaire[$question->dependquestion]->type_id) {
+    				case QUESYESNO:
+    					if ($question->dependchoice == 0) {
+    						$questiondependchoice = 'y';
+    					} else {
+    						$questiondependchoice = 'n';
+    					}
+    					$responsetable = 'response_bool';
+    					break;
+    				default:
+    					$questiondependchoice = $question->dependchoice;
+    					$responsetable = 'resp_single';
+    			}
+    			$params = array('response_id' => $rid,
+    					'question_id' => $question->dependquestion,
+    					'choice_id' => $questiondependchoice);
+    			if ($DB->record_exists('questionnaire_'.$responsetable, $params)) {
+    				$questionstodisplay [] = $question->id;
+    			}
+    		} else {
+    			$questionstodisplay [] = $question->id;
+    		}
+    	}
+    }
+
+    //Use advdependencies for more complex branching
+    if ($navigate == 2) {
+    	foreach ($questionsinsection as $question) {
+    		if (!empty($question->advdependencies)) {
+    			foreach ($question->advdependencies as $advdependency) {
+    				$advdependency_fulfilled = false;
+    				switch ($questionsinquestionnaire[$advdependency->adv_dependquestion]->type_id) {
+    					case QUESYESNO:
+    						if ($advdependency->adv_dependchoice == 0) {
+    							$questiondependchoice = 'y';
+    						} else {
+    							$questiondependchoice = 'n';
+    						}
+    						$responsetable = 'response_bool';
+    						break;
+    					default:
+    						$questiondependchoice = $advdependency->adv_dependchoice;
+    						$responsetable = 'resp_single';
+    				}
+    				$params = array('response_id' => $rid,
+    						'question_id' => $advdependency->adv_dependquestion,
+    						'choice_id' => $questiondependchoice);
+    				 
+    				$record_exists = $DB->record_exists('questionnaire_'.$responsetable, $params);
+    	
+    				//dependlogic == 1 -> this answer givven
+    				if ($advdependency->adv_dependlogic == 1 && $record_exists) {
+    					$advdependency_fulfilled = true;
+    				}
+    				 
+    				//dependlogic == 0 -> this answer NOT givven
+    				if ($advdependency->adv_dependlogic == 0 && !$record_exists) {
+    					$advdependency_fulfilled = true;
+    				}
+
+    				//Something not fulfilled? Stop looking and continue to next question
+    				if ($advdependency_fulfilled == false) {
+    					break;
+    				}
+    			}
+    			if ($advdependency_fulfilled) {
+    				$questionstodisplay [] = $question->id;
+    			}
+    		} else {
+    			$questionstodisplay [] = $question->id;
+    		}
+    	}
     }
     return $questionstodisplay;
 }
