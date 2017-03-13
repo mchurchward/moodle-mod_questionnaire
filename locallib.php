@@ -916,6 +916,9 @@ function questionnaire_check_page_breaks($questionnaire) {
         $positions[$qu->position]['type_id'] = $qu->type_id;
         $positions[$qu->position]['qname'] = $qu->name;
         $positions[$qu->position]['qpos'] = $qu->position;
+        
+        $advdependencies = $DB->get_records('questionnaire_dependencies', array('question_id' => $key , 'survey_id' => $sid), 'id ASC', 'adv_dependquestion, adv_dependchoice, adv_dependlogic');
+        $positions[$qu->position]['advdependencies'] = $advdependencies;
     }
     $count = count($positions);
 
@@ -949,44 +952,67 @@ function questionnaire_check_page_breaks($questionnaire) {
             }
         }
         // Add pagebreak between question child and not dependent question that follows.
-        //Since the plugin doesn't care about changing the branching-option between 0 and 1...
-        if ($questionnaire->navigate != 2) {
 	        if ($qu['type_id'] != QUESPAGEBREAK) {
 	            $j = $i - 1;
 	            if ($j != 0) {
-	                $prevtypeid = $positions[$j]['type_id'];
-	                $prevdependquestion = $positions[$j]['dependquestion'];
-	                $prevdependchoice = $positions[$j]['dependchoice'];
-	                if (($prevtypeid != QUESPAGEBREAK && ($prevdependquestion != $qu['dependquestion']
-									|| $prevdependchoice != $qu['dependchoice']))
-	                                || ($qu['dependquestion'] == 0 && $prevdependquestion != 0)) {
-	                    $sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
-	                                    'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
-	                    if ($record = $DB->get_record_sql($sql)) {
-							$pos = $record->maxpos + 1;
-	                    } else {
-	                        $pos = 1;
-	                    }
-	                    $question = new stdClass();
-	                    $question->survey_id = $questionnaire->survey->id;
-	                    $question->type_id = QUESPAGEBREAK;
-	                    $question->position = $pos;
-	                    $question->content = 'break';
-	                    if (!($newqid = $DB->insert_record('questionnaire_question', $question))) {
-	                        return(false);
-	                    }
-	                    $newpbids[] = $newqid;
-	                    $movetopos = $i;
-	                    $questionnaire = new questionnaire($questionnaire->id, null, $course, $cm);
-	                    $questionnaire->move_question($newqid, $movetopos);
-	                }
+	            	if ($questionnaire->navigate != 2) { //Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
+	            		$prevtypeid = $positions[$j]['type_id'];
+	            		$prevdependquestion = $positions[$j]['dependquestion'];
+	            		$prevdependchoice = $positions[$j]['dependchoice'];
+	            		if (($prevtypeid != QUESPAGEBREAK && ($prevdependquestion != $qu['dependquestion']
+	            				|| $prevdependchoice != $qu['dependchoice']))
+	            				|| ($qu['dependquestion'] == 0 && $prevdependquestion != 0)) {
+	            					$sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
+	            							'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
+	            					if ($record = $DB->get_record_sql($sql)) {
+	            						$pos = $record->maxpos + 1;
+	            					} else {
+	            						$pos = 1;
+	            					}
+	            					$question = new stdClass();
+	            					$question->survey_id = $questionnaire->survey->id;
+	            					$question->type_id = QUESPAGEBREAK;
+	            					$question->position = $pos;
+	            					$question->content = 'break';
+
+	            					if (!($newqid = $DB->insert_record('questionnaire_question', $question))) {
+	            						return(false);
+	            					}
+	            					$newpbids[] = $newqid;
+	            					$movetopos = $i;
+	            					$questionnaire = new questionnaire($questionnaire->id, null, $course, $cm);
+	            					$questionnaire->move_question($newqid, $movetopos);
+	            		}
+	            	}
+	            	if ($questionnaire->navigate == 2) {
+	            		$prevtypeid = $positions[$j]['type_id'];
+	            		$prevadvdependencies = $positions[$j]['advdependencies'];
+	            		if (($prevtypeid != QUESPAGEBREAK && $prevadvdependencies != $qu['advdependencies'])
+	            				|| (!isset($qu['advdependencies']) && isset($prevadvdependencies))) {
+	            					$sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
+	            							'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
+	            					if ($record = $DB->get_record_sql($sql)) {
+	            						$pos = $record->maxpos + 1;
+	            					} else {
+	            						$pos = 1;
+	            					}
+	            					$question = new stdClass();
+	            					$question->survey_id = $questionnaire->survey->id;
+	            					$question->type_id = QUESPAGEBREAK;
+	            					$question->position = $pos;
+	            					$question->content = 'break';
+
+	            					if (!($newqid = $DB->insert_record('questionnaire_question', $question))) {
+	            						return(false);
+	            					}
+	            					$newpbids[] = $newqid;
+	            					$movetopos = $i;
+	            					$questionnaire = new questionnaire($questionnaire->id, null, $course, $cm);
+	            					$questionnaire->move_question($newqid, $movetopos);
+	            				}
+	            	}
 	            }
-	        }   	
-        }
-        //Only do this for advanced navigation
-        if ($questionnaire->navigate == 2) {
-        	//TODO handle page breaks for advanced navigation
-        }
+	        }
     }
     if (empty($newpbids) && !$msg) {
         $msg = get_string('checkbreaksok', 'questionnaire');
@@ -1024,6 +1050,7 @@ function questionnaire_get_descendants_and_choices ($questions) {
 }
 
 // Get all descendants for a question to be deleted.
+//TODO support advdependencies
 function questionnaire_get_descendants ($questions, $questionid) {
     $questions = array_reverse($questions, true);
     $qu = array();

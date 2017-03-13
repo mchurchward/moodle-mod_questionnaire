@@ -297,12 +297,15 @@ if ($action == 'main') {
         if (!isset($qformdata->required)) {
             $qformdata->required = 'n';
         }
+        
+        //just check it, following lines not needed anymore
+        questionnaire_check_page_breaks($questionnaire);
         // Need to reload questions.
-        $questions = $DB->get_records('questionnaire_question', array('survey_id' => $sid, 'deleted' => 'n'), 'id');
+        /*$questions = $DB->get_records('questionnaire_question', array('survey_id' => $sid, 'deleted' => 'n'), 'id');
         $questionnairehasdependencies = questionnaire_has_dependencies($questions);
         if (questionnaire_has_dependencies($questions)) {
             questionnaire_check_page_breaks($questionnaire);
-        }
+        }*/
         $SESSION->questionnaire->required = $qformdata->required;
         $SESSION->questionnaire->type_id = $qformdata->type_id;
         // Switch to main screen.

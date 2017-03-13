@@ -253,8 +253,8 @@ class mod_questionnaire_questions_form extends moodleform {
                                 	 		)
                                 		) || //Add conditions for advdependencies, including navigate, so old and new don't interfere
                                 		($questionnaire->navigate == 2 &&
-                                			(isset($nextquestionadvdependencies) ||
-                                	 			(isset($previousquestionadvdependencies) && !isset($nextquestionadvdependencies))
+                                			(!empty($nextquestionadvdependencies) ||
+                                				(!empty($previousquestionadvdependencies) && empty($nextquestionadvdependencies))
                                 			)
                                 		) 
                                 	) {

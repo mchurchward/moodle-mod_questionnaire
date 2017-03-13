@@ -996,7 +996,6 @@ abstract class base {
             $result = $this->update($questionrecord, false);
 
             if (questionnaire_has_dependencies($questionnaire->questions)) {
-            	//TODO enhance for advdependencies?
                 questionnaire_check_page_breaks($questionnaire);
             }
         } else {
