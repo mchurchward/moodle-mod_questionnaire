@@ -668,7 +668,7 @@ class questionnaire {
                 $formdata->sec++;
                 if (questionnaire_has_dependencies($this->questions)) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
+                                    $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
                     while (count($nbquestionsonpage) == 0) {
                         $this->response_delete($formdata->rid, $formdata->sec);
                         $formdata->sec++;
@@ -678,7 +678,7 @@ class questionnaire {
                             break;
                         }
                         $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
+                                        $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -705,11 +705,11 @@ class questionnaire {
                 // Skip logic.
                 if (questionnaire_has_dependencies($this->questions)) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
+                                    $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
                     while (count($nbquestionsonpage) == 0) {
                         $formdata->sec--;
                         $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
+                                        $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
