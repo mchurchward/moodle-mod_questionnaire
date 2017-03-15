@@ -45,6 +45,8 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
                         '/activity/questionnaire/surveys/survey/questions/question');
         $paths[] = new restore_path_element('questionnaire_quest_choice',
                         '/activity/questionnaire/surveys/survey/questions/question/quest_choices/quest_choice');
+        $paths[] = new restore_path_element('questionnaire_dependencies',
+        		'/activity/questionnaire/surveys/survey/questions/question/quest_advdependencies/quest_advdependency');
 
         if ($userinfo) {
             $paths[] = new restore_path_element('questionnaire_attempt', '/activity/questionnaire/attempts/attempt');
@@ -204,6 +206,30 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         $this->set_mapping('questionnaire_quest_choice', $oldid, $newitemid);
     }
 
+    protected function process_questionnaire_dependencies($data) {
+    	global $DB;
+
+    	$data = (object)$data;
+
+    	$oldid = $data->id;
+    	$data->survey_id = $this->get_new_parentid('questionnaire_survey');
+    	$data->question_id = $this->get_new_parentid('questionnaire_question');
+    	$data->adv_dependquestion = $this->get_mappingid('questionnaire_question', $data->adv_dependquestion);
+    	
+    	// Only change mapping for RADIO and DROP question types, not for YESNO question.
+    	$advdependquestion = $DB->get_record('questionnaire_question', array('id' => $data->adv_dependquestion), 'type_id');
+    	if (is_object($dependquestion)) {
+    		if ($dependquestion->type_id != 1) {
+    			$data->adv_dependchoice = $this->get_mappingid('questionnaire_quest_choice', $data->adv_dependchoice);
+    		}
+    	}
+    	
+    	// Insert the questionnaire_dependency record.
+    	//TODO import not working (also for the old dependency-system) if a new q was moved before the dependend q
+    	$newitemid = $DB->insert_record('questionnaire_dependencies', $data);
+    	$this->set_mapping('questionnaire_dependencies', $oldid, $newitemid);
+    }
+    
     protected function process_questionnaire_attempt($data) {
         global $DB;
 
