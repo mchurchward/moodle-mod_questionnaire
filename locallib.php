@@ -969,7 +969,10 @@ function questionnaire_check_page_breaks($questionnaire) {
         $positions[$qu->position]['qname'] = $qu->name;
         $positions[$qu->position]['qpos'] = $qu->position;
         
-        $advdependencies = $DB->get_records('questionnaire_dependencies', array('question_id' => $key , 'survey_id' => $sid), 'id ASC', 'adv_dependquestion, adv_dependchoice, adv_dependlogic');
+        // ID is left intentionally, so the arrays can be compared as they come from DB
+        // we don't need something unique per record
+        $advdependencies = $DB->get_records('questionnaire_dependencies', array('question_id' => $key , 'survey_id' => $sid),
+        		'id ASC', 'adv_dependquestion, adv_dependchoice, adv_dependlogic');
         $positions[$qu->position]['advdependencies'] = $advdependencies;
     }
     $count = count($positions);

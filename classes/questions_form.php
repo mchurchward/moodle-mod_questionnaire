@@ -137,12 +137,21 @@ class mod_questionnaire_questions_form extends moodleform {
                			$advdependencyhelper->id = 0;
                				
                			$parent = questionnaire_get_parent ($advdependencyhelper);
-               			$parents[] = $parent [0]['parent'];
-               			$positions[] = $parent [0]['parentposition'];
-                	}
-                	for ($i=0;$i<count($parents);$i++) {
-                		$dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
-                				$strposition.' '.$positions[$i].' ('.$parents[$i].')';
+               			
+               			//TODO Could be placed in locallib as function 
+               			//TODO Replace static strings and set language variables
+               			switch ($advdependencyhelper->adv_dependlogic) {
+               				case 0:
+               					$logic = ' not set';
+               					break;
+               				case 1:
+               					$logic = " set";
+               					break;
+               				default:
+               					$logic = "";
+               			}
+               			$dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+               					$strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
                 	}
                 }
             }
