@@ -57,7 +57,7 @@ angular.module('mm.addons.mod_questionnaire')
                 $scope.icon = $mmCourse.getModuleIconSrc('questionnaire');
                 $scope.class = 'mma-mod_questionnaire-handler';
                 $scope.action = function(e) {
-                    $state.go('site.questionnaire_chat', {module: module, courseid: courseid});
+                    $state.go('site.mod_questionnaire', {module: module, courseid: courseid});
                 };
             };
         };
