@@ -26,13 +26,30 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-$function = array(
-    'mod_questionnaire_view_questionnaire' => array(
+$functions = [
+    'mod_questionnaire_get_questionnaires_by_courses' => [
+        'classname'     => 'mod_questionnaire_external',
+        'methodname'    => 'get_questionnaires_by_courses',
+        'description'   => 'Returns a list of questionnaires in a provided list of courses, if no list is provided all questionnaires that
+                            the user can view will be returned.',
+        'type'          => 'read',
+        'capabilities'  => 'mod/questionnaire:view',
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+    'mod_questionnaire_get_questionnaire_access_information' => [
+        'classname'     => 'mod_questionnaire_external',
+        'methodname'    => 'get_questionnaire_access_information',
+        'description'   => 'Return access information for a given questionnaire.',
+        'type'          => 'read',
+        'capabilities'  => 'mod/questionnaire:view',
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+        'mod_questionnaire_view_questionnaire' => [
         'classname'     => 'mod_questionnaire_external',
         'methodname'    => 'view_questionnaire',
         'description'   => 'Trigger the course module viewed event and update the module completion status.',
         'type'          => 'write',
         'capabilities'  => 'mod/questionnaire:view',
-        'services'      => array(MOODLE_OFFICIAL_MOBILE_SERVICE)
-    ),
-);
+        'services'      => [MOODLE_OFFICIAL_MOBILE_SERVICE],
+    ],
+];
