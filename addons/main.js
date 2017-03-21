@@ -14,29 +14,8 @@
 
 angular.module('mm.addons.mod_questionnaire', [])
 
-.constant('mmaModQuestionnaireComponent', 'mmaModQuestionnaire')
+// .constant('mmaModQuestionnaireComponent', 'mmaModQuestionnaire')
 
-.config(function($stateProvider) {
-
-    $stateProvider
-
-    .state('site.mod_questionnaire', {
-        url: '/mod_questionnaire',
-        params: {
-            module: null,
-            courseid: null
-        },
-        views: {
-            'site': {
-                controller: 'mmaModQuestionnaireIndexCtrl',
-                templateUrl: 'addons/mod/questionnaire/templates/index.html'
-            }
-        }
-    });
-
-})
-
-.config(function($mmCourseDelegateProvider, $mmContentLinksDelegateProvider) {
+.config(function($mmCourseDelegateProvider) {
     $mmCourseDelegateProvider.registerContentHandler('mmaModQuestionnaire', 'questionnaire', '$mmaModQuestionnaireHandlers.courseContent');
-    $mmContentLinksDelegateProvider.registerLinkHandler('mmaModQuestionnaire', '$mmaModQuestionnaireHandlers.linksHandler');
 });
