@@ -1,87 +1,23 @@
 <ion-view>
-    <ion-nav-title><mm-format-text watch="true">{{ title }}</mm-format-text></ion-nav-title>
-    <ion-nav-buttons side="secondary">
-        <mm-context-menu>
-            <mm-context-menu-item priority="900" ng-if="moduleUrl" href="moduleUrl" content="'mm.core.openinbrowser' | translate" icon-action="'ion-share'"></mm-context-menu-item>
-            <mm-context-menu-item priority="800" ng-if="description" content="'mm.core.moduleintro' | translate" action="expandDescription()" icon-action="'ion-arrow-right-c'"></mm-context-menu-item>
-            <mm-context-menu-item priority="700" ng-if="questionnaireLoaded && !hasOffline && isOnline" content="'mm.core.refresh' | translate" action="refreshQuestionnaire(false)" icon-action="refreshIcon" close-on-click="false" close-when-done="true"></mm-context-menu-item>
-            <mm-context-menu-item priority="600" ng-if="questionnaireLoaded && hasOffline && isOnline" content="'mm.settings.synchronizenow' | translate" action="refreshQuestionnaire(true)" icon-action="syncIcon" close-on-click="false" close-when-done="true"></mm-context-menu-item>
-            <mm-context-menu-item priority="500" ng-if="prefetchStatusIcon" content="timemodified" icon-action="prefetchStatusIcon" action="prefetch()" close-on-click="false"></mm-context-menu-item>
-            <mm-context-menu-item priority="400" ng-if="size" content="size" icon-description="'ion-cube'" icon-action="'ion-trash-a'" action="removeFiles()"></mm-context-menu-item>
-        </mm-context-menu>
-    </ion-nav-buttons>
-    <ion-content mm-state-class>
-        <ion-refresher pulling-text="{{ 'mm.core.pulltorefresh' | translate }}" ng-if="questionnaireLoaded" on-refresh="refreshQuestionnaire(false)"></ion-refresher>
+    <ion-nav-title>{{ title }}</ion-nav-title>
+    <ion-content padding="true" mm-state-class>
+        <ion-refresher pulling-text="{{ 'mm.core.pulltorefresh' | translate }}" on-refresh="doRefresh()" ng-if="questionnaireLoaded"></ion-refresher>
         <mm-loading hide-until="questionnaireLoaded">
-            <mm-course-mod-description description="description" watch="true" component="{{component}}" component-id="{{componentId}}"></mm-course-mod-description>
+            <mm-course-mod-description description="description"></mm-course-mod-description>
 
-            <div class="mm-warning-card-icon" ng-if="questionnaire.canComplete && !questionnaire.isOpen">
-                <i class="icon ion-close-circled padding"></i> {{ 'mma.mod_questionnaire.questionnaire_is_not_open' | translate }}
+            <div class="card" ng-if="issues.length > 0">
+                <div class="item item-divider">{{ 'mma.mod_questionnaire.summaryofattempts' | translate }}</div>
+                <div class="item" ng-repeat="issue in issues">
+                    <p class="item-heading">{{ issue.timecreated * 1000 | mmFormatDate:"dfmediumdate" }}</p>
+                    <p ng-if="issue.grade">{{ issue.grade }}</p>
+                </div>
             </div>
 
-            <div class="mm-success-card-icon" ng-if="questionnaire.canComplete && questionnaire.isOpen && !questionnaire.canSubmit">
-                <i class="icon ion-checkmark-round padding"></i> {{ 'mma.mod_questionnaire.this_questionnaire_is_already_submitted' | translate }}
-            </div>
+            <button ng-if="!questionnaire.requiredtimenotmet && issues.length > 0" ng-click="openQuestionnaire()" class="button button-block">
+                <i class="icon ion-download"></i> {{ 'mma.mod_questionnaire.getquestionnaire' | translate }}
+            </button>
 
-            <section class="list" ng-if="capabilities.edititems || questionnaire.hasQuestions">
-                <div ng-if="capabilities.edititems">
-                    <div class="item item-text-wrap item-input item-select" ng-if="separateGroups || visibleGroups">
-                        <ion-label id="mma-questionnaire-groupslabel" ng-if="separateGroups">{{ 'mm.core.groupsseparate' | translate }}</ion-label>
-                        <ion-label id="mma-questionnaire-groupslabel" ng-if="visibleGroups">{{ 'mm.core.groupsvisible' | translate }}</ion-label>
-                        <select ng-model="selectedGroup" ng-change="setGroup(selectedGroup)" aria-labelledby="mma-questionnaire-groupslabel" ng-options="group.id as group.name for group in groups" mm-ios-select-fix>
-                        </select>
-                    </div>
-                    <div class="item item-text-wrap item-icon-right">
-                        <p class="item-heading">{{ 'mma.mod_questionnaire.completed_questionnaires' | translate }}</p>
-                        <span class="badge">{{questionnaire.completedCount}}</span>
-                    </div>
-                    <div class="item item-text-wrap item-icon-right">
-                        <p class="item-heading">{{ 'mma.mod_questionnaire.questions' | translate }}</p>
-                        <span class="badge">{{questionnaire.itemsCount}}</span>
-                    </div>
-                    <div class="item item-text-wrap" ng-if="questionnaire.timeopen">
-                        <p class="item-heading">{{ 'mma.mod_questionnaire.questionnaireopen' | translate }}</p>
-                        <p>{{questionnaire.openTimeReadable}}</p>
-                    </div>
-                    <div class="item item-text-wrap" ng-if="questionnaire.timeclose">
-                        <p class="item-heading">{{ 'mma.mod_questionnaire.questionnaireclose' | translate }}</p>
-                        <p>{{questionnaire.closeTimeReadable}}</p>
-                    </div>
-                    <div class="item item-text-wrap" ng-if="questionnaire.page_after_submit">
-                        <p class="item-heading">{{ 'mma.mod_questionnaire.page_after_submit' | translate }}</p>
-                        <mm-format-text watch="true" component="{{component}}" component-id="{{componentId}}">{{ questionnaire.page_after_submit }}</mm-format-text>
-                    </div>
-                </div>
-                <div ng-if="questionnaire.hasQuestions">
-                    <div class="item item-text-wrap">
-                        <p class="item-heading">{{ 'mma.mod_questionnaire.mode' | translate }}</p>
-                        <p ng-if="questionnaire.isAnonymous">{{ 'mma.mod_questionnaire.anonymous' | translate }}</p>
-                        <p ng-if="!questionnaire.isAnonymous">{{ 'mma.mod_questionnaire.non_anonymous' | translate }}</p>
-                    </div>
-                    <div class="item item-text-wrap">
-                        <button class="button button-block button icon-left ion-search" ng-click="openFeatureUrl('print')">{{ 'mma.mod_questionnaire.preview' | translate }}</button>
-                        <button ng-if="questionnaire.canComplete && questionnaire.canSubmit" class="button button-block button-positive icon-right ion-chevron-right" ng-click="openFeatureUrl('complete')">
-                            {{ 'mma.mod_questionnaire.complete_the_form' | translate }}
-                        </button>
-                    </div>
-                </div>
-            </section>
+            <p ng-if="questionnaire.requiredtimenotmet">{{ 'mma.mod_questionnaire.requiredtimenotmet' | translate:{$a: questionnaire} }}</p>
         </mm-loading>
     </ion-content>
-    <ion-footer ng-if="questionnaireLoaded && capabilities.viewreports">
-        <div class="tabs tabs-icon-top">
-            <a class="tab-item active">
-                <i class="icon ion-home"></i>{{ 'mma.mod_questionnaire.overview' | translate }}
-            </a>
-            <a class="tab-item" ng-click="openFeatureUrl('analysis')">
-                <i class="icon ion-stats-bars"></i>{{ 'mma.mod_questionnaire.analysis' | translate }}
-            </a>
-            <a class="tab-item" ng-click="openFeatureUrl('show_entries')">
-                <i class="icon ion-checkmark-round"></i>{{ 'mma.mod_questionnaire.show_entries' | translate }}
-            </a>
-            <a class="tab-item" ng-if="!questionnaire.isAnonymous" ng-click="openFeatureUrl('show_nonrespondents')">
-                <i class="icon ion-close-circled"></i>{{ 'mma.mod_questionnaire.show_nonrespondents' | translate }}
-            </a>
-        </div>
-    </ion-footer>
 </ion-view>

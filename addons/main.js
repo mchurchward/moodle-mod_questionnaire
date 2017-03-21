@@ -1,4 +1,4 @@
-// (C) Copyright 2017 Mike Churchward <mike.churchward@poetgroup.org>
+// (C) Copyright 2015 Martin Dougiamas
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ angular.module('mm.addons.mod_questionnaire', [])
         url: '/mod_questionnaire',
         params: {
             module: null,
-            moduleid: null, // Redundant parameter to fix a problem passing object as parameters. To be fixed in MOBILE-1370.
             courseid: null
         },
         views: {
@@ -34,9 +33,10 @@ angular.module('mm.addons.mod_questionnaire', [])
             }
         }
     });
+
 })
 
 .config(function($mmCourseDelegateProvider, $mmContentLinksDelegateProvider) {
     $mmCourseDelegateProvider.registerContentHandler('mmaModQuestionnaire', 'questionnaire', '$mmaModQuestionnaireHandlers.courseContent');
-    $mmContentLinksDelegateProvider.registerLinkHandler('mmaModQuestionnaire:index', '$mmaModQuestionnaireHandlers.indexLinksHandler');
+    $mmContentLinksDelegateProvider.registerLinkHandler('mmaModQuestionnaire', '$mmaModQuestionnaireHandlers.linksHandler');
 });
