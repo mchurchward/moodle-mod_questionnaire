@@ -1,0 +1,5 @@
+{
+    "getcertificate": "Obtener su certificado",
+    "requiredtimenotmet": "Usted debe pasar al menos un mínimo de {{$a.requiredtime}} minutos en el curso antes de poder acceder a este certificado",
+    "summaryofattempts": "Resumen de certificados recibidos anteriormente"
+}

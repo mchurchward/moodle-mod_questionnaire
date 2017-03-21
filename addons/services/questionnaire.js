@@ -1,4 +1,4 @@
-// (C) Copyright 2017 Mike Churchward <mike.churchward@poetgroup.org>
+// (C) Copyright 2015 Martin Dougiamas
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,51 +21,113 @@ angular.module('mm.addons.mod_questionnaire')
  * @ngdoc service
  * @name $mmaModQuestionnaire
  */
-.factory('$mmaModQuestionnaire', function($q, $mmSite, $mmSitesManager, $mmFilepool, mmaModQuestionnaireComponent, $mmUtil) {
+.factory('$mmaModQuestionnaire', function($q, $mmSite, $mmFS, $mmUtil, $mmSitesManager, mmaModQuestionnaireComponent, $mmFilepool) {
     var self = {};
 
     /**
-     * Get cache key for questionnaire data WS calls.
+     * Get a Questionnaire.
+     *
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#getQuestionnaire
+     * @param {Number} courseId Course ID.
+     * @param {Number} cmId     Course module ID.
+     * @return {Promise}        Promise resolved when the Questionnaire is retrieved.
+     */
+    self.getQuestionnaire = function(courseId, cmId) {
+        var params = {
+                courseids: [courseId]
+            },
+            preSets = {
+                cacheKey: getQuestionnaireCacheKey(courseId)
+            };
+
+        return $mmSite.read('mod_questionnaire_get_questionnaires_by_courses', params, preSets).then(function(response) {
+            if (response.questionnaires) {
+                var currentQuestionnaire;
+                angular.forEach(response.questionnaires, function(questionnaire) {
+                    if (questionnaire.coursemodule == cmId) {
+                        currentQuestionnaire = questionnaire;
+                    }
+                });
+                if (currentQuestionnaire) {
+                    return currentQuestionnaire;
+                }
+            }
+            return $q.reject();
+        });
+    };
+
+    /**
+     * Get cache key for Questionnaire data WS calls.
      *
      * @param {Number} courseId Course ID.
      * @return {String}         Cache key.
      */
-    function getQuestionnaireDataCacheKey(courseId) {
+    function getQuestionnaireCacheKey(courseId) {
         return 'mmaModQuestionnaire:questionnaire:' + courseId;
     }
 
     /**
-     * Get cache key for questionnaire access information data WS calls.
+     * Get issued questionnaires.
      *
-     * @param {Number} questionnaireId Questionnaire ID.
-     * @return {String}         Cache key.
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#getIssuedQuestionnaires
+     * @param {Number} id Questionnaire ID.
+     * @return {Promise}  Promise resolved when the issued data is retrieved.
      */
-    function getQuestionnaireAccessInformationDataCacheKey(questionnaireId) {
-        return 'mmaModQuestionnaire:access:' + questionnaireId;
+    self.getIssuedQuestionnaires = function(id) {
+        var params = {
+                questionnaireid: id
+            },
+            preSets = {
+                cacheKey: getIssuedQuestionnairesCacheKey(id)
+            };
+
+        return $mmSite.read('mod_questionnaire_get_issued_questionnaires', params, preSets).then(function(response) {
+            if (response.issues) {
+                return response.issues;
+            }
+            return $q.reject();
+        });
+    };
+
+    /**
+     * Get cache key for Questionnaire issued data WS calls.
+     *
+     * @param {Number} id Questionnaire ID.
+     * @return {String}   Cache key.
+     */
+    function getIssuedQuestionnairesCacheKey(id) {
+        return 'mmaModQuestionnaire:issued:' + id;
     }
 
     /**
-     * Get prefix cache key for questionnaire analysis data WS calls.
+     * Invalidates Questionnaire data.
      *
-     * @param {Number} questionnaireId Questionnaire ID.
-     * @return {String}         Cache key.
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#invalidateQuestionnaire
+     * @param {Number} courseId Course ID.
+     * @return {Promise}        Promise resolved when the data is invalidated.
      */
-    function getAnalysisDataPrefixCacheKey(questionnaireId) {
-        return 'mmaModQuestionnaire:analysis:' + questionnaireId;
-    }
+    self.invalidateQuestionnaire = function(courseId) {
+        return $mmSite.invalidateWsCacheForKey(getQuestionnaireCacheKey(courseId));
+    };
 
     /**
-     * Get cache key for questionnaire analysis data WS calls.
+     * Invalidates issues questionnaires.
      *
-     * @param {Number} questionnaireId Questionnaire ID.
-     * @param {Number} [groupId]  Group ID.
-     * @return {String}         Cache key.
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#invalidateIssuedQuestionnaires
+     * @param {Number} id Questionnaire ID.
+     * @return {Promise}  Promise resolved when the data is invalidated.
      */
-    function getAnalysisDataCacheKey(questionnaireId, groupId) {
-        groupId = groupId || 0;
-        return getAnalysisDataPrefixCacheKey(questionnaireId) + ":" + groupId;
-    }
-
+    self.invalidateIssuedQuestionnaires = function(id) {
+        return $mmSite.invalidateWsCacheForKey(getIssuedQuestionnairesCacheKey(id));
+    };
 
     /**
      * Return whether or not the plugin is enabled in a certain site. Plugin is enabled if the questionnaire WS are available.
@@ -77,242 +139,94 @@ angular.module('mm.addons.mod_questionnaire')
      * @return {Promise}         Promise resolved with true if plugin is enabled, rejected or resolved with false otherwise.
      */
     self.isPluginEnabled = function(siteId) {
-        return $mmSitesManager.getSite(siteId).then(function(site) {
-            return  site.wsAvailable('mod_questionnaire_get_questionnaires_by_courses') &&
-                    site.wsAvailable('mod_questionnaire_get_access_information');
-        });
-    };
-
-    /**
-     * Get a questionnaire with key=value. If more than one is found, only the first will be returned.
-     *
-     * @param  {Number}     courseId        Course ID.
-     * @param  {String}     key             Name of the property to check.
-     * @param  {Mixed}      value           Value to search.
-     * @param  {String}     [siteId]        Site ID. If not defined, current site.
-     * @param  {Boolean}    [forceCache]    True to always get the value from cache, false otherwise. Default false.
-     * @return {Promise}                    Promise resolved when the questionnaire is retrieved.
-     */
-    function getQuestionnaire(courseId, key, value, siteId, forceCache) {
-        return $mmSitesManager.getSite(siteId).then(function(site) {
-            var params = {
-                    courseids: [courseId]
-                },
-                preSets = {
-                    cacheKey: getQuestionnaireDataCacheKey(courseId)
-                };
-
-            if (forceCache) {
-                preSets.omitExpires = true;
-            }
-
-            return site.read('mod_questionnaire_get_questionnaires_by_courses', params, preSets).then(function(response) {
-                if (response && response.questionnaires) {
-                    var current;
-                    angular.forEach(response.questionnaires, function(questionnaire) {
-                        if (!current && questionnaire[key] == value) {
-                            current = questionnaire;
-                        }
-                    });
-                    if (current) {
-                        return current;
-                    }
-                }
-                return $q.reject();
-            });
-        });
-    }
-
-    /**
-     * Get a questionnaire by course module ID.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#getQuestionnaire
-     * @param   {Number}    courseId        Course ID.
-     * @param   {Number}    cmId            Course module ID.
-     * @param   {String}    [siteId]        Site ID. If not defined, current site.
-     * @param   {Boolean}   [forceCache]    True to always get the value from cache, false otherwise. Default false.
-     * @return  {Promise}                   Promise resolved when the questionnaire is retrieved.
-     */
-    self.getQuestionnaire = function(courseId, cmId, siteId, forceCache) {
-        return getQuestionnaire(courseId, 'coursemodule', cmId, siteId, forceCache);
-    };
-
-    /**
-     * Get a questionnaire by ID.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#getQuestionnaireById
-     * @param   {Number}    courseId        Course ID.
-     * @param   {Number}    id              Questionnaire ID.
-     * @param   {String}    [siteId]        Site ID. If not defined, current site.
-     * @param   {Boolean}   [forceCache]    True to always get the value from cache, false otherwise. Default false.
-     * @return  {Promise}                   Promise resolved when the questionnaire is retrieved.
-     */
-    self.getQuestionnaireById = function(courseId, id, siteId, forceCache) {
-        return getQuestionnaire(courseId, 'id', id, siteId, forceCache);
-    };
-
-    /**
-     * Invalidates questionnaire data.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#invalidateQuestionnaireData
-     * @param {Number} courseId Course ID.
-     * @param  {String} [siteId] Site ID. If not defined, current site.
-     * @return {Promise}        Promise resolved when the data is invalidated.
-     */
-    self.invalidateQuestionnaireData = function(courseId, siteId) {
-        return $mmSitesManager.getSite(siteId).then(function(site) {
-            return site.invalidateWsCacheForKey(getQuestionnaireDataCacheKey(courseId));
-        });
-    };
-
-    /**
-     * Get  access information for a given questionnaire.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#getQuestionnaireAccessInformation
-     * @param   {Number}    questionnaireId      Questionnaire ID.
-     * @param   {String}    [siteId]        Site ID. If not defined, current site.
-     * @return  {Promise}                   Promise resolved when the questionnaire is retrieved.
-     */
-    self.getQuestionnaireAccessInformation = function(questionnaireId, siteId) {
-        return $mmSitesManager.getSite(siteId).then(function(site) {
-            var params = {
-                    questionnaireid: questionnaireId
-                },
-                preSets = {
-                    cacheKey: getQuestionnaireAccessInformationDataCacheKey(questionnaireId)
-                };
-
-            return site.read('mod_questionnaire_get_access_information', params, preSets).then(function(accessData) {
-                accessData.capabilities = $mmUtil.objectToKeyValueMap(accessData.capabilities, 'name', 'enabled', 'mod/questionnaire:');
-                return accessData;
-            });
-        });
-    };
-
-    /**
-     * Invalidates questionnaire access information data.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#invalidateQuestionnaireAccessInformationData
-     * @param {Number} questionnaireId   Questionnaire ID.
-     * @param  {String} [siteId]    Site ID. If not defined, current site.
-     * @return {Promise}        Promise resolved when the data is invalidated.
-     */
-    self.invalidateQuestionnaireAccessInformationData = function(questionnaireId, siteId) {
-        return $mmSitesManager.getSite(siteId).then(function(site) {
-            return site.invalidateWsCacheForKey(getQuestionnaireAccessInformationDataCacheKey(questionnaireId));
-        });
-    };
-
-    /**
-     * Get analysis information for a given questionnaire.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#getAnalysis
-     * @param   {Number}    questionnaireId      Questionnaire ID.
-     * @param   {Number}    [groupId]       Group ID.
-     * @param   {String}    [siteId]        Site ID. If not defined, current site.
-     * @return  {Promise}                   Promise resolved when the questionnaire is retrieved.
-     */
-    self.getAnalysis = function(questionnaireId, groupId, siteId) {
-        return $mmSitesManager.getSite(siteId).then(function(site) {
-            var params = {
-                    questionnaireid: questionnaireId
-                },
-                preSets = {
-                    cacheKey: getAnalysisDataCacheKey(questionnaireId, groupId)
-                };
-
-            if (groupId) {
-                params.groupid = groupId;
-            }
-
-            return site.read('mod_questionnaire_get_analysis', params, preSets);
-        });
-    };
-
-    /**
-     * Invalidates questionnaire analysis data.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#invalidateAnalysisData
-     * @param {Number} questionnaireId   Questionnaire ID.
-     * @param  {String} [siteId]    Site ID. If not defined, current site.
-     * @return {Promise}        Promise resolved when the data is invalidated.
-     */
-    self.invalidateAnalysisData = function(questionnaireId, siteId) {
-        return $mmSitesManager.getSite(siteId).then(function(site) {
-            return site.invalidateWsCacheForKeyStartingWith(getAnalysisDataPrefixCacheKey(questionnaireId));
-        });
-    };
-
-    /**
-     * Invalidate the prefetched content except files.
-     * To invalidate files, use $mmaModQuestionnaire#invalidateFiles.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#invalidateContent
-     * @param {Number} moduleId The module ID.
-     * @param {Number} courseId Course ID.
-     * @param  {String} [siteId] Site ID. If not defined, current site.
-     * @return {Promise}
-     */
-    self.invalidateContent = function(moduleId, courseId, siteId) {
         siteId = siteId || $mmSite.getId();
-        return self.getQuestionnaire(courseId, moduleId, siteId, true).then(function(questionnaire) {
-            var ps = [];
-            // Do not invalidate questionnaire data before getting questionnaire info, we need it!
-            ps.push(self.invalidateQuestionnaireData(courseId, siteId));
-            ps.push(self.invalidateQuestionnaireAccessInformationData(questionnaire.id, siteId));
-            ps.push(self.invalidateAnalysisData(questionnaire.id, siteId));
 
-            return $q.all(ps);
+        return $mmSitesManager.getSite(siteId).then(function(site) {
+            return site.wsAvailable('mod_questionnaire_get_questionnaires_by_courses');
         });
     };
 
     /**
-     * Invalidate the prefetched files.
-     *
-     * @module mm.addons.mod_questionnaire
-     * @ngdoc method
-     * @name $mmaModQuestionnaire#invalidateFiles
-     * @param {Number} moduleId  The module ID.
-     * @param  {String} [siteId] Site ID. If not defined, current site.
-     * @return {Promise}         Promise resolved when the files are invalidated.
-     */
-    self.invalidateFiles = function(moduleId, siteId) {
-        return $mmFilepool.invalidateFilesByComponent(siteId, mmaModQuestionnaireComponent, moduleId);
-    };
-
-    /**
-     * Report the questionnaire as being viewed.
+     * Report the Questionnaire as being viewed.
      *
      * @module mm.addons.mod_questionnaire
      * @ngdoc method
      * @name $mmaModQuestionnaire#logView
-     * @param {String}  id       Questionnaire ID.
-     * @param  {String} [siteId] Site ID. If not defined, current site.
+     * @param {String} id Questionnaire ID.
      * @return {Promise}  Promise resolved when the WS call is successful.
      */
-    self.logView = function(id, siteId) {
-        return $mmSitesManager.getSite(siteId).then(function(site) {
+    self.logView = function(id) {
+        if (id) {
             var params = {
                 questionnaireid: id
             };
-            return site.write('mod_questionnaire_view_questionnaire', params);
+            return $mmSite.write('mod_questionnaire_view_questionnaire', params);
+        }
+        return $q.reject();
+    };
+
+    /**
+     * Issue a questionnaire.
+     *
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#issueQuestionnaire
+     * @param {Number} questionnaireId Questionnaire ID.
+     * @return {Promise}  Promise resolved when the WS call is successful.
+     */
+    self.issueQuestionnaire = function(questionnaireId) {
+         var params = {
+            questionnaireid: questionnaireId
+        };
+        return $mmSite.write('mod_questionnaire_issue_questionnaire', params).then(function(response) {
+            if (!response || !response.issue) {
+                return $q.reject();
+            }
         });
+    };
+
+    /**
+     * Download or open a downloaded questionnaire.
+     *
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#openQuestionnaire
+     * @param {Object} issuedQuestionnaire Issued questionnaire object.
+     * @param {Number} moduleId Module id.
+     * @return {Promise}  Promise resolved when the WS call is successful.
+     */
+    self.openQuestionnaire = function(issuedQuestionnaire, moduleId) {
+
+        var siteId = $mmSite.getId(),
+            revision = 0,
+            timeMod = issuedQuestionnaire.timecreated,
+            files = [{fileurl: issuedQuestionnaire.fileurl, filename: issuedQuestionnaire.filename, timemodified: timeMod}];
+        if ($mmFS.isAvailable()) {
+            // The file system is available.
+            promise = $mmFilepool.downloadPackage(siteId, files, mmaModQuestionnaireComponent, moduleId, revision, timeMod).then(function() {
+                return $mmFilepool.getUrlByUrl(siteId, issuedQuestionnaire.fileurl, mmaModQuestionnaireComponent, moduleId, timeMod);
+            });
+        } else {
+            // We use the live URL.
+            promise = $q.when($mmSite.fixPluginfileURL(issuedQuestionnaire.fileurl));
+        }
+
+        return promise.then(function(localUrl) {
+            return $mmUtil.openFile(localUrl);
+        });
+    };
+
+    /**
+     * Invalidate downloaded questionnaires.
+     *
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#invalidateDownloadedQuestionnaires
+     * @param {Number} moduleId Module id.
+     * @return {Promise}  Promise resolved when the WS call is successful.
+     */
+    self.invalidateDownloadedQuestionnaires = function(moduleId) {
+        return $mmFilepool.invalidateFilesByComponent($mmSite.getId(), mmaModQuestionnaireComponent, moduleId);
     };
 
     return self;
