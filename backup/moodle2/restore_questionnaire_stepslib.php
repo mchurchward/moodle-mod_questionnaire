@@ -30,6 +30,21 @@
  */
 class restore_questionnaire_activity_structure_step extends restore_activity_structure_step {
 
+    /**
+     * @var array $olddependquestions Contains any question id's with dependencies.
+     */
+    protected $olddependquestions = [];
+
+    /**
+     * @var array $olddependchoices Contains any choice id's for questions with dependencies.
+     */
+    protected $olddependchoices = [];
+
+    /**
+     * @var array $oldadvdependencies Contains the old id's from the advdependencies array.
+     */
+    protected $oldadvdependencies = [];
+    
     protected function define_structure() {
 
         $paths = array();
@@ -108,23 +123,16 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         $oldid = $data->id;
         $data->survey_id = $this->get_new_parentid('questionnaire_survey');
 
-        if (isset($data->dependquestion)) {
-            // Dependquestion.
-            $data->dependquestion = $this->get_mappingid('questionnaire_question', $data->dependquestion);
-
-            // Dependchoice.
-            // Only change mapping for RADIO and DROP question types, not for YESNO question.
-            $dependquestion = $DB->get_record('questionnaire_question', array('id' => $data->dependquestion), 'type_id');
-            if (is_object($dependquestion)) {
-                if ($dependquestion->type_id != 1) {
-                    $data->dependchoice = $this->get_mappingid('questionnaire_quest_choice', $data->dependchoice);
-                }
-            }
-        }
-
         // Insert the questionnaire_question record.
         $newitemid = $DB->insert_record('questionnaire_question', $data);
         $this->set_mapping('questionnaire_question', $oldid, $newitemid, true);
+
+        if (isset($data->dependquestion)) {
+            // We'll need to process dependent questions in after_execute, after we have processed all questions,
+            // to ensure the id's are available. See CONTRIB-6787.
+            $this->olddependquestions[$newitemid] = $data->dependquestion;
+            $this->olddependchoices[$newitemid] = $data->dependchoice;
+        }
     }
 
     /**
@@ -186,48 +194,21 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         $oldid = $data->id;
         $data->question_id = $this->get_new_parentid('questionnaire_question');
 
-        if (isset($data->dependquestion)) {
-            // Dependquestion.
-            $data->dependquestion = $this->get_mappingid('questionnaire_question', $data->dependquestion);
-
-            // Dependchoice.
-            // Only change mapping for RADIO and DROP question types, not for YESNO question.
-            $dependquestion = $DB->get_record('questionnaire_question',
-                            array('id' => $data->dependquestion), 'type_id');
-            if (is_object($dependquestion)) {
-                if ($dependquestion->type_id != 1) {
-                    $data->dependchoice = $this->get_mappingid('questionnaire_quest_choice', $data->dependchoice);
-                }
-            }
-        }
-
         // Insert the questionnaire_quest_choice record.
         $newitemid = $DB->insert_record('questionnaire_quest_choice', $data);
         $this->set_mapping('questionnaire_quest_choice', $oldid, $newitemid);
     }
-
+    
     protected function process_questionnaire_dependencies($data) {
     	global $DB;
-
     	$data = (object)$data;
-
-    	$oldid = $data->id;
-    	$data->survey_id = $this->get_new_parentid('questionnaire_survey');
+    	 
     	$data->question_id = $this->get_new_parentid('questionnaire_question');
-    	$data->adv_dependquestion = $this->get_mappingid('questionnaire_question', $data->adv_dependquestion);
-    	
-    	// Only change mapping for RADIO and DROP question types, not for YESNO question.
-    	$advdependquestion = $DB->get_record('questionnaire_question', array('id' => $data->adv_dependquestion), 'type_id');
-    	if (is_object($dependquestion)) {
-    		if ($dependquestion->type_id != 1) {
-    			$data->adv_dependchoice = $this->get_mappingid('questionnaire_quest_choice', $data->adv_dependchoice);
-    		}
+    	$data->survey_id = $this->get_new_parentid('questionnaire_survey');
+
+    	if (isset($data)) {
+    		$this->oldadvdependencies[$data->question_id] = $data;
     	}
-    	
-    	// Insert the questionnaire_dependency record.
-    	//TODO import not working (also for the old dependency-system) if a new q was moved before the dependend q
-    	$newitemid = $DB->insert_record('questionnaire_dependencies', $data);
-    	$this->set_mapping('questionnaire_dependencies', $oldid, $newitemid);
     }
     
     protected function process_questionnaire_attempt($data) {
@@ -342,6 +323,37 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
     }
 
     protected function after_execute() {
+        global $DB;
+
+        // Process any question dependencies after all questions and choices have already been processed to ensure we have all of
+        // the new id's.
+        foreach ($this->olddependquestions as $newid => $olddependid) {
+            $newdependid = $this->get_mappingid('questionnaire_question', $olddependid);
+            $DB->set_field('questionnaire_question', 'dependquestion', $newdependid, ['id' => $newid]);
+            // Dependchoice.
+            // Only change mapping for RADIO and DROP question types, not for YESNO question.
+            $dependquestion = $DB->get_record('questionnaire_question', array('id' => $newdependid), 'type_id');
+            if (is_object($dependquestion)) {
+                if ($dependquestion->type_id != 1) {
+                    $newdependchoice = $this->get_mappingid('questionnaire_quest_choice', $this->olddependchoices[$newid]);
+                    $DB->set_field('questionnaire_question', 'dependchoice', $newdependchoice, ['id' => $newid]);
+                }
+            }
+        }
+
+        foreach ($this->oldadvdependencies as $newid => $data) {
+        	$data->adv_dependquestion = $this->get_mappingid('questionnaire_question', $data->adv_dependquestion);
+
+        	// Only change mapping for RADIO and DROP question types, not for YESNO question.
+        	$dependquestion = $DB->get_record('questionnaire_question', array('id' => $data->adv_dependquestion), 'type_id');
+        	if (is_object($dependquestion)) {
+        		if ($dependquestion->type_id != 1) {
+        			$data->adv_dependchoice = $this->get_mappingid('questionnaire_quest_choice', $data->adv_dependchoice);
+        		}
+        	}
+        	$newitemid = $DB->insert_record('questionnaire_dependencies', $data);
+        }
+
         // Add questionnaire related files, no need to match by itemname (just internally handled context).
         $this->add_related_files('mod_questionnaire', 'intro', null);
         $this->add_related_files('mod_questionnaire', 'info', 'questionnaire_survey');
