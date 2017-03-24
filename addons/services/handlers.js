@@ -1,10 +1,10 @@
-// (C) Copyright 2015 Martin Dougiamas
+// Copyright (C) 2017 Mike Churchward <mike.churchward@poetgroup.org>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+// http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -40,7 +40,25 @@ angular.module('mm.addons.mod_questionnaire')
          * @return {Boolean}
          */
         self.isEnabled = function() {
-            return true;
+            return $mmaModQuestionnaire.isPluginEnabled();
+        };
+
+        /**
+         * Get the controller.
+         *
+         * @param {Object} module The module info.
+         * @param {Number} courseid The course ID.
+         * @return {Function}
+         */
+        self.getController = function(module, courseid) {
+            return function($scope) {
+                $scope.title = module.name;
+                $scope.icon = 'addons/mod/questionnaire/icon.svg'
+                $scope.class = 'mma-mod_questionnaire-handler';
+                $scope.action = function() {
+                    $state.go('site.mod_questionnaire', {module: module, courseid: courseid});
+                };
+            };
         };
 
         return self;
