@@ -969,10 +969,8 @@ function questionnaire_check_page_breaks($questionnaire) {
         $positions[$qu->position]['qname'] = $qu->name;
         $positions[$qu->position]['qpos'] = $qu->position;
         
-        // ID is left intentionally, so the arrays can be compared as they come from DB
-        // we don't need something unique per record
         $advdependencies = $DB->get_records('questionnaire_dependencies', array('question_id' => $key , 'survey_id' => $sid),
-        		'id ASC', 'adv_dependquestion, adv_dependchoice, adv_dependlogic');
+        		'id ASC', 'id, adv_dependquestion, adv_dependchoice, adv_dependlogic');
         $positions[$qu->position]['advdependencies'] = $advdependencies;
     }
     $count = count($positions);
@@ -1042,7 +1040,24 @@ function questionnaire_check_page_breaks($questionnaire) {
 	            	if ($questionnaire->navigate == 2) {
 	            		$prevtypeid = $positions[$j]['type_id'];
 	            		$prevadvdependencies = $positions[$j]['advdependencies'];
-	            		if (($prevtypeid != QUESPAGEBREAK && $prevadvdependencies != $qu['advdependencies'])
+
+	            		$outerdependencies = count($qu['advdependencies']) >= count($prevadvdependencies) ? $qu['advdependencies']: $prevadvdependencies;
+	            		$innerdependencies = count($qu['advdependencies']) < count($prevadvdependencies) ? $qu['advdependencies']: $prevadvdependencies;
+	            		
+	            		foreach ($outerdependencies as $okey => $outerdependency) {
+	            			foreach ($innerdependencies as $ikey => $innerdependency) {
+	            				if(	$outerdependency->adv_dependquestion === $innerdependency->adv_dependquestion &&
+	            					$outerdependency->adv_dependchoice === $innerdependency->adv_dependchoice &&
+	            					$outerdependency->adv_dependlogic === $innerdependency->adv_dependlogic) {
+		            					unset($outerdependencies[$okey]);
+		            					unset($innerdependencies[$ikey]);
+	            				}
+	            			}
+	            		}
+	            		
+	            		$diff_advdependencies = count($outerdependencies) + count($innerdependencies);
+	            		
+	            		if (($prevtypeid != QUESPAGEBREAK && $diff_advdependencies != 0)
 	            				|| (!isset($qu['advdependencies']) && isset($prevadvdependencies))) {
 	            					$sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
 	            							'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
