@@ -21,7 +21,7 @@ angular.module('mm.addons.mod_questionnaire')
  * @ngdoc service
  * @name $mmaModQuestionnaireHandlers
  */
-.factory('$mmaModQuestionnaireHandlers', function($mmCourse, $mmaModQuestionnaire, $state, $q) {
+.factory('$mmaModQuestionnaireHandlers', function($mmCourse, $mmaModQuestionnaire, $state, $mmContentLinksHelper) {
     var self = {};
 
     /**
@@ -53,7 +53,7 @@ angular.module('mm.addons.mod_questionnaire')
         self.getController = function(module, courseid) {
             return function($scope) {
                 $scope.title = module.name;
-                $scope.icon = 'addons/mod/questionnaire/icon.svg'
+                $scope.icon = 'addons/mod/questionnaire/icon.svg';
                 $scope.class = 'mma-mod_questionnaire-handler';
                 $scope.action = function() {
                     $state.go('site.mod_questionnaire', {module: module, courseid: courseid});
@@ -63,6 +63,15 @@ angular.module('mm.addons.mod_questionnaire')
 
         return self;
     };
+
+    /**
+     * Content links handler for module index page.
+     *
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaireHandlers#indexLinksHandler
+     */
+    self.indexLinksHandler = $mmContentLinksHelper.createModuleIndexLinkHandler('mmaModQuestionnaire', 'questionnaire', $mmaModQuestionnaire);
 
     return self;
 });
