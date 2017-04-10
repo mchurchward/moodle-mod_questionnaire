@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/questionnaire/db" VERSION="20170301" COMMENT="XMLDB file for Moodle mod/questionnaire"
+<XMLDB PATH="mod/questionnaire/db" VERSION="20170404" COMMENT="XMLDB file for Moodle mod/questionnaire"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -266,6 +266,7 @@
         <FIELD NAME="adv_dependlogic" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="question_id" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="survey_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="adv_depend_and_or" TYPE="char" LENGTH="4" NOTNULL="true" SEQUENCE="false" COMMENT="Mandatory or obligatory dependency"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

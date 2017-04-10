@@ -112,6 +112,7 @@ class mod_questionnaire_questions_form extends moodleform {
 
             // Does this questionnaire contain branching questions already?
             $dependencies = [];
+            $dependencies_or = [];
             $parents = [];
             $positions = [];
 
@@ -150,8 +151,17 @@ class mod_questionnaire_questions_form extends moodleform {
                				default:
                					$logic = "";
                			}
-               			$dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
-               					$strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
+               			
+               			if ($advdependencyhelper->adv_depend_and_or == "and") {
+               				$dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+               						$strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
+               			}
+               			
+               			//Use own array for or-dependencies, to apply a specific css-class later
+               			if  ($advdependencyhelper->adv_depend_and_or == "or") {
+               				$dependencies_or[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+               						$strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
+               			}
                 	}
                 }
             }
@@ -363,6 +373,11 @@ class mod_questionnaire_questions_form extends moodleform {
             if (isset($dependencies)) {
             	foreach ($dependencies as $dependency) {
             		$mform->addElement('static', 'qdepend_'.$question->id, '', '<div class="qdepend">'.$dependency.'</div>');
+            	}
+            }
+            if (isset($dependencies_or)) {
+            	foreach ($dependencies_or as $dependency_or) {
+            		$mform->addElement('static', 'qdepend_or_'.$question->id, '', '<div class="qdepend-or">'.$dependency_or.'</div>');
             	}
             }
             if ($tid != QUESPAGEBREAK) {

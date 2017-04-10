@@ -719,7 +719,6 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     	foreach ($questionsinsection as $question) {
     		if (!empty($question->advdependencies)) {
     			foreach ($question->advdependencies as $advdependency) {
-    				$advdependency_fulfilled = false;
     				switch ($questionsinquestionnaire[$advdependency->adv_dependquestion]->type_id) {
     					case QUESYESNO:
     						if ($advdependency->adv_dependchoice == 0) {
@@ -739,22 +738,52 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     				 
     				$record_exists = $DB->record_exists('questionnaire_'.$responsetable, $params);
     	
-    				//dependlogic == 1 -> this answer givven
-    				if ($advdependency->adv_dependlogic == 1 && $record_exists) {
-    					$advdependency_fulfilled = true;
+    				//Note: advdependencies are sorted, first all and-dependencies, then or-dependencies.
+    				if ($advdependency->adv_depend_and_or == 'and') {
+    					$advdependency_and_fulfilled = false;
+    					//dependlogic == 1 -> this answer givven
+    					if ($advdependency->adv_dependlogic == 1 && $record_exists) {
+    						$advdependency_and_fulfilled = true;
+    					}
+    						
+    					//dependlogic == 0 -> this answer NOT givven
+    					if ($advdependency->adv_dependlogic == 0 && !$record_exists) {
+    						$advdependency_and_fulfilled = true;
+    					}
+    					
+    					//Something mandatory not fulfilled? Stop looking and continue to next question
+    					if ($advdependency_and_fulfilled == false) {
+    						break;
+    					}
+    					
+    					//In case we have no or-dependencies
+    					$advdependency_or_fulfilled = true;
+    						
     				}
-    				 
-    				//dependlogic == 0 -> this answer NOT givven
-    				if ($advdependency->adv_dependlogic == 0 && !$record_exists) {
-    					$advdependency_fulfilled = true;
+    				
+    				//Note: advdependencies are sorted, first all and-dependencies, then or-dependencies.
+    				if ($advdependency->adv_depend_and_or == 'or') {
+    					$advdependency_or_fulfilled = false;
+    					//To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
+    					$advdependency_and_fulfilled = true;
+    					//dependlogic == 1 -> this answer givven
+    					if ($advdependency->adv_dependlogic == 1 && $record_exists) {
+    						$advdependency_or_fulfilled = true;
+    					}
+    				
+    					//dependlogic == 0 -> this answer NOT givven
+    					if ($advdependency->adv_dependlogic == 0 && !$record_exists) {
+    						$advdependency_or_fulfilled = true;
+    					}
+    						
+    					//Something fulfilled? A single match is sufficient so continue to next question.
+    					if ($advdependency_or_fulfilled == true) {
+    						break;
+    					}
     				}
-
-    				//Something not fulfilled? Stop looking and continue to next question
-    				if ($advdependency_fulfilled == false) {
-    					break;
-    				}
+    				
     			}
-    			if ($advdependency_fulfilled) {
+    			if ($advdependency_and_fulfilled && $advdependency_or_fulfilled) {
     				$questionstodisplay [] = $question->id;
     			}
     		} else {
@@ -1175,8 +1204,13 @@ function questionnaire_prep_for_questionform($questionnaire, $qid, $qtype) {
 
         if (isset($question->advdependencies)) {
         	foreach ($question->advdependencies as $advdependencies) {
-        		$question->advdependquestions[] = $advdependencies->adv_dependquestion.','.$advdependencies->adv_dependchoice;
-        		$question->advdependlogic[] = $advdependencies->adv_dependlogic;
+        		if ($advdependencies->adv_depend_and_or === "and") {
+        			$question->advdependquestions_and[] = $advdependencies->adv_dependquestion.','.$advdependencies->adv_dependchoice;
+        			$question->advdependlogic_and[] = $advdependencies->adv_dependlogic;
+        		} elseif ($advdependencies->adv_depend_and_or === "or") {
+        			$question->advdependquestions_or[] = $advdependencies->adv_dependquestion.','.$advdependencies->adv_dependchoice;
+        			$question->advdependlogic_or[] = $advdependencies->adv_dependlogic;
+        		}
         	}
         } 
     } else {

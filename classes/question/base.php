@@ -226,6 +226,7 @@ abstract class base {
     			$this->advdependencies[$advdependency->id]->adv_dependquestion = $advdependency->adv_dependquestion;
     			$this->advdependencies[$advdependency->id]->adv_dependchoice = $advdependency->adv_dependchoice;
     			$this->advdependencies[$advdependency->id]->adv_dependlogic = $advdependency->adv_dependlogic;
+    			$this->advdependencies[$advdependency->id]->adv_depend_and_or = $advdependency->adv_depend_and_or;
     		}
     	} else {
     		$this->advdependencies = [];
@@ -461,7 +462,6 @@ abstract class base {
         return $retvalue;
     }
 
-	//Start advdependencies
     public function update_advdependency($advdependencyrecord) {
     	global $DB;
     	return $DB->update_record('questionnaire_dependencies', $advdependencyrecord);
@@ -475,6 +475,7 @@ abstract class base {
     		$this->advdependencies[$cid]->adv_dependquestion = $advdependencyrecord->adv_dependquestion;
     		$this->advdependencies[$cid]->adv_dependchoice = $advdependencyrecord->adv_dependchoice;
     		$this->advdependencies[$cid]->adv_dependlogic = $advdependencyrecord->adv_dependlogic;
+    		$this->advdependencies[$cid]->adv_depend_and_or = $advdependencyrecord->adv_depend_and_or;
     	} else {
     		$retvalue = false;
     	}
@@ -501,7 +502,6 @@ abstract class base {
     	}
     	return $retvalue;
     }
-	//End advdependencies
 
     /**
      * Set the question required field in the object and database.
@@ -855,22 +855,49 @@ abstract class base {
     			$mform->addElement('header', 'advdependencies_hdr', 'Dependencies');
     			$mform->setExpanded('advdependencies_hdr');
     			 
-    			$advdependenciescount = count($this->advdependencies);
+    			$advdependenciescount_and = 0;
+    			$advdependenciescount_or = 0;
+    			 
+    			foreach ( $this->advdependencies as $advdependency ){
+    				if ( $advdependency->adv_depend_and_or == "and" ){
+    					$advdependenciescount_and++;
+    				} elseif ($advdependency->adv_depend_and_or == "or"){
+    					$advdependenciescount_or++;
+    				}
+    			}
     			 
     			//No childs, so we can add and change dependencies
     			if (count($advchildren) == 0) {
+    				
+    				//Area for "must"-criteria
     				//TODO Replace static strings and set language variables
-    				$select = $mform->createElement('select', 'advdependlogic', 'Condition', array('This answer not given', 'This answer given'));
-    				$select->setSelected('1');
-    				$groupitems = array();
-    				$groupitems[] =& $mform->createElement('selectgroups', 'advdependquestions', 'Parent', $dependencies);
-    				$groupitems[] =& $select;
-    				$group = $mform->createElement('group', 'selectdependencies', get_string('dependquestion', 'questionnaire'), $groupitems, ' ', false);
-    				$editquestionformobject->repeat_elements(array($group), $advdependenciescount + 1, array(), 'numdependencies', 'adddependencies',2);
+    				$mform->addElement('static', 'mandatory', "",
+    						'<div class="dimmed_text">Mandatory - All this dependencies have to be fulfilled.</div>');
+    				$select_and = $mform->createElement('select', 'advdependlogic_and', 'Condition', array('This answer not given', 'This answer given'));
+    				$select_and->setSelected('1');
+    				$groupitems_and = array();
+    				$groupitems_and[] =& $mform->createElement('selectgroups', 'advdependquestions_and', 'Parent', $dependencies);
+    				$groupitems_and[] =& $select_and;
+    				$group_and = $mform->createElement('group', 'selectdependencies_and', get_string('dependquestion', 'questionnaire'), $groupitems_and, ' ', false);
+    				$editquestionformobject->repeat_elements(array($group_and), $advdependenciescount_and + 1, array(), 'numdependencies_and', 'adddependencies_and',2);
+    				
+    				//Area for "can"-criteria
+    				//TODO Replace static strings and set language variables
+    				$mform->addElement('static', 'obligatory', "",
+    						'<div class="dimmed_text">Obligatory - At least one of this dependencies has to be fulfilled.</div>');
+    				$select_or = $mform->createElement('select', 'advdependlogic_or', 'Condition', array('This answer not given', 'This answer given'));
+    				$select_or->setSelected('1');
+    				$groupitems_or = array();
+    				$groupitems_or[] =& $mform->createElement('selectgroups', 'advdependquestions_or', 'Parent', $dependencies);
+    				$groupitems_or[] =& $select_or;
+    				$group_or = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'), $groupitems_or, ' ', false);
+    				$editquestionformobject->repeat_elements(array($group_or), $advdependenciescount_or + 1, array(), 'numdependencies_or', 'adddependencies_or',2);
     			} else {
     				// Has childs, now we have to check, whether to show just a message or the list of fixed dependencies too
-    				if ($advdependenciescount == 0){
-    					$mform->addElement('static', 'selectdependency'.$i, get_string('dependquestion', 'questionnaire'),
+    				if ($advdependenciescount_and == 0 && $advdependenciescount_or == 0){
+    					$mform->addElement('hidden', 'fixed_deps', 1);
+    					$mform->setType('fixed_deps', PARAM_INT);
+    					$mform->addElement('static', 'showdependency', get_string('dependquestion', 'questionnaire'),
     							'<div class="dimmed_text">Dependencies can not be changed, because the flow for other questions allready depends on the existing behaviour.</div>');
     				} else {
     					//TODO better create questionnaire_get_advparents in locallib
@@ -885,12 +912,14 @@ abstract class base {
     						$parent = questionnaire_get_parent ($advdependencyhelper);
     						$fixeddependencies[] = $parent [0]['parent'];
     					}
-    
-    					$mform->addElement('static', 'selectdependency', null,
+    					//TODO show if dependency is in the and/or block
+    					$mform->addElement('hidden', 'fixed_deps', 1);
+    					$mform->setType('fixed_deps', PARAM_INT);
+    					$mform->addElement('static', 'showdependency', null,
     							'<div class="dimmed_text">Dependencies can not be changed, because the flow for other questions allready depends on the existing behaviour.</div>');
     					for ($i=0;$i<count($fixeddependencies);$i++) {
     						 
-    						$mform->addElement('static', 'selectdependency_'.$i, get_string('dependquestion', 'questionnaire'),
+    						$mform->addElement('static', 'showdependency'.$i, get_string('dependquestion', 'questionnaire'),
     								'<div class="dimmed_text">'.$fixeddependencies[$i].'</div>');
     					}
     				}
@@ -1085,6 +1114,7 @@ abstract class base {
         //Now handle the advdependencies the same way as choices
         //Shouldn't the MOODLE-API provide this case of insert/update/delete?
         	// First handle advdependendies updates
+        if (!isset($formdata->fixed_deps)) {
         	if (isset($this->advdependencies) && !isset($formdata->makecopy)) {
         		$oldcount = count($this->advdependencies);
         		$eadvdependency = reset($this->advdependencies);
@@ -1105,7 +1135,8 @@ abstract class base {
         	while (($nidx < $newcount) && ($cidx < $oldcount)) {
         		if ($formdata->advdependquestion[$nidx] != $eadvdependency->adv_dependquestion ||
         			$formdata->advdependchoice[$nidx] != $eadvdependency->adv_dependchoice ||
-        			$formdata->advdependlogic_cleaned[$nidx] != $eadvdependency->adv_dependlogic)
+        			$formdata->advdependlogic_cleaned[$nidx] != $eadvdependency->adv_dependlogic ||
+        			$formdata->adv_depend_and_or[$nidx] != $eadvdependency->adv_depend_and_or)
         		{
         			$advdependencyrecord = new \stdClass();
         			$advdependencyrecord->id = $ekey;
@@ -1114,7 +1145,8 @@ abstract class base {
         			$advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
         			$advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
         			$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic_cleaned[$nidx];
-
+        			$advdependencyrecord->adv_depend_and_or = $formdata->adv_depend_and_or[$nidx];
+        			
         			$this->update_advdependency($advdependencyrecord);
         		}
         		$nidx++;
@@ -1131,6 +1163,7 @@ abstract class base {
         		$advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
         		$advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
         		$advdependencyrecord->adv_dependlogic = $formdata->advdependlogic_cleaned[$nidx];
+        		$advdependencyrecord->adv_depend_and_or = $formdata->adv_depend_and_or[$nidx];
         		
         		$this->add_advdependency($advdependencyrecord);
         		$nidx++;
@@ -1142,6 +1175,7 @@ abstract class base {
         		$this->delete_advdependency($ekey);
         		$cidx++;
         	}
+        }
     }
 
     /**
@@ -1162,17 +1196,30 @@ abstract class base {
             $formdata->dependchoice = $dependency[1];
         }
         
-        $advdependencies = [];
         // advdependencies_logic does not (yet) need preprocessing, might change with more complex conditions
         // Check, if entries exist and whether they are not only 0 (form elements created but no value selected)
-        if (isset($formdata->advdependquestions) && !(count(array_keys($formdata->advdependquestions, 0, true)) == count($formdata->advdependquestions))) {
-        	for ($i = 0; $i < count($formdata->advdependquestions); $i++) {
-        		$advdependency = explode(",", $formdata->advdependquestions[$i]);
+        if (isset($formdata->advdependquestions_and) && !(count(array_keys($formdata->advdependquestions_and, 0, true)) == count($formdata->advdependquestions_and))) {
+        	for ($i = 0; $i < count($formdata->advdependquestions_and); $i++) {
+        		$advdependency = explode(",", $formdata->advdependquestions_and[$i]);
 
         		if ($advdependency[0] != 0) {
 	        		$formdata->advdependquestion[] = $advdependency[0];
 	        		$formdata->advdependchoice[] = $advdependency[1];
-	        		$formdata->advdependlogic_cleaned[] = $formdata->advdependlogic[$i];
+	        		$formdata->advdependlogic_cleaned[] = $formdata->advdependlogic_and[$i];
+	        		$formdata->adv_depend_and_or[] = "and";
+        		}
+        	}
+        }
+        
+        if (isset($formdata->advdependquestions_or) && !(count(array_keys($formdata->advdependquestions_or, 0, true)) == count($formdata->advdependquestions_or))) {
+        	for ($i = 0; $i < count($formdata->advdependquestions_or); $i++) {
+        		$advdependency = explode(",", $formdata->advdependquestions_or[$i]);
+        
+        		if ($advdependency[0] != 0) {
+        			$formdata->advdependquestion[] = $advdependency[0];
+        			$formdata->advdependchoice[] = $advdependency[1];
+        			$formdata->advdependlogic_cleaned[] = $formdata->advdependlogic_or[$i];
+        			$formdata->adv_depend_and_or[] = "or";
         		}
         	}
         }
