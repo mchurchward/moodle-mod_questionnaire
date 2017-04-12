@@ -62,7 +62,7 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
         $questadvdependencies = new backup_nested_element('quest_advdependencies');
         
         $questadvdependency = new backup_nested_element('quest_advdependency',array('id'), array(
-            'adv_dependquestion', 'adv_dependchoice', 'adv_dependlogic', 'question_id', 'survey_id'));
+            'adv_dependquestion', 'adv_dependchoice', 'adv_dependlogic', 'question_id', 'survey_id', 'adv_depend_and_or'));
         
         $fbsections = new backup_nested_element('fb_sections');
 

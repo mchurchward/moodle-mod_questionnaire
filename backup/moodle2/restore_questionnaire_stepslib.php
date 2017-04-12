@@ -207,7 +207,7 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
     	$data->survey_id = $this->get_new_parentid('questionnaire_survey');
 
     	if (isset($data)) {
-    		$this->oldadvdependencies[$data->question_id] = $data;
+    		$this->oldadvdependencies[] = $data;
     	}
     }
     
@@ -341,7 +341,7 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
             }
         }
 
-        foreach ($this->oldadvdependencies as $newid => $data) {
+        foreach ($this->oldadvdependencies as $data) {
         	$data->adv_dependquestion = $this->get_mappingid('questionnaire_question', $data->adv_dependquestion);
 
         	// Only change mapping for RADIO and DROP question types, not for YESNO question.
