@@ -36,7 +36,100 @@ angular.module('mm.addons.mod_questionnaire')
     self.isPluginEnabled = function(siteId) {
         siteId = siteId || $mmSite.getId();
 
-        return Promise.resolve(true);
+        return $mmSitesManager.getSite(siteId).then(function(site) {
+            return site.wsAvailable('mod_questionnaire_get_questionnaires_by_courses');
+        });
+    };
+
+    /**
+     * Get a Questionnaire.
+     *
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#getQuestionnaire
+     * @param {Number} courseId Course ID.
+     * @param {Number} cmId     Course module ID.
+     * @return {Promise}        Promise resolved when the Questionnaire is retrieved.
+     */
+    self.getQuestionnaire = function(courseId, cmId) {
+        var params = {
+                courseids: [courseId]
+            },
+            preSets = {
+                cacheKey: getQuestionnaireCacheKey(courseId)
+            };
+
+        return $mmSite.read('mod_questionnaire_get_questionnaires_by_courses', params, preSets).then(function(response) {
+            if (response.questionnaires) {
+                var currentQuestionnaire;
+                angular.forEach(response.questionnaires, function(questionnaire) {
+                    if (questionnaire.coursemodule == cmId) {
+                        currentQuestionnaire = questionnaire;
+                    }
+                });
+                if (currentQuestionnaire) {
+                    return currentQuestionnaire;
+                }
+            }
+            return $q.reject();
+        });
+    };
+
+    /**
+     * Get cache key for Questionnaire data WS calls.
+     *
+     * @param {Number} courseId Course ID.
+     * @return {String}         Cache key.
+     */
+    function getQuestionnaireCacheKey(courseId) {
+        return 'mmaModQuestionnaire:questionnaire:' + courseId;
+    }
+
+    /**
+     * Get cache key for get user responses WS calls.
+     *
+     * @param {Number} questionnaireId Questionnaire ID.
+     * @param {Number} userId User ID.
+     * @return {String} Cache key.
+     */
+    function getUserResponsesCacheKey(questionnaireId, userId) {
+        return getUserResponsesCommonCacheKey(questionnaireId) + ':' + userId;
+    }
+
+    /**
+     * Get common cache key for get user responses WS calls.
+     *
+     * @param {Number} questionnaireId Questionnaire ID.
+     * @return {String} Cache key.
+     */
+    function getUserResponsesCommonCacheKey(questionnaireId) {
+        return 'mmaModQuestionnaire:userResponses:' + questionnaireId;
+    }
+
+    /**
+     * Get questionnaire responses for a certain user.
+     *
+     * @module mm.addons.mod_questionnaire
+     * @ngdoc method
+     * @name $mmaModQuestionnaire#getUserResponses
+     * @param {Number} questionnaireId    Questionnaire ID.
+     * @param {Number} [userId]           User ID. If not defined use site's current user.
+     * @return {Promise}                  Promise resolved with the responses.
+     */
+    self.getUserResponses = function(questionnaireId, userId) {
+        userId = userId || $mmSite.getUserId();
+
+        var params = {
+                questionnaireid: questionnaireId,
+                userid: userId
+            },
+            preSets = {
+                cacheKey: getUserResponsesCacheKey(questionnaireId, userId)
+            };
+
+        return $mmSite.read('mod_questionnaire_get_user_responses', params, preSets).then(function(response) {
+            return response.responses;
+        });
     };
 
     return self;

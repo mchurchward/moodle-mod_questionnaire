@@ -23,13 +23,46 @@ angular.module('mm.addons.mod_questionnaire')
  */
 .controller('mmaModQuestionnaireIndexCtrl', function($scope, $stateParams, $mmaModQuestionnaire, $mmUtil, $q, $mmCourse) {
     var module = $stateParams.module || {},
-        courseId = $stateParams.courseid,
-        questionnaire;
+        courseId = $stateParams.courseid;
+
+    // Convenience function to get Questionnaire data.
+    function fetchQuestionnaire(refresh) {
+        return $mmaModQuestionnaire.getQuestionnaire(courseId, module.id).then(function(questionnaireData) {
+            return questionnaireData;
+        }).catch(function(message) {
+            if (message) {
+                $mmUtil.showErrorModal(message);
+            } else {
+                $mmUtil.showErrorModal('Error while getting the questionnaire', true);
+            }
+            return $q.reject();
+        });
+    }
+
+    // Convenience function to get Questionnaire responses.
+    function getResponses() {
+        return fetchQuestionnaire(true).then(function(questionnaire) {
+            // Get responses.
+            return $mmaModQuestionnaire.getUserResponses(questionnaire.id).then(function(resps) {
+                return resps;
+            }).catch(function(message) {
+                if (message) {
+                    $mmUtil.showErrorModal(message);
+                } else {
+                    $mmUtil.showErrorModal('Error while getting the responses', true);
+                }
+                return $q.reject();
+            });
+        });
+    }
+
+    getResponses().then(function(responses) {
+        $scope.responses = responses;
+    });
 
     $scope.title = module.name;
     $scope.description = module.description;
     $scope.courseid = courseId;
 
     $scope.mymessage = "Hello World!";
-
 });

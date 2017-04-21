@@ -71,7 +71,7 @@ angular.module('mm.addons.mod_questionnaire')
      * @ngdoc method
      * @name $mmaModQuestionnaireHandlers#indexLinksHandler
      */
-    self.indexLinksHandler = $mmContentLinksHelper.createModuleIndexLinkHandler('mmaModQuestionnaire', 'questionnaire', $mmaModQuestionnaire);
+    self.linksHandler = $mmContentLinksHelper.createModuleIndexLinkHandler('mmaModQuestionnaire', 'questionnaire', $mmaModQuestionnaire);
 
     return self;
 });

@@ -38,5 +38,5 @@ angular.module('mm.addons.mod_questionnaire', [])
 
 .config(function($mmCourseDelegateProvider, $mmContentLinksDelegateProvider) {
     $mmCourseDelegateProvider.registerContentHandler('mmaModQuestionnaire', 'questionnaire', '$mmaModQuestionnaireHandlers.courseContent');
-    $mmContentLinksDelegateProvider.registerLinkHandler('mmaModQuestionnaire:index', '$mmaModQuestionnaireHandlers.indexLinksHandler');
+    $mmContentLinksDelegateProvider.registerLinkHandler('mmaModQuestionnaire', '$mmaModQuestionnaireHandlers.linksHandler');
 });
