@@ -31,6 +31,15 @@
  *
  */
 
+/**
+ * @package mod_questionnaire
+ * @copyright  2016 Mike Churchward (mike.churchward@poetgroup.org)
+ * @author     Mike Churchward
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->libdir.'/eventslib.php');
 require_once($CFG->dirroot.'/calendar/lib.php');
 // Constants.
@@ -291,6 +300,7 @@ function questionnaire_load_capabilities($cmid) {
     $cb->view                   = has_capability('mod/questionnaire:view', $context);
     $cb->submit                 = has_capability('mod/questionnaire:submit', $context);
     $cb->viewsingleresponse     = has_capability('mod/questionnaire:viewsingleresponse', $context);
+    $cb->submissionnotification = has_capability('mod/questionnaire:submissionnotification', $context);
     $cb->downloadresponses      = has_capability('mod/questionnaire:downloadresponses', $context);
     $cb->deleteresponses        = has_capability('mod/questionnaire:deleteresponses', $context);
     $cb->manage                 = has_capability('mod/questionnaire:manage', $context);

@@ -15,11 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package moodlecore
- * @subpackage backup-moodle2
- * @copyright 2010 onwards Eloy Lafuente (stronk7) {@link http://stronk7.com}
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package mod_questionnaire
+ * @copyright  2016 Mike Churchward (mike.churchward@poetgroup.org)
+ * @author     Mike Churchward
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Define all the restore steps that will be used by the restore_questionnaire_activity_task
@@ -93,6 +95,8 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         $data = (object)$data;
         $data->course = $this->get_courseid();
 
+        $data->opendate = $this->apply_date_offset($data->opendate);
+        $data->closedate = $this->apply_date_offset($data->closedate);
         $data->timemodified = $this->apply_date_offset($data->timemodified);
 
         // Insert the questionnaire record.
