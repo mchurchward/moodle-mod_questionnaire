@@ -52,6 +52,8 @@ $errormsg = '';
 
 // if (advanced_dependencies == True)
 $advdependencies = False;
+if ($questionnaire->navigate == 2)
+    $advdependencies = True;
 // [qid][section] = weight for question (qid) in section
 $scorecalculation_weights = array();
 
@@ -287,9 +289,9 @@ foreach ($questionnaire->questions as $question) {
                     $output .= '<label for="'.$qid.'_'.$i.'">'.'<div style="padding-left: 2px;">'.$i.'</div>'.'</label></div>';
                     if ($i > 0) {
                         if ($scorecalculation_weights[$qid][$i]){
-                            $output .= '<input type="number" name="weight|' . $n . '|' . $i . '", value="'. $scorecalculation_weights[$qid][$i] .'">';
+                            $output .= '<input type="number" name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.1" value="'. $scorecalculation_weights[$qid][$i] .'">';
                         } else{
-                            $output .= '<input type="number" name="weight|' . $n . '|' . $i . '", value="0">';
+                            $output .= '<input type="number" name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.1" value="0">';
                         }
                     }
                     $output .= '</div>';
