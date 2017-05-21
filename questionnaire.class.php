@@ -668,7 +668,7 @@ class questionnaire {
                 $formdata->sec++;
                 if (questionnaire_has_dependencies($this->questions)) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
+                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
                         $this->response_delete($formdata->rid, $formdata->sec);
                         $formdata->sec++;
@@ -678,7 +678,7 @@ class questionnaire {
                             break;
                         }
                         $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
+                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -705,11 +705,11 @@ class questionnaire {
                 // Skip logic.
                 if (questionnaire_has_dependencies($this->questions)) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
+                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
                         $formdata->sec--;
                         $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
+                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -3167,6 +3167,8 @@ class questionnaire {
         // Get individual scores for each question in this responses set.
         $qscore = array();
         $allqscore = array();
+        // ***** YVES *****
+        $sqlWeights = "";
 
         // Get all response ids for all respondents.
         $castsql = $DB->sql_cast_char2int('r.username');
@@ -3219,6 +3221,7 @@ class questionnaire {
                         if (!isset($qscore[$qid])) {
                             $qscore[$qid] = 0;
                         }
+                        file_put_contents("log_YVES.txt", "\n" . "responseScore: " . $response->score . " qid " . $qid, FILE_APPEND);
                         $qscore[$qid] = $response->score;
                     }
                     // Course score.
@@ -3381,14 +3384,18 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    $score[$section] += $qscore[$qid];
-                    $maxscore[$section] += $qmax[$qid];
+                    file_put_contents("log_YVES.txt", "\nscorecalculation: qid=".$qid." key=".$key , FILE_APPEND);
+                    file_put_contents("log_YVES.txt", "\n" . "qid: " . $qid . " qscore " . $qscore[$qid], FILE_APPEND);
+                    $score[$section] += round($qscore[$qid] * $key);
+                    $maxscore[$section] += round($qmax[$qid] * $key);
                     if ($compare  || $allresponses) {
                         $allscore[$section] += $allqscore[$qid];
                     }
                 }
             }
-
+            // ***** YVES *****
+            file_put_contents("log_YVES.txt", "\n" . "sectionU: " . $section . " = " . $score[$section], FILE_APPEND);
+            file_put_contents("log_YVES.txt", "\n" . "sectionM: " . $section . " = " . $maxscore[$section], FILE_APPEND);
             $scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100);
             $oppositescorepercent[$section] = 100 - $scorepercent[$section];
 
