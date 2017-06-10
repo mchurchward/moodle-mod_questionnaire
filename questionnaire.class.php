@@ -3324,6 +3324,15 @@ class questionnaire {
         $qscore = array();
         $allqscore = array();
 
+        // False -> original behavior, nothing changed
+        // True  -> qscore with weights
+        $advdependencies =  False;
+        // $this->id == questionnaire id
+        $sql_navigate = "SELECT navigate FROM {questionnaire} WHERE id = $this->id";
+        if ($DB->get_record_sql($sql_navigate)->navigate == "2") {
+            $advdependencies = True;
+        }
+
         // Get all response ids for all respondents.
         $castsql = $DB->sql_cast_char2int('r.username');
 
@@ -3537,10 +3546,18 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    $score[$section] += $qscore[$qid];
-                    $maxscore[$section] += $qmax[$qid];
-                    if ($compare  || $allresponses) {
-                        $allscore[$section] += $allqscore[$qid];
+                    if ($advdependencies){
+                        $score[$section] += round($qscore[$qid] * $key);
+                        $maxscore[$section] += round($qmax[$qid] * $key);
+                        if ($compare  || $allresponses) {
+                            $allscore[$section] += round($allqscore[$qid] * $key);
+                        }
+                    } else { // $advdependencies == false
+                        $score[$section] += $qscore[$qid];
+                        $maxscore[$section] += $qmax[$qid];
+                        if ($compare || $allresponses) {
+                            $allscore[$section] += $allqscore[$qid];
+                        }
                     }
                 }
             }
