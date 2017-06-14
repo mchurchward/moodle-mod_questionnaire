@@ -1159,7 +1159,7 @@ function questionnaire_get_descendants_and_choices ($questions) {
 }
 
 // Get all descendants for a question to be deleted.
-//TODO support advdependencies
+//TODO support advdependencies, for now, questionnaire_get_advdescendants was created
 function questionnaire_get_descendants ($questions, $questionid) {
     $questions = array_reverse($questions, true);
     $qu = array();
@@ -1184,6 +1184,54 @@ function questionnaire_get_descendants ($questions, $questionid) {
         uasort($descendants, 'questionnaire_cmp');
     }
     return($descendants);
+}
+
+//TODO might be integrated with questionnaire_get_descendants
+function questionnaire_get_advdescendants ($questions, $questionid) {
+	$questions = array_reverse($questions, true);
+	$qu = array();
+
+	//Create an array which shows for every question the child-IDs
+	foreach ($questions as $question) {
+		if ($question->advdependencies) {
+			foreach ($question->advdependencies as $advdependency) {
+				$dq = $advdependency->adv_dependquestion;
+				$qid = $question->id;
+				if (!in_array($qid, $qu[$dq])){
+					$qu[$dq][] = $qid;
+				}
+				if (array_key_exists($qid, $qu)) {
+					foreach ($qu[$qid] as $q) {
+							$qu[$dq][] = $q;
+					}
+				}
+				
+			}			
+		}
+	}
+
+	$descendants = array();
+	if (isset($qu[$questionid])) {
+		foreach ($qu[$questionid] as $descendant) {
+			$childquestion = $questions[$descendant];
+
+			foreach ($childquestion->advdependencies as $advdependencyhelper) {
+				//TODO this is just a workaround to use questionnaire_get_parents
+				$childquestion->dependquestion = $advdependencyhelper->adv_dependquestion;
+				$childquestion->dependchoice = $advdependencyhelper->adv_dependchoice;
+				$parent = questionnaire_get_parent ($childquestion);
+
+				//Add advdependency specific data to the get_parent results so the presentation can be tailored
+				$parent[key($parent)][adv_dependlogic] = $advdependencyhelper->adv_dependlogic;
+				$parent[key($parent)][adv_depend_and_or] = $advdependencyhelper->adv_depend_and_or;
+				
+				//Create subarrays to avoid reducing the results to one dependency per question
+				$descendants[key($parent)][] = $parent[key($parent)];
+			}
+		}
+		uasort($descendants, 'questionnaire_cmp');
+	}
+	return($descendants);
 }
 
 // Function to sort descendants array in questionnaire_get_descendants function.

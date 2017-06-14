@@ -841,15 +841,15 @@ abstract class base {
     			//Use also for the delete dialoque later
     			foreach ($questionnaire->questions as $questionlistitem) {
     				if (isset($questionlistitem->advdependencies)) {
-    					foreach ($questionlistitem->advdependencies as $outeradvdependencies) {
+    					foreach ($questionlistitem->advdependencies as $key => $outeradvdependencies) {
     						if ($outeradvdependencies->adv_dependquestion == $this->qid) {
-    							$advchildren[] = $outeradvdependencies;
+    							$advchildren[$key] = $outeradvdependencies;
     						}
     					}
     				}
     			}
     		}
-    		 
+
     		if (count($dependencies) > 1) {
     			//TODO Replace static strings and set language variables
     			$mform->addElement('header', 'advdependencies_hdr', 'Dependencies');
