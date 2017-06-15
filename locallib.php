@@ -738,6 +738,10 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     						}
     						$responsetable = 'response_bool';
     						break;
+    					case QUESCHECK:
+    						$questiondependchoice = $advdependency->adv_dependchoice;
+    						$responsetable = 'resp_multiple';
+    						break;
     					default:
     						$questiondependchoice = $advdependency->adv_dependchoice;
     						$responsetable = 'resp_single';
@@ -809,9 +813,9 @@ function questionnaire_get_dependencies($questions, $position) {
     $dependencies[''][0] = get_string('choosedots');
 
     foreach ($questions as $question) {
-        if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESYESNO)
+    	if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESYESNO || $question->type_id == QUESCHECK)
                         && $question->position < $position) {
-            if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP) && $question->name != '') {
+                        	if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESCHECK) && $question->name != '') {
                 foreach ($question->choices as $key => $choice) {
                     $contents = questionnaire_choice_values($choice->content);
                     if ($contents->modname) {
@@ -845,6 +849,7 @@ function questionnaire_get_parent ($question) {
         switch ($dependquestion->type_id) {
             case QUESRADIO:
             case QUESDROP:
+            case QUESCHECK:
                 $dependchoice = $DB->get_record('questionnaire_quest_choice', array('id' => $question->dependchoice),
                     $fields = 'id,content');
                 $qdependchoice = $dependchoice->id;
