@@ -142,14 +142,10 @@ if ($delq) {
             		 * 3. one has to remove all conflicting dependencies by hand to avoid cascading deletion
             		 */
             		//TODO  this might be placed in locallib, see "questionnaire_get_descendants"
-            		//error_log("Gelöscht: ".$qid);
             		foreach ($questionnaire->questions as $questionlistitem) {
             			if (isset($questionlistitem->advdependencies)) {
             				foreach ($questionlistitem->advdependencies as $key => $outeradvdependencies) {
-            					//error_log($key .' (key)->'.$outeradvdependencies->adv_dependquestion.' adv_depend');
-            					
             					if ($outeradvdependencies->adv_dependquestion == $delq) {
-            						error_log("If erfolgreich, adv == qid gefunden");
             						$advchildren[$key] = $outeradvdependencies;
             					}
             				}
