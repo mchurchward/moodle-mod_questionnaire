@@ -481,7 +481,7 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
     	} else {
     		//Show the advdependencies and inform about the advdependencies to be removed
     		
-    		//Split dependencies in direct and indirect ones to separate for the confirm-dialoque. Only direct ones will be deleted.
+    		//Split dependencies in direct and indirect ones to separate for the confirm-dialogue. Only direct ones will be deleted.
     		$directchildren = array();
     		$indirectchildren = array();
     		foreach ($haschildren as $key => $child) {

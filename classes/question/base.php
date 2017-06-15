@@ -838,7 +838,7 @@ abstract class base {
     		$advchildren = [];
     		if (isset($this->qid)) {
     			//TODO this should be placed in locallib, see "questionnaire_get_descendants"
-    			//Use also for the delete dialoque later
+    			//Use also for the delete dialogue later
     			foreach ($questionnaire->questions as $questionlistitem) {
     				if (isset($questionlistitem->advdependencies)) {
     					foreach ($questionlistitem->advdependencies as $key => $outeradvdependencies) {
@@ -866,9 +866,16 @@ abstract class base {
     				}
     			}
     			 
+    			
+    			/* I decided to allow changing dependencies of parent questions, because forcing the editor to remove dependencies 
+    			 * bottom up, starting at the lowest child question is a pain for large questionnaires.
+    			 * So the following "if" becomes the default and the else-branch is completely commented.
+    			 * TODO Since the best way to get the list of child questions is currently to click on delete (and choose not to delete),
+    			 * one might consider to list the child questions in addition here.
+    			 */
+    			
     			//No childs, so we can add and change dependencies
-    			if (count($advchildren) == 0) {
-    				
+    			//if (count($advchildren) == 0) {
     				//Area for "must"-criteria
     				//TODO Replace static strings and set language variables
     				$mform->addElement('static', 'mandatory', "",
@@ -892,7 +899,7 @@ abstract class base {
     				$groupitems_or[] =& $select_or;
     				$group_or = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'), $groupitems_or, ' ', false);
     				$editquestionformobject->repeat_elements(array($group_or), $advdependenciescount_or + 1, array(), 'numdependencies_or', 'adddependencies_or',2);
-    			} else {
+    			/*} else {
     				// Has childs, now we have to check, whether to show just a message or the list of fixed dependencies too
     				if ($advdependenciescount_and == 0 && $advdependenciescount_or == 0){
     					$mform->addElement('hidden', 'fixed_deps', 1);
@@ -923,7 +930,8 @@ abstract class base {
     								'<div class="dimmed_text">'.$fixeddependencies[$i].'</div>');
     					}
     				}
-    			}
+    			}*/
+
     			//TODO Replace static strings and set language variables
     			$mform->addElement('header', 'qst_and_choices_hdr', 'Questiontext and answers');
     		}
