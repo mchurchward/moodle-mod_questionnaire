@@ -111,7 +111,10 @@ if ($delq) {
     } else {
         // Delete responses to that deleted question.
         questionnaire_delete_responses($qid);
-
+        
+        //Delete advdependencies pointing at the deleted question (parents to the deleted question)
+        $DB->delete_records('questionnaire_dependencies', array('question_id' => $qid));
+        
         // The deleted question was a parent, so now we must delete its child question(s).
         if (count($haschildren) !== 0) {
             foreach ($haschildren as $qid => $child) {
