@@ -834,7 +834,7 @@ abstract class base {
     	//Create a new area for multiple dependencies
     	if ($questionnaire->navigate == 2) {
     		$position = ($this->position !== 0) ? $this->position : count($questionnaire->questions) + 1;
-    		$dependencies = questionnaire_get_dependencies($questionnaire->questions, $position);
+    		$dependencies = questionnaire_get_dependencies($questionnaire->questions, $position, true);
     		$advchildren = [];
     		if (isset($this->qid)) {
     			//TODO this should be placed in locallib, see "questionnaire_get_descendants"

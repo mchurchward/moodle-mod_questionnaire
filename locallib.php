@@ -808,14 +808,14 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     return $questionstodisplay;
 }
 
-function questionnaire_get_dependencies($questions, $position) {
+function questionnaire_get_dependencies($questions, $position, $additionalForAdvDeps = false) {
     $dependencies = array();
     $dependencies[''][0] = get_string('choosedots');
 
     foreach ($questions as $question) {
-    	if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESYESNO || $question->type_id == QUESCHECK)
+    	if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESYESNO || ($question->type_id == QUESCHECK && $additionalForAdvDeps))
                         && $question->position < $position) {
-                        	if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESCHECK) && $question->name != '') {
+                        	if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || ($question->type_id == QUESCHECK && $additionalForAdvDeps)) && $question->name != '') {
                 foreach ($question->choices as $key => $choice) {
                     $contents = questionnaire_choice_values($choice->content);
                     if ($contents->modname) {
