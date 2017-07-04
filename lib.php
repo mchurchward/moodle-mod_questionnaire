@@ -16,6 +16,15 @@
 
 // Library of functions and constants for module questionnaire.
 
+/**
+ * @package mod_questionnaire
+ * @copyright  2016 Mike Churchward (mike.churchward@poetgroup.org)
+ * @author     Mike Churchward
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
 define('QUESTIONNAIRE_RESETFORM_RESET', 'questionnaire_reset_data_');
 define('QUESTIONNAIRE_RESETFORM_DROP', 'questionnaire_drop_questionnaire_');
 
@@ -32,8 +41,6 @@ function questionnaire_supports($feature) {
         case FEATURE_GRADE_OUTCOMES:
             return false;
         case FEATURE_GROUPINGS:
-            return true;
-        case FEATURE_GROUPMEMBERSONLY:
             return true;
         case FEATURE_GROUPS:
             return true;
@@ -84,7 +91,7 @@ function questionnaire_add_instance($questionnaire) {
             $sdata->thank_body = '';
             $sdata->email = '';
             $sdata->feedbacknotes = '';
-            $sdata->owner = $course->id;
+            $sdata->courseid = $course->id;
             if (!($sid = $qobject->survey_update($sdata))) {
                 print_error('couldnotcreatenewsurvey', 'questionnaire');
             }
@@ -190,7 +197,7 @@ function questionnaire_delete_instance($id) {
 
     if ($survey = $DB->get_record('questionnaire_survey', array('id' => $questionnaire->sid))) {
         // If this survey is owned by this course, delete all of the survey records and responses.
-        if ($survey->owner == $questionnaire->course) {
+        if ($survey->courseid == $questionnaire->course) {
             $result = $result && questionnaire_delete_survey($questionnaire->sid, $questionnaire->id);
         }
     }
@@ -529,7 +536,7 @@ function questionnaire_extend_settings_navigation(settings_navigation $settings,
     $courseid = $course->id;
     $questionnaire = new questionnaire(0, $questionnaire, $course, $cm);
 
-    if ($owner = $DB->get_field('questionnaire_survey', 'owner', array('id' => $questionnaire->sid))) {
+    if ($owner = $DB->get_field('questionnaire_survey', 'courseid', ['id' => $questionnaire->sid])) {
         $owner = (trim($owner) == trim($courseid));
     } else {
         $owner = true;
@@ -740,12 +747,11 @@ function questionnaire_get_recent_mod_activity(&$activities, &$index, $timestart
     // current user (teacher) cannot view responses.
     if ($grader && $survey = $DB->get_record('questionnaire_survey', array('id' => $questionnaire->sid))) {
         // For a public questionnaire, look for the original public questionnaire that it is based on.
-        if ($survey->realm == 'public' && $survey->owner != $course->id) {
+        if ($survey->realm == 'public' && $survey->courseid != $course->id) {
             // For a public questionnaire, look for the original public questionnaire that it is based on.
-            $originalquestionnaire = $DB->get_record('questionnaire',
-                            array('sid' => $survey->id, 'course' => $survey->owner));
-            $cmoriginal = get_coursemodule_from_instance("questionnaire", $originalquestionnaire->id, $survey->owner);
-            $contextoriginal = context_course::instance($survey->owner, MUST_EXIST);
+            $originalquestionnaire = $DB->get_record('questionnaire', ['sid' => $survey->id, 'course' => $survey->courseid]);
+            $cmoriginal = get_coursemodule_from_instance("questionnaire", $originalquestionnaire->id, $survey->courseid);
+            $contextoriginal = context_course::instance($survey->courseid, MUST_EXIST);
             if (!has_capability('mod/questionnaire:viewsingleresponse', $contextoriginal)) {
                 $tmpactivity = new stdClass();
                 $tmpactivity->type = 'questionnaire';
@@ -778,12 +784,11 @@ function questionnaire_get_recent_mod_activity(&$activities, &$index, $timestart
     $params['questionnaireid'] = $questionnaire->sid;
 
     $ufields = user_picture::fields('u', null, 'useridagain');
-    $usernamesql = $DB->sql_cast_char2int('qr.username');
     if (!$attempts = $DB->get_records_sql("
                     SELECT qr.*,
                     {$ufields}
                     FROM {questionnaire_response} qr
-                    JOIN {user} u ON u.id = $usernamesql
+                    JOIN {user} u ON u.id = qr.userid
                     $groupjoin
                     WHERE qr.submitted > :timestart
                     AND qr.survey_id = :questionnaireid
@@ -808,7 +813,7 @@ function questionnaire_get_recent_mod_activity(&$activities, &$index, $timestart
                 $userattempts[$attempt->lastname]++;
             }
         }
-        if ($attempt->username != $USER->id) {
+        if ($attempt->userid != $USER->id) {
             if (!$grader) {
                 // View complete individual responses permission required.
                 continue;
@@ -856,7 +861,7 @@ function questionnaire_get_recent_mod_activity(&$activities, &$index, $timestart
         $tmpactivity->user = new stdClass();
         foreach ($userfields as $userfield) {
             if ($userfield == 'id') {
-                $tmpactivity->user->{$userfield} = $attempt->username;
+                $tmpactivity->user->{$userfield} = $attempt->userid;
             } else {
                 if (!empty($attempt->{$userfield})) {
                     $tmpactivity->user->{$userfield} = $attempt->{$userfield};
@@ -1086,13 +1091,13 @@ function questionnaire_reset_userdata($data) {
         // Delete responses.
         foreach ($surveys as $survey) {
             // Get all responses for this questionnaire.
-            $sql = "SELECT R.id, R.survey_id, R.submitted, R.username
+            $sql = "SELECT R.id, R.survey_id, R.submitted, R.userid
                  FROM {questionnaire_response} R
                  WHERE R.survey_id = ?
                  ORDER BY R.id";
             $resps = $DB->get_records_sql($sql, array($survey->id));
             if (!empty($resps)) {
-                $questionnaire = $DB->get_record("questionnaire", array("sid" => $survey->id, "course" => $survey->owner));
+                $questionnaire = $DB->get_record("questionnaire", ["sid" => $survey->id, "course" => $survey->courseid]);
                 $questionnaire->course = $DB->get_record("course", array("id" => $questionnaire->course));
                 foreach ($resps as $response) {
                     questionnaire_delete_response($response, $questionnaire);

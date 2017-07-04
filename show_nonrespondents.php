@@ -101,8 +101,8 @@ if (!$fullname) {
     if ($resume) {
         $countstarted = 0;
         $countnotstarted = 0;
-        $params = array('survey_id' => $sid, 'complete' => 'n');
-        if ($startedusers = $DB->get_records('questionnaire_response', $params, '', 'username')) {
+        $params = ['survey_id' => $sid, 'complete' => 'n'];
+        if ($startedusers = $DB->get_records('questionnaire_response', $params, '', 'userid')) {
             $startedusers = array_keys($startedusers);
             $countstarted = count($startedusers);
             $countnotstarted = $countnonrespondents - $countstarted;
@@ -291,7 +291,7 @@ $nonrespondents = questionnaire_get_incomplete_users($cm, $sid, $usedgroupid, $s
 // Print the list of students.
 
 $questionnaire->page->add_to_page('formarea', (isset($groupselect) ? $groupselect : ''));
-$questionnaire->page->add_to_page('formarea', html_writer::tag('div', ['class' => 'clearer']));
+$questionnaire->page->add_to_page('formarea', html_writer::tag('div', '', ['class' => 'clearer']));
 $questionnaire->page->add_to_page('formarea', $questionnaire->renderer->box_start('left-align'));
 
 $countries = get_string_manager()->get_list_of_countries();
@@ -353,8 +353,8 @@ if (!$nonrespondents) {
                 // we use the alt attribute of the checkboxes to store the started/not started value!
                 $checkboxaltvalue = '';
                 if ($resume) {
-                    if ($DB->record_exists('questionnaire_response', array('survey_id' => $sid,
-                            'username' => $nonrespondent, 'complete' => 'n')) ) {
+                    if ($DB->record_exists('questionnaire_response', ['survey_id' => $sid,
+                            'userid' => $nonrespondent, 'complete' => 'n']) ) {
                         $data[] = get_string('started', 'questionnaire');
                         $checkboxaltvalue = 1;
                     } else {

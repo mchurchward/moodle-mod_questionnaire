@@ -105,7 +105,7 @@ class rate extends base {
             }
             // Check for number from 1 to 3 digits, followed by the equal sign = (to accomodate named degrees).
             if (preg_match("/^([0-9]{1,3})=(.*)$/", $content, $ndd)) {
-                $n[$nameddegrees] = format_text($ndd[2], FORMAT_HTML);
+                $n[$nameddegrees] = format_text($ndd[2], FORMAT_HTML, ['noclean' => true]);
                 if (strlen($n[$nameddegrees]) > $maxndlen) {
                     $maxndlen = strlen($n[$nameddegrees]);
                 }
@@ -113,6 +113,8 @@ class rate extends base {
                 $this->choices[$cid] = '';
                 $nameddegrees++;
             } else {
+                // Something wrong here. $choice->content is being set, but it will never be used. This code exists as far back as
+                // 2.0.
                 $contents = questionnaire_choice_values($content);
                 if ($contents->modname) {
                     $choice->content = $contents->text;
@@ -216,7 +218,8 @@ class rate extends base {
                 if ($osgood) {
                     list($content, $contentright) = array_merge(preg_split('/[|]/', $content), array(' '));
                 }
-                $cols[] = ['colstyle' => 'text-align: '.$textalign.';', 'coltext' => format_text($content, FORMAT_HTML).'&nbsp;'];
+                $cols[] = ['colstyle' => 'text-align: '.$textalign.';',
+                           'coltext' => format_text($content, FORMAT_HTML, ['noclean' => true]).'&nbsp;'];
 
                 $bg = 'c0 raterow';
                 if ($nbchoices > 1 && $this->precise != 2  && !$blankquestionnaire) {
@@ -273,7 +276,7 @@ class rate extends base {
                     $cols[] = $col;
                 }
                 if ($osgood) {
-                    $cols[] = ['coltext' => '&nbsp;'.format_text($contentright, FORMAT_HTML)];
+                    $cols[] = ['coltext' => '&nbsp;'.format_text($contentright, FORMAT_HTML, ['noclean' => true])];
                 }
                 $choicetags->qelements['rows'][] = ['cols' => $cols];
             }
@@ -319,7 +322,7 @@ class rate extends base {
         foreach ($this->choices as $cid => $choice) {
             $content = $choice->content;
             if (preg_match("/^[0-9]{1,3}=/", $content, $ndd)) {
-                $ndd = format_text(substr($content, strlen($ndd[0])), FORMAT_HTML);
+                $ndd = format_text(substr($content, strlen($ndd[0])), FORMAT_HTML, ['noclean' => true]);
                 $n[$nameddegrees] = $ndd;
                 if (strlen($ndd) > $maxndlen) {
                     $maxndlen = strlen($ndd);
@@ -381,7 +384,7 @@ class rate extends base {
                 if ($osgood) {
                     list($content, $contentright) = array_merge(preg_split('/[|]/', $content), array(' '));
                 }
-                $rowobj->content = format_text($content, FORMAT_HTML).'&nbsp;';
+                $rowobj->content = format_text($content, FORMAT_HTML, ['noclean' => true]).'&nbsp;';
                 $bg = 'c0';
                 $cols = [];
                 for ($j = 0; $j < $this->length; $j++) {
@@ -411,10 +414,10 @@ class rate extends base {
                 }
                 $rowobj->cols = $cols;
                 if ($osgood) {
-                    $rowobj->osgoodstr = '&nbsp;'.format_text($contentright, FORMAT_HTML);
+                    $rowobj->osgoodstr = '&nbsp;'.format_text($contentright, FORMAT_HTML, ['noclean' => true]);
                 }
+                $resptags->rows[] = $rowobj;
             }
-            $resptags->rows[] = $rowobj;
         }
         return $resptags;
     }

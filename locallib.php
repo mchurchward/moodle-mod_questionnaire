@@ -31,6 +31,15 @@
  *
  */
 
+/**
+ * @package mod_questionnaire
+ * @copyright  2016 Mike Churchward (mike.churchward@poetgroup.org)
+ * @author     Mike Churchward
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->libdir.'/eventslib.php');
 require_once($CFG->dirroot.'/calendar/lib.php');
 // Constants.
@@ -70,7 +79,8 @@ global $questionnaireresponseviewers;
 $questionnaireresponseviewers = array (
             QUESTIONNAIRE_STUDENTVIEWRESPONSES_WHENANSWERED => get_string('responseviewstudentswhenanswered', 'questionnaire'),
             QUESTIONNAIRE_STUDENTVIEWRESPONSES_WHENCLOSED => get_string('responseviewstudentswhenclosed', 'questionnaire'),
-            QUESTIONNAIRE_STUDENTVIEWRESPONSES_ALWAYS => get_string('responseviewstudentsalways', 'questionnaire'));
+            QUESTIONNAIRE_STUDENTVIEWRESPONSES_ALWAYS => get_string('responseviewstudentsalways', 'questionnaire'),
+            QUESTIONNAIRE_STUDENTVIEWRESPONSES_NEVER => get_string('responseviewstudentsnever', 'questionnaire'));
 
 global $autonumbering;
 $autonumbering = array (0 => get_string('autonumberno', 'questionnaire'),
@@ -268,7 +278,7 @@ function questionnaire_get_user_responses($surveyid, $userid, $complete=true) {
     return $DB->get_records_sql ("SELECT *
         FROM {questionnaire_response}
         WHERE survey_id = ?
-        AND username = ?
+        AND userid = ?
         ".$andcomplete."
         ORDER BY submitted ASC ", array($surveyid, $userid));
 }
@@ -291,6 +301,7 @@ function questionnaire_load_capabilities($cmid) {
     $cb->view                   = has_capability('mod/questionnaire:view', $context);
     $cb->submit                 = has_capability('mod/questionnaire:submit', $context);
     $cb->viewsingleresponse     = has_capability('mod/questionnaire:viewsingleresponse', $context);
+    $cb->submissionnotification = has_capability('mod/questionnaire:submissionnotification', $context);
     $cb->downloadresponses      = has_capability('mod/questionnaire:downloadresponses', $context);
     $cb->deleteresponses        = has_capability('mod/questionnaire:deleteresponses', $context);
     $cb->manage                 = has_capability('mod/questionnaire:manage', $context);
@@ -416,7 +427,7 @@ function questionnaire_delete_response($response, $questionnaire='') {
         // Update completion state if necessary.
         $completion = new completion_info($questionnaire->course);
         if ($completion->is_enabled($cm) == COMPLETION_TRACKING_AUTOMATIC && $questionnaire->completionsubmit) {
-            $completion->update_state($cm, COMPLETION_INCOMPLETE, $response->username);
+            $completion->update_state($cm, COMPLETION_INCOMPLETE, $response->userid);
         }
     }
 
@@ -448,7 +459,7 @@ function questionnaire_get_survey_list($courseid=0, $type='') {
 
     if ($courseid == 0) {
         if (isadmin()) {
-            $sql = "SELECT id,name,owner,realm,status " .
+            $sql = "SELECT id,name,courseid,realm,status " .
                    "{questionnaire_survey} " .
                    "ORDER BY realm,name ";
             $params = null;
@@ -456,38 +467,37 @@ function questionnaire_get_survey_list($courseid=0, $type='') {
             return false;
         }
     } else {
-        $castsql = $DB->sql_cast_char2int('s.owner');
         if ($type == 'public') {
-            $sql = "SELECT s.id,s.name,s.owner,s.realm,s.status,s.title,q.id as qid,q.name as qname " .
+            $sql = "SELECT s.id,s.name,s.courseid,s.realm,s.status,s.title,q.id as qid,q.name as qname " .
                    "FROM {questionnaire} q " .
-                   "INNER JOIN {questionnaire_survey} s ON s.id = q.sid AND ".$castsql." = q.course " .
+                   "INNER JOIN {questionnaire_survey} s ON s.id = q.sid AND s.courseid = q.course " .
                    "WHERE realm = ? " .
                    "ORDER BY realm,name ";
-            $params = array($type);
+            $params = [$type];
         } else if ($type == 'template') {
-            $sql = "SELECT s.id,s.name,s.owner,s.realm,s.status,s.title,q.id as qid,q.name as qname " .
+            $sql = "SELECT s.id,s.name,s.courseid,s.realm,s.status,s.title,q.id as qid,q.name as qname " .
                    "FROM {questionnaire} q " .
-                   "INNER JOIN {questionnaire_survey} s ON s.id = q.sid AND ".$castsql." = q.course " .
+                   "INNER JOIN {questionnaire_survey} s ON s.id = q.sid AND s.courseid = q.course " .
                    "WHERE (realm = ?) " .
                    "ORDER BY realm,name ";
-            $params = array($type);
+            $params = [$type];
         } else if ($type == 'private') {
-            $sql = "SELECT s.id,s.name,s.owner,s.realm,s.status,q.id as qid,q.name as qname " .
+            $sql = "SELECT s.id,s.name,s.courseid,s.realm,s.status,q.id as qid,q.name as qname " .
                 "FROM {questionnaire} q " .
                 "INNER JOIN {questionnaire_survey} s ON s.id = q.sid " .
-                "WHERE owner = ? and realm = ? " .
+                "WHERE s.courseid = ? and realm = ? " .
                 "ORDER BY realm,name ";
-            $params = array($courseid, $type);
+            $params = [$courseid, $type];
 
         } else {
             // Current get_survey_list is called from function questionnaire_reset_userdata so we need to get a
             // complete list of all questionnaires in current course to reset them.
-            $sql = "SELECT s.id,s.name,s.owner,s.realm,s.status,q.id as qid,q.name as qname " .
+            $sql = "SELECT s.id,s.name,s.courseid,s.realm,s.status,q.id as qid,q.name as qname " .
                    "FROM {questionnaire} q " .
-                    "INNER JOIN {questionnaire_survey} s ON s.id = q.sid AND ".$castsql." = q.course " .
-                   "WHERE owner = ? " .
+                    "INNER JOIN {questionnaire_survey} s ON s.id = q.sid AND s.courseid = q.course " .
+                   "WHERE s.courseid = ? " .
                    "ORDER BY realm,name ";
-            $params = array($courseid);
+            $params = [$courseid];
         }
     }
     return $DB->get_records_sql($sql, $params);
@@ -501,7 +511,7 @@ function questionnaire_get_survey_select($courseid=0, $type='') {
     if ($surveys = questionnaire_get_survey_list($courseid, $type)) {
         $strpreview = get_string('preview_questionnaire', 'questionnaire');
         foreach ($surveys as $survey) {
-            $originalcourse = $DB->get_record('course', array('id' => $survey->owner));
+            $originalcourse = $DB->get_record('course', ['id' => $survey->courseid]);
             if (!$originalcourse) {
                 // This should not happen, but we found a case where a public survey
                 // still existed in a course that had been deleted, and so this
@@ -511,7 +521,7 @@ function questionnaire_get_survey_select($courseid=0, $type='') {
             }
 
             // Prevent creating a copy of a public questionnaire IN THE SAME COURSE as the original.
-            if ($type == 'public' && $survey->owner == $courseid) {
+            if (($type == 'public') && ($survey->courseid == $courseid)) {
                 continue;
             } else {
                 $args = "sid={$survey->id}&popup=1";
@@ -649,9 +659,9 @@ function questionnaire_get_incomplete_users($cm, $sid,
 
     // Nnow get all completed questionnaires.
     $params = array('survey_id' => $sid, 'complete' => 'y');
-    $sql = "SELECT username FROM {questionnaire_response} " .
+    $sql = "SELECT userid FROM {questionnaire_response} " .
            "WHERE survey_id = :survey_id AND complete = :complete " .
-           "GROUP BY username ";
+           "GROUP BY userid ";
 
     if (!$completedusers = $DB->get_records_sql($sql, $params)) {
         return $allusers;
