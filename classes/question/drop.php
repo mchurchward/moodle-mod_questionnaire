@@ -125,7 +125,7 @@ class drop extends base {
             }
             $chobj = new \stdClass();
             $chobj->name = 'q'.$this->id;
-            $chobj->id = $this->type . $this->id;
+            $chobj->id = self::qtypename($this->type_id) . $this->id;
             $chobj->class = 'select custom-select menu q'.$this->id;
             $chobj->options = $options;
             $choicetags->qelements->choice = $chobj;

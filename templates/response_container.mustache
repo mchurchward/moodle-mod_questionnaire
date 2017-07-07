@@ -53,7 +53,7 @@
                     "for": "qn-7"
                 },
                 "qcontent": "HTML for the response content",
-                "qformelement": "<div>HTML for the question form element</div>"
+                "qformelement": "<div id="qn-7">HTML for the question form element</div>"
             }
         ]
     }
@@ -62,13 +62,13 @@
 <div class="box individualresp">
 <fieldset id="{{fieldset.id}}" class="{{fieldset.class}}">
     {{#qnum}}
-    <legend class="qn-legend">
+    <legend class="accesshide">{{# str }}questionnum, mod_questionnaire{{/ str}}{{{qnum}}}</legend>
+    <div class="qn-legend">
         <div class="qn-info">
-            <div class="accesshide">{{# str }}questionnum, mod_questionnaire{{/ str}}</div>
             <h2 class="qn-number">{{{.}}}</h2>
         </div>
         {{{required}}}
-    </legend>
+    </div>
     {{/qnum}}
     <div class="qn-content">
         <div class="qn-question {{skippedclass}}">
@@ -80,13 +80,13 @@
             {{#responses}}
             {{#respdate}}<div class="respdate">{{respdate}}</div>{{/respdate}}
             <fieldset id="{{fieldset.id}}" class="{{fieldset.class}}">
-                <legend class="qn-legend">
+                <legend class="accesshide">{{# str }}questionnum, mod_questionnaire{{/ str}}</legend>
+                <div class="qn-legend">
                     <div class="qn-info">
                         <div class="accesshide">{{# str }}questionnum, mod_questionnaire{{/ str}}</div>
-                        <h2 class="qn-number"></h2>
                     </div>
                     {{{required}}}
-                </legend>
+                </div>
                 <div class="qn-content">
                     <div class="qn-question {{skippedclass}}">
                         {{#label}}<label for="{{label.for}}">{{/label}}

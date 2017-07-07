@@ -118,12 +118,13 @@ class questionnaire {
         }
 
         if (!isset($this->questions)) {
-            $this->questions = array();
-            $this->questionsbysec = array();
+            $this->questions = [];
+            $this->questionsbysec = [];
         }
 
-        $select = 'survey_id = '.$sid.' AND deleted != \'y\'';
-        if ($records = $DB->get_records_select('questionnaire_question', $select, null, 'position')) {
+        $select = 'survey_id = ? AND deleted = ?';
+        $params = [$sid, 'n'];
+        if ($records = $DB->get_records_select('questionnaire_question', $select, $params, 'position')) {
             $sec = 1;
             $isbreak = false;
             foreach ($records as $record) {
@@ -1364,8 +1365,9 @@ class questionnaire {
         global $DB;
 
         $pos = $this->response_select_max_pos($rid);
-        $select = 'survey_id = \''.$this->sid.'\' AND type_id = 99 AND position < '.$pos.' AND deleted = \'n\'';
-        $max = $DB->count_records_select('questionnaire_question', $select) + 1;
+        $select = 'survey_id = ? AND type_id = ? AND position < ? AND deleted = ?';
+        $params = [$this->sid, QUESPAGEBREAK, $pos, 'n'];
+        $max = $DB->count_records_select('questionnaire_question', $select, $params) + 1;
 
         return $max;
     }
