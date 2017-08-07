@@ -787,6 +787,8 @@ class questionnaire {
             if ($question->type_id != QUESSECTIONTEXT) {
                 $i++;
             }
+            // need questionnaire id to get the questionnaire object in sectiontext (Label) question class
+            $formdata->questionnaire_id = $this->id;
             $this->page->add_to_page('questions',
                 $this->renderer->question_output($question, $formdata, '', $i, $this->usehtmleditor));
         }
@@ -3077,7 +3079,9 @@ class questionnaire {
         return false;
     }
 
-    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid) {
+    // $filteredSections == null -> normal behavior
+    // $filteredSections != null -> == array(id, id, ...), get feedback messages only for this sections
+    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredSections = null) {
         global $DB, $CFG;
         $action = optional_param('action', 'vall', PARAM_ALPHA);
 
@@ -3368,6 +3372,10 @@ class questionnaire {
         }
 
         for ($section = 1; $section <= $feedbacksections; $section++) {
+            // get feedback messages only for this sections
+            if($filteredSections != null && !in_array($section, $filteredSections)){
+                continue;
+            }
             foreach ($fbsections as $key => $fbsection) {
                 if ($fbsection->section == $section) {
                     $feedbacksectionid = $key;
