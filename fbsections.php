@@ -271,7 +271,7 @@ foreach ($questionnaire->questions as $question) {
                     if ($advdependencies) {
                         // RadioButton -> Checkbox
                         // onclick: Section > 0 selected? -> uncheck section 0
-                        $output .= '<div class="' . $bg . '"><input type="checkbox" name="' . $n . '_' . $i . '"' .
+                        $output .= '<div class="' . $bg . '"><input type="checkbox" style="width: 60px;" name="' . $n . '_' . $i . '"' .
                             ' id="' . $qid . '_' . $i . '" value="' . $i . '_' . $qid . '" ' .
                             'onclick="document.getElementsByName(\''.$n.'_0\')[0].checked=false;"';
                     } else{
@@ -283,7 +283,7 @@ foreach ($questionnaire->questions as $question) {
                         // section 0
                         // onclick: uncheck_boxes see below
                         $output .= '<div class="' . $bg . '">' .
-                            '<input type="checkbox" onclick="uncheck_boxes(\''.$n.'\');" name="' . $n . '_' . $i . '"' .
+                            '<input type="checkbox" style="width: 60px;" onclick="uncheck_boxes(\''.$n.'\');" name="' . $n . '_' . $i . '"' .
                             ' id="' . $i . '" value="' . $i . '"';
                     } else{
                         $output .= '<div class="' . $bg . '"><input type="radio" name="' . $n . '" id="' . $i . '" value="' . $i . '"';
@@ -310,12 +310,14 @@ foreach ($questionnaire->questions as $question) {
                     $output .= ' />';
                     // without last </div>, add inputfield for question in section
                     $output .= '<label for="' . $qid . '_' . $i . '">' . '<div style="padding-left: 2px;">' . $i . '</div>' . '</label></div>';
-                    if ($i > 0) {
+                    // $qtype != QUESSECTIONTEXT (Label) with feedback while anserwing the survey, 
+                    // needs only the section number(s) without weights (section == 0 -> normal behavior as Label question)
+                    if ($i > 0 && $qtype != QUESSECTIONTEXT) {
                         // add Input fields for weights per section
                         if ($scorecalculation_weights[$qid][$i]){
-                            $output .= '<input type="number" name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.1" value="'. $scorecalculation_weights[$qid][$i] .'">';
+                            $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.01" value="'. $scorecalculation_weights[$qid][$i] .'">';
                         } else{
-                            $output .= '<input type="number" name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.1" value="0">';
+                            $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.01" value="0">';
                         }
                     }
                     // now close div-Tag
