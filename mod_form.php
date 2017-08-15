@@ -82,8 +82,7 @@ class mod_questionnaire_mod_form extends moodleform_mod {
         $options = array('0' => get_string('no'), '1' => get_string('yes'));
         $mform->addElement('select', 'resume', get_string('resume', 'questionnaire'), $options);
         $mform->addHelpButton('resume', 'resume', 'questionnaire');
-		// Option 2 - Erweitert -> see kyro46/MOODLE_32_Multiparent
-        $options = array('0' => get_string('no'), '1' => get_string('yes'), '2' => 'Erweitert');
+        $options = array('0' => get_string('no'), '1' => get_string('yes'), '2' => get_string('advancedsettings'));
         $mform->addElement('select', 'navigate', get_string('navigate', 'questionnaire'), $options);
         $mform->addHelpButton('navigate', 'navigate', 'questionnaire');
 
