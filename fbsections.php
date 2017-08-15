@@ -50,10 +50,21 @@ $viewform = data_submitted($CFG->wwwroot."/mod/questionnaire/fbsections.php");
 $feedbacksections = $questionnaire->survey->feedbacksections;
 $errormsg = '';
 
+// False -> original behavior, nothing changed
+// True  -> allow question to be in multiple sections,
+//       -> Checkboxes instead of RadioButtons
+//       -> Input for weights
+$advdependencies = False;
+if ($questionnaire->navigate == 2) {
+    $advdependencies = True;
+}
+// [qid][section] = weight for question (qid) in section
+$scorecalculation_weights = array();
+
 // Check if there are any feedbacks stored in database already to use them to check
 // the radio buttons on select questions in sections page.
 if ($fbsections = $DB->get_records('questionnaire_fb_sections',
-        array('survey_id' => $sid)) ) {
+    array('survey_id' => $sid)) ) {
     $scorecalculation = '';
     $questionsinsections = array();
     for ($section = 1; $section <= $feedbacksections; $section++) {
@@ -62,7 +73,17 @@ if ($fbsections = $DB->get_records('questionnaire_fb_sections',
             if (isset($fbsection->scorecalculation) && $fbsection->section == $section) {
                 $scorecalculation = unserialize($fbsection->scorecalculation);
                 foreach ($scorecalculation as $qid => $key) {
-                    $questionsinsections[$qid] = $section;
+                    if ($advdependencies) {
+                        if (!is_array($questionsinsections[$qid])) {
+                            $questionsinsections[$qid] = array();
+                            $scorecalculation_weights[$qid] = array();
+                        }
+                        array_push($questionsinsections[$qid], $section);
+                        // $key != null -> 0.0 - 1.0
+                        $scorecalculation_weights[$qid][$section] = $key;
+                    } else{
+                        $questionsinsections[$qid] = $section;
+                    }
                 }
                 break;
             }
@@ -81,11 +102,35 @@ if (data_submitted()) {
     }
     $scorecalculation = array();
     $submittedvf = array();
+    $scorecalculation_weights = array();
+    foreach($vf as $key => $value){
+        $qid_section = explode("|", $key);
+        if ($qid_section[0] !== "weight"){
+            continue;
+        }
+        if (!is_array($scorecalculation_weights[$qid_section[0]])){
+            $scorecalculation_weights[$qid_section[0]] = array();
+        }
+        // $qid_section[1] = qid;  $qid_section[2] = section
+        $scorecalculation_weights[$qid_section[1]][$qid_section[2]] = $value;
+    }
     foreach ($vf as $qs) {
         $sectionqid = explode("_", $qs);
         if ($sectionqid[0] != 0) {
-            $scorecalculation[$sectionqid[0]][$sectionqid[1]] = null;
-            $submittedvf[$sectionqid[1]] = $sectionqid[0];
+            if ($advdependencies){
+                if (isset($sectionqid[1])) {
+                    // $scorecalculation[$sectionqid[0]][$sectionqid[1]] != null
+                    $scorecalculation[$sectionqid[0]][$sectionqid[1]] = $scorecalculation_weights[$sectionqid[1]][$sectionqid[0]];
+                }
+                if(count($sectionqid) == 2) {
+                    // [1] - id; [0] - section
+                    $submittedvf[$sectionqid[1]] = $sectionqid[0];
+                }
+
+            } else {
+                $scorecalculation[$sectionqid[0]][$sectionqid[1]] = null;
+                $submittedvf[$sectionqid[1]] = $sectionqid[0];
+            }
         }
     }
     $c = count($scorecalculation);
@@ -119,9 +164,9 @@ if (data_submitted()) {
         // must also insert section heading!
         for ($section = 1; $section <= $feedbacksections; $section++) {
             if ($existsection = $DB->get_record('questionnaire_fb_sections',
-                        array('survey_id' => $sid, 'section' => $section), '*', IGNORE_MULTIPLE) ) {
+                array('survey_id' => $sid, 'section' => $section), '*', IGNORE_MULTIPLE) ) {
                 $DB->set_field('questionnaire_fb_sections', 'scorecalculation', serialize($scorecalculation[$section]),
-                        array('survey_id' => $sid, 'section' => $section));
+                    array('survey_id' => $sid, 'section' => $section));
             } else {
                 $feedbacksection = new stdClass();
                 $feedbacksection->survey_id = $sid;
@@ -172,7 +217,6 @@ foreach ($questionnaire->questions as $question) {
 
     // Questions to be included in feedback sections must be required, have a name
     // and must not be child of a parent question.
-    //TODO enhance for advdependencies
     if ($qtype != QUESPAGEBREAK && $qtype != QUESSECTIONTEXT) {
         $n++;
     }
@@ -180,8 +224,8 @@ foreach ($questionnaire->questions as $question) {
     $cannotuse = false;
     $strcannotuse = '';
     if ($qtype != QUESSECTIONTEXT && $qtype != QUESPAGEBREAK
-                    && ($qtype != QUESYESNO && $qtype != QUESRADIO && $qtype != QUESRATE
-                    || $required != 'y' || $qname == '' || $question->dependquestion != 0)) {
+        && ($qtype != QUESYESNO && $qtype != QUESRADIO && $qtype != QUESRATE
+            || $required != 'y' || $qname == '' || $question->dependquestion != 0)) {
         $cannotuse = true;
         $qn = '<strong>'.$n.'</strong>';
         if ($qname == '') {
@@ -224,20 +268,72 @@ foreach ($questionnaire->questions as $question) {
             for ($i = 0; $i < $feedbacksections; $i++) {
                 $output = '<div style="float:left; padding-right:5px;">';
                 if ($i != 0) {
-                    $output .= '<div class="'.$bg.'"><input type="radio" name="'.$n.'" id="'.$qid.'_'.$i.'" value="'.$i.'_'.
-                        $qid.'"';
+                    if ($advdependencies) {
+                        // RadioButton -> Checkbox
+                        // onclick: Section > 0 selected? -> uncheck section 0
+                        $output .= '<div class="' . $bg . '"><input type="checkbox" style="width: 60px;" name="' . $n . '_' . $i . '"' .
+                            ' id="' . $qid . '_' . $i . '" value="' . $i . '_' . $qid . '" ' .
+                            'onclick="document.getElementsByName(\''.$n.'_0\')[0].checked=false;"';
+                    } else{
+                        $output .= '<div class="' . $bg . '"><input type="radio" name="' . $n . '" id="' .
+                            $qid . '_' . $i . '" value="' . $i . '_' . $qid . '"';
+                    }
                 } else {
-                    $output .= '<div class="'.$bg.'"><input type="radio" name="'.$n.'" id="'.$i.'" value="'.$i.'"';
+                    if ($advdependencies) {
+                        // section 0
+                        // onclick: uncheck_boxes see below
+                        $output .= '<div class="' . $bg . '">' .
+                            '<input type="checkbox" style="width: 60px;" onclick="uncheck_boxes(\''.$n.'\');" name="' . $n . '_' . $i . '"' .
+                            ' id="' . $i . '" value="' . $i . '"';
+                    } else{
+                        $output .= '<div class="' . $bg . '"><input type="radio" name="' . $n . '" id="' . $i . '" value="' . $i . '"';
+                    }
                 }
-                if ($i == 0) {
-                    $output .= ' checked="checked"';
+
+                if ($advdependencies){
+                    if ($i == 0 && !isset($vf[$qid])) {
+                        $output .= ' checked="checked"';
+                    }
+                    // Question already present in this section OR this is a Global feedback and questions are not set yet.
+                    if ($emptyisglobalfeedback){
+                        $output .= ' checked="checked"';
+                    } else{
+                        // check not only one checkbox per question
+                        if (isset($vf[$qid])){
+                            foreach ($vf[$qid] as $key => $value){
+                                if ($i == $value){
+                                    $output .= ' checked="checked"';
+                                }
+                            }
+                        }
+                    }
+                    $output .= ' />';
+                    // without last </div>, add inputfield for question in section
+                    $output .= '<label for="' . $qid . '_' . $i . '">' . '<div style="padding-left: 2px;">' . $i . '</div>' . '</label></div>';
+                    // $qtype != QUESSECTIONTEXT (Label) with feedback while anserwing the survey, 
+                    // needs only the section number(s) without weights (section == 0 -> normal behavior as Label question)
+                    if ($i > 0 && $qtype != QUESSECTIONTEXT) {
+                        // add Input fields for weights per section
+                        if ($scorecalculation_weights[$qid][$i]){
+                            $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.01" value="'. $scorecalculation_weights[$qid][$i] .'">';
+                        } else{
+                            $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.01" value="0">';
+                        }
+                    }
+                    // now close div-Tag
+                    $output .= '</div>';
+
+                } else { // $advdependencies == false
+                    if ($i == 0) {
+                        $output .= ' checked="checked"';
+                    }
+                    // Question already present in this section OR this is a Global feedback and questions are not set yet.
+                    if ((isset($vf[$qid]) && $vf[$qid] == $i) || $emptyisglobalfeedback) {
+                        $output .= ' checked="checked"';
+                    }
+                    $output .= ' />';
+                    $output .= '<label for="' . $qid . '_' . $i . '">' . '<div style="padding-left: 2px;">' . $i . '</div>' . '</label></div></div>';
                 }
-                // Question already present in this section OR this is a Global feedback and questions are not set yet.
-                if ((isset($vf[$qid]) && $vf[$qid] == $i) || $emptyisglobalfeedback) {
-                    $output .= ' checked="checked"';
-                }
-                $output .= ' />';
-                $output .= '<label for="'.$qid.'_'.$i.'">'.'<div style="padding-left: 2px;">'.$i.'</div>'.'</label></div></div>';
                 $questionnaire->page->add_to_page('formarea', $output);
                 if ($bg == 'c0') {
                     $bg = 'c1';
@@ -256,6 +352,22 @@ foreach ($questionnaire->questions as $question) {
         $questionnaire->page->add_to_page('formarea', '</div>');
         $questionnaire->page->add_to_page('formarea', '<div class="qn-question">'.$question->content.'</div>');
     }
+}
+if ($advdependencies){
+    // customized checkbox behavior
+    // section 0 selected? -> uncheck all other
+    $str_func = "\n<script>\n";
+    $str_func .= ' function uncheck_boxes(name){
+            var boxes = document.querySelectorAll("[name^=\'"+name+"_\']"); 
+            for(var i=0;i<boxes.length; i++){
+                if(boxes[i].name != name+"_0"){
+                    boxes[i].checked=false;
+                }
+            } 
+         }';
+    //var boxes = document.querySelectorAll("[name^="+ name +"_"]); console.log(boxes);}';
+    $str_func .= "\n</script>\n";
+    $questionnaire->page->add_to_page('formarea', $str_func);
 }
 // Submit/Cancel buttons.
 $url = $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id;
