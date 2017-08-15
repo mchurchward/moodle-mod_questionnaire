@@ -506,6 +506,7 @@ class questionnaire {
             }
 
             // If you are allowed to view this response for another user.
+            // If resp_view is set to QUESTIONNAIRE_STUDENTVIEWRESPONSES_NEVER, then this will always be false.
             if ($this->capabilities->readallresponses &&
                 ($this->resp_view == QUESTIONNAIRE_STUDENTVIEWRESPONSES_ALWAYS ||
                  ($this->resp_view == QUESTIONNAIRE_STUDENTVIEWRESPONSES_WHENCLOSED && $this->is_closed()) ||
@@ -526,6 +527,7 @@ class questionnaire {
             }
 
             // If you are allowed to view this response for another user.
+            // If resp_view is set to QUESTIONNAIRE_STUDENTVIEWRESPONSES_NEVER, then this will always be false.
             if ($this->capabilities->readallresponses &&
                 ($this->resp_view == QUESTIONNAIRE_STUDENTVIEWRESPONSES_ALWAYS ||
                  ($this->resp_view == QUESTIONNAIRE_STUDENTVIEWRESPONSES_WHENCLOSED && $this->is_closed()) ||
@@ -573,11 +575,12 @@ class questionnaire {
                  ($canviewallgroups ||
                   // Non-editing teacher (with canviewallgroups capability removed), if member of a group.
                   ($canviewgroups && $this->capabilities->readallresponseanytime)) &&
-                 $numresp > 0 && $owner && $numselectedresps > 0) ||
+                 ($numresp > 0) && $owner && ($numselectedresps > 0)) ||
                 ($this->capabilities->readallresponses && ($numresp > 0) && $canviewgroups &&
+                 // If resp_view is set to QUESTIONNAIRE_STUDENTVIEWRESPONSES_NEVER, then this will always be false.
                  ($this->resp_view == QUESTIONNAIRE_STUDENTVIEWRESPONSES_ALWAYS ||
                   ($this->resp_view == QUESTIONNAIRE_STUDENTVIEWRESPONSES_WHENCLOSED && $this->is_closed()) ||
-                  ($this->resp_view == QUESTIONNAIRE_STUDENTVIEWRESPONSES_WHENANSWERED && $usernumresp > 0)) &&
+                  ($this->resp_view == QUESTIONNAIRE_STUDENTVIEWRESPONSES_WHENANSWERED && ($usernumresp > 0))) &&
                  $this->is_survey_owner()));
     }
 
@@ -1675,7 +1678,7 @@ class questionnaire {
         $mailaddresses = preg_split('/,|;/', $email);
         foreach ($mailaddresses as $email) {
             $userto = new stdClass();
-            $userto->email = $email;
+            $userto->email = trim($email);
             $userto->mailformat = 1;
             // Dummy userid to keep email_to_user happy in moodle 2.6.
             $userto->id = -10;
