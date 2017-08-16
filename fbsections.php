@@ -199,6 +199,8 @@ if ($errormsg != '') {
     $questionnaire->page->add_to_page('notifications', $questionnaire->renderer->notification($errormsg));
 }
 $n = 0;
+// number of sectiontext questions
+$fb = 0;
 $bg = 'c0';
 
 $questionnaire->page->add_to_page('formarea', $questionnaire->renderer->box_start());
@@ -217,7 +219,8 @@ foreach ($questionnaire->questions as $question) {
 
     // Questions to be included in feedback sections must be required, have a name
     // and must not be child of a parent question.
-    if ($qtype != QUESPAGEBREAK && $qtype != QUESSECTIONTEXT) {
+    // radio buttons need different names
+    if ($qtype != QUESPAGEBREAK ){//&& $qtype != QUESSECTIONTEXT ) {
         $n++;
     }
 
@@ -243,6 +246,12 @@ foreach ($questionnaire->questions as $question) {
         }
     }
 
+    // QUESSECTIONTEXT (Label), cannotuse == true -> label in feedback sections
+    if ($qtype == QUESSECTIONTEXT){
+        $cannotuse = false;
+        $fb++;
+    }
+
     $qhasvalues = false;
     if (!$cannotuse) {
         if ($qtype == QUESRADIO || $qtype == QUESDROP) {
@@ -259,6 +268,11 @@ foreach ($questionnaire->questions as $question) {
         // Valid questions in feedback sections can be of QUESNO type
         // or of QUESRATE "normal" option type (i.e. not N/A nor nodupes).
         if ($qtype == QUESYESNO || ($qtype == QUESRATE && ($qprecise == 0 || $qprecise == 3)) ) {
+            $qhasvalues = true;
+        }
+
+        // QUESSECTIONTEXT (Label), show radio buttons -> select section for feedback ($filteredSections)
+        if ($qtype == QUESSECTIONTEXT){
             $qhasvalues = true;
         }
 
@@ -343,8 +357,9 @@ foreach ($questionnaire->questions as $question) {
             }
         }
         if ($qhasvalues || $qtype == QUESSECTIONTEXT) {
+            // $n-$fb display sectiontext without a number and do not count them
             $questionnaire->page->add_to_page('formarea',
-                $questionnaire->renderer->question_output($question, $formdata, '', $n, true));
+                $questionnaire->renderer->question_output($question, $formdata, '', $n-$fb, true));
         }
     } else {
         $questionnaire->page->add_to_page('formarea', '<div class="notifyproblem">');
