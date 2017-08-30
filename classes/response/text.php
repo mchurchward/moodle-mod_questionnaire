@@ -140,15 +140,15 @@ class text extends base {
         foreach ($records as $qid => $row) {
             unset($row->id);
             $row = (array)$row;
-            $newrow = array();
+            $newrow = [];
             foreach ($row as $key => $val) {
                 if (!is_numeric($key)) {
                     $newrow[] = $val;
                 }
             }
-            $values["$qid"] = $newrow;
-            $val = array_pop($values["$qid"]);
-            array_push($values["$qid"], $val, $val);
+            $values[$qid] = $newrow;
+            $val = array_pop($values[$qid]);
+            array_push($values[$qid], $val, $val);
         }
 
         return $values;

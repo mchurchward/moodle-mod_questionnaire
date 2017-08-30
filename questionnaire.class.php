@@ -1745,24 +1745,19 @@ class questionnaire {
         $values = \mod_questionnaire\response\boolean::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_single (radio button or dropdown).
-        $values = array_merge($values,
-            \mod_questionnaire\response\single::response_select($rid, $col, $csvexport, $choicecodes, $choicetext));
+        $values += \mod_questionnaire\response\single::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_multiple.
-        $values = array_merge($values,
-            \mod_questionnaire\response\multiple::response_select($rid, $col, $csvexport, $choicecodes, $choicetext));
+        $values += \mod_questionnaire\response\multiple::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_rank.
-        $values = array_merge($values,
-            \mod_questionnaire\response\rank::response_select($rid, $col, $csvexport, $choicecodes, $choicetext));
+        $values += \mod_questionnaire\response\rank::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_text.
-        $values = array_merge($values,
-            \mod_questionnaire\response\text::response_select($rid, $col, $csvexport, $choicecodes, $choicetext));
+        $values += \mod_questionnaire\response\text::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_date.
-        $values = array_merge($values,
-            \mod_questionnaire\response\date::response_select($rid, $col, $csvexport, $choicecodes, $choicetext));
+        $values += \mod_questionnaire\response\date::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         return($values);
     }

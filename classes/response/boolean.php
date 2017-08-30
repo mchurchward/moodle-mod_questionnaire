@@ -139,9 +139,9 @@ class boolean extends base {
                 }
             }
             $values[$qid] = $newrow;
-            array_push($values["$qid"], ($choice == 'y') ? '1' : '0');
+            array_push($values[$qid], ($choice == 'y') ? '1' : '0');
             if (!$csvexport) {
-                array_push($values["$qid"], $choice); // DEV still needed for responses display.
+                array_push($values[$qid], $choice); // DEV still needed for responses display.
             }
         }
 
