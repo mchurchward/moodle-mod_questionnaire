@@ -536,7 +536,7 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
             $dbman->add_index($table, $index);
         }
 
-        //===MOD Multiparent Advanceddependencies START===
+        // MOD Multiparent Advanceddependencies START.
         // Define table questionnaire_dependencies to be created.
         $table = new xmldb_table('questionnaire_dependencies');
 
@@ -559,7 +559,7 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
         if (!$dbman->table_exists($table)) {
                $dbman->create_table($table);
         }
-        //===MOD Multiparent Advanceddependencies END===
+        // MOD Multiparent Advanceddependencies END.
 
         // Questionnaire savepoint reached.
         upgrade_mod_savepoint(true, 2015051102, 'questionnaire');

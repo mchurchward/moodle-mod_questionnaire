@@ -95,9 +95,9 @@ class mod_questionnaire_questions_form extends moodleform {
         // we must get now the parent and child positions.
 
         if ($questionnairehasdependencies) {
-               //Parameter changed to whole Questionnaire, to check for navigation-mode
-            $parentpositions = questionnaire_get_parent_positions ($questionnaire);
-            $childpositions = questionnaire_get_child_positions ($questionnaire);
+            // Parameter changed to whole Questionnaire, to check for navigation-mode.
+            $parentpositions = questionnaire_get_parent_positions($questionnaire);
+            $childpositions = questionnaire_get_child_positions($questionnaire);
         }
 
         $mform->addElement('header', 'manageq', get_string('managequestions', 'questionnaire'));
@@ -120,10 +120,10 @@ class mod_questionnaire_questions_form extends moodleform {
             $parents = [];
             $positions = [];
 
-            //TODO I think the plugin should ignore all dependencies, when branching is set to 0 later,
-            //instead of continuing to use the dependencies after switching the option off.
+            // TODO I think the plugin should ignore all dependencies, when branching is set to 0 later,
+            // instead of continuing to use the dependencies after switching the option off.
 
-            //Get displayable list of parents for the questions in questions_form
+            // Get displayable list of parents for the questions in questions_form.
             if ($questionnairehasdependencies) {
                 if ($question->dependquestion != 0 && $questionnaire->navigate != 2) {
                     $parent = questionnaire_get_parent ($question);
@@ -131,7 +131,7 @@ class mod_questionnaire_questions_form extends moodleform {
                         $strposition.' '.$parent[$qid]['parentposition'].' ('.$parent[$qid]['parent'].')';
                 }
 
-                //TODO create questionnaire_get_advparents in locallib
+                // TODO create questionnaire_get_advparents in locallib.
                 if (isset($question->advdependencies) && $questionnaire->navigate == 2) {
                     foreach ($question->advdependencies as $advdependencyhelper) {
                         $advdependencyhelper->dependquestion = $advdependencyhelper->adv_dependquestion;
@@ -143,8 +143,8 @@ class mod_questionnaire_questions_form extends moodleform {
 
                         $parent = questionnaire_get_parent ($advdependencyhelper);
 
-                        //TODO Could be placed in locallib as function
-                        //TODO Replace static strings and set language variables
+                        // TODO Could be placed in locallib as function.
+                        // TODO Replace static strings and set language variables.
                         switch ($advdependencyhelper->adv_dependlogic) {
                             case 0:
                                 $logic = ' not set';
@@ -161,8 +161,8 @@ class mod_questionnaire_questions_form extends moodleform {
                                     $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
                         }
 
-                        //Use own array for or-dependencies, to apply a specific css-class later
-                        if  ($advdependencyhelper->adv_depend_and_or == "or") {
+                        // Use own array for or-dependencies, to apply a specific css-class later.
+                        if ($advdependencyhelper->adv_depend_and_or == "or") {
                             $dependencies_or[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
                                     $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
                         }
@@ -267,20 +267,20 @@ class mod_questionnaire_questions_form extends moodleform {
                                             'position' => $pos - 1, 'deleted' => 'n' ),
                                             $fields = 'id, dependquestion, name, content')) {
 
-                                $previousquestionadvdependencies = $DB->get_records('questionnaire_dependencies', 
+                                $previousquestionadvdependencies = $DB->get_records('questionnaire_dependencies',
                                                array('question_id' => $previousquestion->id , 'survey_id' => $sid), 'id ASC');
 
-                                if (	($questionnaire->navigate != 2 &&
-                                            ($nextquestion->dependquestion != 0 ||
-                                                ($previousquestion->dependquestion != 0 && $nextquestion->dependquestion == 0)
-                                            )
-                                        ) || //Add conditions for advdependencies, including navigate, so old and new don't interfere
-                                        ($questionnaire->navigate == 2 &&
-                                            (!empty($nextquestionadvdependencies) ||
-                                                (!empty($previousquestionadvdependencies) && empty($nextquestionadvdependencies))
-                                            )
-                                        )
-                                    ) {
+                                if (($questionnaire->navigate != 2 &&
+                                     ($nextquestion->dependquestion != 0 ||
+                                      ($previousquestion->dependquestion != 0 && $nextquestion->dependquestion == 0)
+                                     )
+                                    ) || // Add conditions for advdependencies, including navigate, so old and new don't interfere.
+                                    ($questionnaire->navigate == 2 &&
+                                     (!empty($nextquestionadvdependencies) ||
+                                      (!empty($previousquestionadvdependencies) && empty($nextquestionadvdependencies))
+                                     )
+                                    )
+                                   ) {
                                     $strdisabled = get_string('movedisabled', 'questionnaire');
                                     $msrc = $questionnaire->renderer->pix_url('t/block');
                                     $mextra = array('value' => $question->id,
