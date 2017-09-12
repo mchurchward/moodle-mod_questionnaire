@@ -62,10 +62,10 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
             'question_id', 'content', 'value'));
 
         $questadvdependencies = new backup_nested_element('quest_advdependencies');
-        
+
         $questadvdependency = new backup_nested_element('quest_advdependency',array('id'), array(
             'adv_dependquestion', 'adv_dependchoice', 'adv_dependlogic', 'question_id', 'survey_id', 'adv_depend_and_or'));
-        
+
         $fbsections = new backup_nested_element('fb_sections');
 
         $fbsection = new backup_nested_element('fb_section', array('id'), array(
@@ -130,10 +130,10 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
 
         $question->add_child($questchoices);
         $questchoices->add_child($questchoice);
-        
+
         $question->add_child($questadvdependencies);
         $questadvdependencies->add_child($questadvdependency);
-        
+
         $survey->add_child($fbsections);
         $fbsections->add_child($fbsection);
 

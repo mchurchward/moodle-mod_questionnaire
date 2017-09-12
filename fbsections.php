@@ -324,7 +324,7 @@ foreach ($questionnaire->questions as $question) {
                     $output .= ' />';
                     // without last </div>, add inputfield for question in section
                     $output .= '<label for="' . $qid . '_' . $i . '">' . '<div style="padding-left: 2px;">' . $i . '</div>' . '</label></div>';
-                    // $qtype != QUESSECTIONTEXT (Label) with feedback while anserwing the survey, 
+                    // $qtype != QUESSECTIONTEXT (Label) with feedback while anserwing the survey,
                     // needs only the section number(s) without weights (section == 0 -> normal behavior as Label question)
                     if ($i > 0 && $qtype != QUESSECTIONTEXT) {
                         // add Input fields for weights per section
@@ -373,12 +373,12 @@ if ($advdependencies){
     // section 0 selected? -> uncheck all other
     $str_func = "\n<script>\n";
     $str_func .= ' function uncheck_boxes(name){
-            var boxes = document.querySelectorAll("[name^=\'"+name+"_\']"); 
+            var boxes = document.querySelectorAll("[name^=\'"+name+"_\']");
             for(var i=0;i<boxes.length; i++){
                 if(boxes[i].name != name+"_0"){
                     boxes[i].checked=false;
                 }
-            } 
+            }
          }';
     //var boxes = document.querySelectorAll("[name^="+ name +"_"]); console.log(boxes);}';
     $str_func .= "\n</script>\n";

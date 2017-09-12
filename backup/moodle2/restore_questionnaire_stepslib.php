@@ -46,7 +46,7 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
      * @var array $oldadvdependencies Contains the old id's from the advdependencies array.
      */
     protected $oldadvdependencies = [];
-    
+
     protected function define_structure() {
 
         $paths = array();
@@ -63,7 +63,7 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         $paths[] = new restore_path_element('questionnaire_quest_choice',
                         '/activity/questionnaire/surveys/survey/questions/question/quest_choices/quest_choice');
         $paths[] = new restore_path_element('questionnaire_dependencies',
-        		'/activity/questionnaire/surveys/survey/questions/question/quest_advdependencies/quest_advdependency');
+                '/activity/questionnaire/surveys/survey/questions/question/quest_advdependencies/quest_advdependency');
 
         if ($userinfo) {
             $paths[] = new restore_path_element('questionnaire_attempt', '/activity/questionnaire/attempts/attempt');
@@ -202,19 +202,19 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         $newitemid = $DB->insert_record('questionnaire_quest_choice', $data);
         $this->set_mapping('questionnaire_quest_choice', $oldid, $newitemid);
     }
-    
-    protected function process_questionnaire_dependencies($data) {
-    	global $DB;
-    	$data = (object)$data;
-    	 
-    	$data->question_id = $this->get_new_parentid('questionnaire_question');
-    	$data->survey_id = $this->get_new_parentid('questionnaire_survey');
 
-    	if (isset($data)) {
-    		$this->oldadvdependencies[] = $data;
-    	}
+    protected function process_questionnaire_dependencies($data) {
+        global $DB;
+        $data = (object)$data;
+
+        $data->question_id = $this->get_new_parentid('questionnaire_question');
+        $data->survey_id = $this->get_new_parentid('questionnaire_survey');
+
+        if (isset($data)) {
+            $this->oldadvdependencies[] = $data;
+        }
     }
-    
+
     protected function process_questionnaire_attempt($data) {
         global $DB;
 
@@ -346,16 +346,16 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         }
 
         foreach ($this->oldadvdependencies as $data) {
-        	$data->adv_dependquestion = $this->get_mappingid('questionnaire_question', $data->adv_dependquestion);
+            $data->adv_dependquestion = $this->get_mappingid('questionnaire_question', $data->adv_dependquestion);
 
-        	// Only change mapping for RADIO and DROP question types, not for YESNO question.
-        	$dependquestion = $DB->get_record('questionnaire_question', array('id' => $data->adv_dependquestion), 'type_id');
-        	if (is_object($dependquestion)) {
-        		if ($dependquestion->type_id != 1) {
-        			$data->adv_dependchoice = $this->get_mappingid('questionnaire_quest_choice', $data->adv_dependchoice);
-        		}
-        	}
-        	$newitemid = $DB->insert_record('questionnaire_dependencies', $data);
+            // Only change mapping for RADIO and DROP question types, not for YESNO question.
+            //$dependquestion = $DB->get_record('questionnaire_question', array('id' => $data->adv_dependquestion), 'type_id');
+            if (is_object($dependquestion)) {
+                if ($dependquestion->type_id != 1) {
+                    $data->adv_dependchoice = $this->get_mappingid('questionnaire_quest_choice', $data->adv_dependchoice);
+                }
+            }
+            $newitemid = $DB->insert_record('questionnaire_dependencies', $data);
         }
 
         // Add questionnaire related files, no need to match by itemname (just internally handled context).
