@@ -664,7 +664,7 @@ class questionnaire {
                 $formdata->sec++;
                 if (questionnaire_has_dependencies($this->questions)) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
+                                    $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
                     while (count($nbquestionsonpage) == 0) {
                         $this->response_delete($formdata->rid, $formdata->sec);
                         $formdata->sec++;
@@ -674,7 +674,7 @@ class questionnaire {
                             break;
                         }
                         $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
+                                        $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -701,11 +701,11 @@ class questionnaire {
                 // Skip logic.
                 if (questionnaire_has_dependencies($this->questions)) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
+                                    $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
                     while (count($nbquestionsonpage) == 0) {
                         $formdata->sec--;
                         $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
+                                        $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -783,6 +783,8 @@ class questionnaire {
             if ($question->type_id != QUESSECTIONTEXT) {
                 $i++;
             }
+            // need questionnaire id to get the questionnaire object in sectiontext (Label) question class
+            $formdata->questionnaire_id = $this->id;
             $this->page->add_to_page('questions',
                 $this->renderer->question_output($question, $formdata, '', $i, $this->usehtmleditor));
         }
@@ -3233,7 +3235,7 @@ class questionnaire {
         return false;
     }
 
-    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid) {
+    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredSections = null) {
         global $DB, $CFG;
         $action = optional_param('action', 'vall', PARAM_ALPHA);
 
@@ -3323,6 +3325,15 @@ class questionnaire {
         // Get individual scores for each question in this responses set.
         $qscore = array();
         $allqscore = array();
+
+        // False -> original behavior, nothing changed
+        // True  -> qscore with weights
+        $advdependencies =  False;
+        // $this->id == questionnaire id
+        $sql_navigate = "SELECT navigate FROM {questionnaire} WHERE id = $this->id";
+        if ($DB->get_record_sql($sql_navigate)->navigate == "2") {
+            $advdependencies = True;
+        }
 
         // Get all response ids for all respondents.
         $rids = array();
@@ -3522,6 +3533,10 @@ class questionnaire {
         }
 
         for ($section = 1; $section <= $feedbacksections; $section++) {
+            // get feedback messages only for this sections
+            if($filteredSections != null && !in_array($section, $filteredSections)){
+                continue;
+            }
             foreach ($fbsections as $key => $fbsection) {
                 if ($fbsection->section == $section) {
                     $feedbacksectionid = $key;
@@ -3535,10 +3550,18 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    $score[$section] += $qscore[$qid];
-                    $maxscore[$section] += $qmax[$qid];
-                    if ($compare  || $allresponses) {
-                        $allscore[$section] += $allqscore[$qid];
+                    if ($advdependencies){
+                        $score[$section] += round($qscore[$qid] * $key);
+                        $maxscore[$section] += round($qmax[$qid] * $key);
+                        if ($compare  || $allresponses) {
+                            $allscore[$section] += round($allqscore[$qid] * $key);
+                        }
+                    } else { // $advdependencies == false
+                        $score[$section] += $qscore[$qid];
+                        $maxscore[$section] += $qmax[$qid];
+                        if ($compare || $allresponses) {
+                            $allscore[$section] += $allqscore[$qid];
+                        }
                     }
                 }
             }
