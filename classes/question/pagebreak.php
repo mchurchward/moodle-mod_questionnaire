@@ -43,7 +43,7 @@ class pagebreak extends base {
         return '';
     }
 
-    public function edit_form(\MoodleQuickForm $qform, $questionnaire, $modcontext) {
+    public function edit_form(\MoodleQuickForm $qform, $questionnaire, $modcontext, $editquestionobject) {
         return false;
     }
 }

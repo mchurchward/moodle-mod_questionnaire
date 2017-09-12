@@ -277,6 +277,11 @@ td.selected {
     margin-bottom: 5px;
 }
 
+.qdepend-or {
+    color: orange;
+    padding-left:5px;
+    margin-bottom: 5px;
+}
 .qn-content {
     margin-bottom: 10px;
     margin-left: 55px;
