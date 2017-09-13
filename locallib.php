@@ -779,7 +779,7 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
                     // Note: advdependencies are sorted, first all and-dependencies, then or-dependencies.
                     if ($advdependency->adv_depend_and_or == 'or') {
                         $advdependency_or_fulfilled = false;
-                        //To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
+                        // To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
                         $advdependency_and_fulfilled = true;
                         // dependlogic == 1 -> this answer givven
                         if ($advdependency->adv_dependlogic == 1 && $record_exists) {
