@@ -861,7 +861,7 @@ abstract class base {
                 foreach ($this->advdependencies as $advdependency) {
                     if ($advdependency->adv_depend_and_or == "and") {
                         $advdependenciescount_and++;
-                    } else if ($advdependency->adv_depend_and_or == "or"){
+                    } else if ($advdependency->adv_depend_and_or == "or") {
                         $advdependenciescount_or++;
                     }
                 }

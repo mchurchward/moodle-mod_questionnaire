@@ -77,7 +77,7 @@ class sectiontext extends base {
         $allresponses = false;
         $currentgroupid = 0;
         $isgroupmember = false;
-        $resps = [$data->rid=>null];
+        $resps = [$data->rid => null];
         $rid = $data->rid;
         // $filteredSections -> get the feedback messages only for this sections!
         $feedbackmessages = $questionnaire->response_analysis($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredSections);

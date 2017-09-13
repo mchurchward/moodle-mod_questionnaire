@@ -370,7 +370,7 @@ foreach ($questionnaire->questions as $question) {
         $questionnaire->page->add_to_page('formarea', '<div class="qn-question">'.$question->content.'</div>');
     }
 }
-if ($advdependencies){
+if ($advdependencies) {
     // Customized checkbox behavior.
     // Section 0 selected? -> uncheck all other.
     $str_func = "\n<script>\n";

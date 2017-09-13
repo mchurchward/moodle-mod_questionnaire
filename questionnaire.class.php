@@ -3328,11 +3328,11 @@ class questionnaire {
 
         // False -> original behavior, nothing changed
         // True  -> qscore with weights
-        $advdependencies =  False;
+        $advdependencies = false;
         // $this->id == questionnaire id
         $sql_navigate = "SELECT navigate FROM {questionnaire} WHERE id = $this->id";
         if ($DB->get_record_sql($sql_navigate)->navigate == "2") {
-            $advdependencies = True;
+            $advdependencies = true;
         }
 
         // Get all response ids for all respondents.
@@ -3535,8 +3535,8 @@ class questionnaire {
         }
 
         for ($section = 1; $section <= $feedbacksections; $section++) {
-            // get feedback messages only for this sections
-            if($filteredSections != null && !in_array($section, $filteredSections)){
+            // Get feedback messages only for this sections.
+            if ($filteredSections != null && !in_array($section, $filteredSections)) {
                 continue;
             }
             foreach ($fbsections as $key => $fbsection) {
@@ -3552,7 +3552,7 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    if ($advdependencies){
+                    if ($advdependencies) {
                         $score[$section] += round($qscore[$qid] * $key);
                         $maxscore[$section] += round($qmax[$qid] * $key);
                         if ($compare  || $allresponses) {
