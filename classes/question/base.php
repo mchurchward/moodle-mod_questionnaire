@@ -154,7 +154,7 @@ abstract class base {
             if ($qtypes[$this->type_id]->has_choices == 'y') {
                 $this->get_choices();
             }
-            //Added for advanced dependencies
+            // Added for advanced dependencies.
             $this->get_advdependencies();
         }
         $this->context = $context;
@@ -726,7 +726,7 @@ abstract class base {
             $this->form_dependencies($mform, $questionnaire);
         }
 
-        //Added for advanced dependencies, parameter $editformobject is needed to use repeat_elements
+        // Added for advanced dependencies, parameter $editformobject is needed to use repeat_elements.
         if ($questionnaire->navigate == 2) {
             $this->form_advdependencies($mform, $questionnaire, $editformobject);
         }
@@ -816,7 +816,7 @@ abstract class base {
                         $fixeddependency = $parent [$this->id]['parent'];
                     }
                 }
-                //TODO Display warning, if the parent's answers were changed and the dependend answer no longer exists!
+                // TODO Display warning, if the parent's answers were changed and the dependend answer no longer exists!
                 if ($canchangeparent) {
                     $this->dependquestion = isset($this->dependquestion) ? $this->dependquestion.','.
                                     $this->dependchoice : '0,0';
@@ -834,14 +834,14 @@ abstract class base {
 
 
     protected function form_advdependencies(\MoodleQuickForm $mform, $questionnaire, $editquestionformobject) {
-        //Create a new area for multiple dependencies
+        // Create a new area for multiple dependencies.
         if ($questionnaire->navigate == 2) {
             $position = ($this->position !== 0) ? $this->position : count($questionnaire->questions) + 1;
             $dependencies = questionnaire_get_dependencies($questionnaire->questions, $position, true);
             $advchildren = [];
             if (isset($this->qid)) {
-                //TODO this should be placed in locallib, see "questionnaire_get_descendants"
-                //Use also for the delete dialogue later
+                // TODO this should be placed in locallib, see "questionnaire_get_descendants".
+                // Use also for the delete dialogue later.
                 foreach ($questionnaire->questions as $questionlistitem) {
                     if (isset($questionlistitem->advdependencies)) {
                         foreach ($questionlistitem->advdependencies as $key => $outeradvdependencies) {
@@ -854,21 +854,20 @@ abstract class base {
             }
 
             if (count($dependencies) > 1) {
-                //TODO Replace static strings and set language variables
+                // TODO Replace static strings and set language variables.
                 $mform->addElement('header', 'advdependencies_hdr', 'Dependencies');
                 $mform->setExpanded('advdependencies_hdr');
 
                 $advdependenciescount_and = 0;
                 $advdependenciescount_or = 0;
 
-                foreach ( $this->advdependencies as $advdependency ){
-                    if ( $advdependency->adv_depend_and_or == "and" ){
+                foreach ($this->advdependencies as $advdependency) {
+                    if ($advdependency->adv_depend_and_or == "and") {
                         $advdependenciescount_and++;
-                    } elseif ($advdependency->adv_depend_and_or == "or"){
+                    } else if ($advdependency->adv_depend_and_or == "or") {
                         $advdependenciescount_or++;
                     }
                 }
-
 
                 /* I decided to allow changing dependencies of parent questions, because forcing the editor to remove dependencies
                  * bottom up, starting at the lowest child question is a pain for large questionnaires.
@@ -877,10 +876,10 @@ abstract class base {
                  * one might consider to list the child questions in addition here.
                  */
 
-                //No childs, so we can add and change dependencies
-                //if (count($advchildren) == 0) {
-                    //Area for "must"-criteria
-                    //TODO Replace static strings and set language variables
+                // No childs, so we can add and change dependencies.
+                // if (count($advchildren) == 0) {
+                    // Area for "must"-criteria.
+                    // TODO Replace static strings and set language variables.
                     $mform->addElement('static', 'mandatory', "",
                             '<div class="dimmed_text">Mandatory - All this dependencies have to be fulfilled.</div>');
                     $select_and = $mform->createElement('select', 'advdependlogic_and', 'Condition', array('This answer not given', 'This answer given'));
@@ -889,10 +888,10 @@ abstract class base {
                     $groupitems_and[] =& $mform->createElement('selectgroups', 'advdependquestions_and', 'Parent', $dependencies);
                     $groupitems_and[] =& $select_and;
                     $group_and = $mform->createElement('group', 'selectdependencies_and', get_string('dependquestion', 'questionnaire'), $groupitems_and, ' ', false);
-                    $editquestionformobject->repeat_elements(array($group_and), $advdependenciescount_and + 1, array(), 'numdependencies_and', 'adddependencies_and',2);
+                    $editquestionformobject->repeat_elements(array($group_and), $advdependenciescount_and + 1, array(), 'numdependencies_and', 'adddependencies_and', 2);
 
-                    //Area for "can"-criteria
-                    //TODO Replace static strings and set language variables
+                    // Area for "can"-criteria.
+                    // TODO Replace static strings and set language variables.
                     $mform->addElement('static', 'obligatory', "",
                             '<div class="dimmed_text">Obligatory - At least one of this dependencies has to be fulfilled.</div>');
                     $select_or = $mform->createElement('select', 'advdependlogic_or', 'Condition', array('This answer not given', 'This answer given'));
@@ -901,7 +900,7 @@ abstract class base {
                     $groupitems_or[] =& $mform->createElement('selectgroups', 'advdependquestions_or', 'Parent', $dependencies);
                     $groupitems_or[] =& $select_or;
                     $group_or = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'), $groupitems_or, ' ', false);
-                    $editquestionformobject->repeat_elements(array($group_or), $advdependenciescount_or + 1, array(), 'numdependencies_or', 'adddependencies_or',2);
+                    $editquestionformobject->repeat_elements(array($group_or), $advdependenciescount_or + 1, array(), 'numdependencies_or', 'adddependencies_or', 2);
                 /*} else {
                     // Has childs, now we have to check, whether to show just a message or the list of fixed dependencies too
                     if ($advdependenciescount_and == 0 && $advdependenciescount_or == 0){
@@ -935,7 +934,7 @@ abstract class base {
                     }
                 }*/
 
-                //TODO Replace static strings and set language variables
+                // TODO Replace static strings and set language variables.
                 $mform->addElement('header', 'qst_and_choices_hdr', 'Questiontext and answers');
             }
         }
@@ -1014,7 +1013,7 @@ abstract class base {
         global $DB;
 
         $this->form_preprocess_data($formdata);
-		 if (!empty($formdata->qid)) {
+        if (!empty($formdata->qid)) {
 
             // Update existing question.
             // Handle any attachments in the content.
@@ -1122,9 +1121,9 @@ abstract class base {
             }
         }
 
-        //Now handle the advdependencies the same way as choices
-        //Shouldn't the MOODLE-API provide this case of insert/update/delete?
-               // First handle advdependendies updates
+        // Now handle the advdependencies the same way as choices.
+        // Shouldn't the MOODLE-API provide this case of insert/update/delete?.
+               // First handle advdependendies updates.
         if (!isset($formdata->fixed_deps)) {
             if (isset($this->advdependencies) && !isset($formdata->makecopy)) {
                 $oldcount = count($this->advdependencies);
@@ -1137,7 +1136,7 @@ abstract class base {
             $cidx = 0;
             $nidx = 0;
 
-            //all 3 arrays in this object have the same length
+            // All 3 arrays in this object have the same length.
             if (isset($formdata->advdependquestion)) {
                 $newcount = count($formdata->advdependquestion);
             } else {
@@ -1147,8 +1146,8 @@ abstract class base {
                 if ($formdata->advdependquestion[$nidx] != $eadvdependency->adv_dependquestion ||
                     $formdata->advdependchoice[$nidx] != $eadvdependency->adv_dependchoice ||
                     $formdata->advdependlogic_cleaned[$nidx] != $eadvdependency->adv_dependlogic ||
-                    $formdata->adv_depend_and_or[$nidx] != $eadvdependency->adv_depend_and_or)
-                {
+                    $formdata->adv_depend_and_or[$nidx] != $eadvdependency->adv_depend_and_or) {
+
                     $advdependencyrecord = new \stdClass();
                     $advdependencyrecord->id = $ekey;
                     $advdependencyrecord->question_id = $this->qid;

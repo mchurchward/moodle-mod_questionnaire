@@ -81,7 +81,7 @@ if ($delq) {
         if ($questionnaire->navigate != 2) {
             $haschildren  = questionnaire_get_descendants ($questionnaire->questions, $qid);
         } else {
-            //TODO refactor into questionnaire_get_descendants in locallib?
+            // TODO refactor into questionnaire_get_descendants in locallib?
             $haschildren = questionnaire_get_advdescendants ($questionnaire->questions, $qid);
         }
     }
@@ -112,7 +112,7 @@ if ($delq) {
         // Delete responses to that deleted question.
         questionnaire_delete_responses($qid);
 
-        //Delete advdependencies pointing at the deleted question (parents to the deleted question)
+        // Delete advdependencies pointing at the deleted question (parents to the deleted question).
         $DB->delete_records('questionnaire_dependencies', array('question_id' => $qid));
 
         // The deleted question was a parent, so now we must delete its child question(s).
@@ -121,7 +121,7 @@ if ($delq) {
                 // Need to reload questions first.
                 $questions = $DB->get_records('questionnaire_question', array('survey_id' => $sid, 'deleted' => 'n'), 'id');
 
-                if ($questionnaire->navigate != 2){
+                if ($questionnaire->navigate != 2) {
                     $DB->set_field('questionnaire_question', 'deleted', 'y', array('id' => $qid, 'survey_id' => $sid));
                     $select = 'survey_id = '.$sid.' AND deleted = \'n\' AND position > '.
                     $questions[$qid]->position;
@@ -141,7 +141,7 @@ if ($delq) {
                      * 2. removing a single question can possibly delete large parts of the questionnaire
                      * 3. one has to remove all conflicting dependencies by hand to avoid cascading deletion
                      */
-                    //TODO  this might be placed in locallib, see "questionnaire_get_descendants"
+                    // TODO  this might be placed in locallib, see "questionnaire_get_descendants".
                     foreach ($questionnaire->questions as $questionlistitem) {
                         if (isset($questionlistitem->advdependencies)) {
                             foreach ($questionlistitem->advdependencies as $key => $outeradvdependencies) {
@@ -151,7 +151,7 @@ if ($delq) {
                             }
                         }
                     }
-                    foreach ($advchildren as $key => $value){
+                    foreach ($advchildren as $key => $value) {
                         $DB->delete_records('questionnaire_dependencies', array('id' => $key));
                     }
                 }
@@ -233,9 +233,9 @@ if ($action == 'main') {
                 if ($questionnaire->navigate != 2) {
                     $haschildren  = questionnaire_get_descendants ($questionnaire->questions, $qid);
                 } else {
-                    //TODO refactor into questionnaire_get_descendants in locallib?
-                    //Important: due to possibly multiple parents per question
-                    //Just remove the advdependency and inform the user about it.
+                    // TODO refactor into questionnaire_get_descendants in locallib?
+                    // Important: due to possibly multiple parents per question
+                    // just remove the advdependency and inform the user about it.
                     $haschildren = questionnaire_get_advdescendants ($questionnaire->questions, $qid);
                 }
             }
@@ -338,10 +338,10 @@ if ($action == 'main') {
             $qformdata->required = 'n';
         }
 
-        //just check it, following lines not needed anymore
+        // Just check it, following lines not needed anymore.
         questionnaire_check_page_breaks($questionnaire);
         // Need to reload questions.
-        /*$questions = $DB->get_records('questionnaire_question', array('survey_id' => $sid, 'deleted' => 'n'), 'id');
+        /* $questions = $DB->get_records('questionnaire_question', array('survey_id' => $sid, 'deleted' => 'n'), 'id');
         $questionnairehasdependencies = questionnaire_has_dependencies($questions);
         if (questionnaire_has_dependencies($questions)) {
             questionnaire_check_page_breaks($questionnaire);
@@ -475,13 +475,13 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                 '</div></div>';
             }
         } else {
-            //Show the advdependencies and inform about the advdependencies to be removed
+            // Show the advdependencies and inform about the advdependencies to be removed.
 
-            //Split dependencies in direct and indirect ones to separate for the confirm-dialogue. Only direct ones will be deleted.
+            // Split dependencies in direct and indirect ones to separate for the confirm-dialogue. Only direct ones will be deleted.
             $directchildren = array();
             $indirectchildren = array();
             foreach ($haschildren as $key => $child) {
-                foreach ($child as $subchild){
+                foreach ($child as $subchild) {
                     if ($subchild['qdependquestion'] == 'q'.$question->id) {
                         $directchildren[$key][] = $subchild;
                     } else {
@@ -490,8 +490,8 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                 }
             }
 
-            //List direct dependencies
-            //TODO replace static string
+            // List direct dependencies.
+            // TODO replace static string.
             $msg .= '<div class="warning">Direct dependencies to this question will be removed. This will affect:</div><br />';
             foreach ($directchildren as $child) {
                 $loopindicator = array();
@@ -501,7 +501,7 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                         $childname = ' ('.$subchild['name'].')';
                     }
 
-                    //Add conditions
+                    // Add conditions.
                     switch ($subchild['adv_dependlogic']) {
                         case 0:
                             $logic = ' not set';
@@ -513,16 +513,16 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                             $logic = "";
                     }
 
-                    //Different colouring for and/or
+                    // Different colouring for and/or.
                     switch ($subchild['adv_depend_and_or']) {
                         case 'or':
                             $color = 'qdepend-or';
                             break;
                         case 'and':
-                            $color= "qdepend";
+                            $color = "qdepend";
                             break;
                         default:
-                            $color= "";
+                            $color = "";
                     }
 
                     if (!in_array($subchild['qdependquestion'], $loopindicator)) {
@@ -538,13 +538,13 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                     }
                     $loopindicator[] = $subchild['qdependquestion'];
                 }
-                $msg.=  '<div class="qn-question">'.
+                $msg .= '<div class="qn-question">'.
                 $subchild['content'].
                 '</div></div>';
             }
 
-            //List indirect dependencies
-            //TODO replace static string
+            // List indirect dependencies.
+            // TODO replace static string.
             $msg .= '<div class="warning">This list shows the indirect dependent questions and the remaining dependencies for direct dependent questions:</div><br />';
             foreach ($indirectchildren as $child) {
                 $loopindicator = array();
@@ -554,7 +554,7 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                         $childname = ' ('.$subchild['name'].')';
                     }
 
-                    //Add conditions
+                    // Add conditions.
                     switch ($subchild['adv_dependlogic']) {
                         case 0:
                             $logic = ' not set';
@@ -566,16 +566,16 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                             $logic = "";
                     }
 
-                    //Different colouring for and/or
+                    // Different colouring for and/or.
                     switch ($subchild['adv_depend_and_or']) {
                         case 'or':
                             $color = 'qdepend-or';
                             break;
                         case 'and':
-                            $color= "qdepend";
+                            $color = "qdepend";
                             break;
                         default:
-                            $color= "";
+                            $color = "";
                     }
 
                     if (!in_array($subchild['qdependquestion'], $loopindicator)) {
@@ -591,7 +591,7 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                     }
                     $loopindicator[] = $subchild['qdependquestion'];
                 }
-                $msg.=  '<div class="qn-question">'.
+                $msg .= '<div class="qn-question">'.
                 $subchild['content'].
                 '</div></div>';
             }
