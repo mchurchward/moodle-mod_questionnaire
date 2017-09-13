@@ -959,7 +959,7 @@ function questionnaire_get_child_positions ($questionnaire) {
                     $parentid = $questionnaire->questions[$dependquestion]->id; // Equals $dependquestion?.
                     $childpos = $question->position;
 
-                    if(!isset($childpositions[$parentid])) {
+                    if (!isset($childpositions[$parentid])) {
                         $childpositions[$parentid] = $childpos;
                     }
 
@@ -1051,86 +1051,84 @@ function questionnaire_check_page_breaks($questionnaire) {
             }
         }
         // Add pagebreak between question child and not dependent question that follows.
-            if ($qu['type_id'] != QUESPAGEBREAK) {
-                $j = $i - 1;
-                if ($j != 0) {
-                    if ($questionnaire->navigate != 2) { // Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
-                        $prevtypeid = $positions[$j]['type_id'];
-                        $prevdependquestion = $positions[$j]['dependquestion'];
-                        $prevdependchoice = $positions[$j]['dependchoice'];
-                        if (($prevtypeid != QUESPAGEBREAK && ($prevdependquestion != $qu['dependquestion']
-                                || $prevdependchoice != $qu['dependchoice']))
-                                || ($qu['dependquestion'] == 0 && $prevdependquestion != 0)) {
-                            $sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
-                                   'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
-                            if ($record = $DB->get_record_sql($sql)) {
-                                $pos = $record->maxpos + 1;
-                            } else {
-                                $pos = 1;
-                            }
-                            $question = new stdClass();
-                            $question->survey_id = $questionnaire->survey->id;
-                            $question->type_id = QUESPAGEBREAK;
-                            $question->position = $pos;
-                            $question->content = 'break';
+        if ($qu['type_id'] != QUESPAGEBREAK) {
+            $j = $i - 1;
+            if ($j != 0) {
+                if ($questionnaire->navigate != 2) { // Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
+                    $prevtypeid = $positions[$j]['type_id'];
+                    $prevdependquestion = $positions[$j]['dependquestion'];
+                    $prevdependchoice = $positions[$j]['dependchoice'];
+                    if (($prevtypeid != QUESPAGEBREAK && ($prevdependquestion != $qu['dependquestion']
+                            || $prevdependchoice != $qu['dependchoice']))
+                            || ($qu['dependquestion'] == 0 && $prevdependquestion != 0)) {
+                        $sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
+                               'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
+                        if ($record = $DB->get_record_sql($sql)) {
+                            $pos = $record->maxpos + 1;
+                        } else {
+                            $pos = 1;
+                        }
+                        $question = new stdClass();
+                        $question->survey_id = $questionnaire->survey->id;
+                        $question->type_id = QUESPAGEBREAK;
+                        $question->position = $pos;
+                        $question->content = 'break';
 
-                            if (!($newqid = $DB->insert_record('questionnaire_question', $question))) {
-                                return(false);
+                        if (!($newqid = $DB->insert_record('questionnaire_question', $question))) {
+                            return(false);
+                        }
+                        $newpbids[] = $newqid;
+                        $movetopos = $i;
+                        $questionnaire = new questionnaire($questionnaire->id, null, $course, $cm);
+                        $questionnaire->move_question($newqid, $movetopos);
+                    }
+                }
+                if ($questionnaire->navigate == 2) {
+                    $prevtypeid = $positions[$j]['type_id'];
+                    $prevadvdependencies = $positions[$j]['advdependencies'];
+
+                    $outerdependencies = count($qu['advdependencies']) >= count($prevadvdependencies) ? $qu['advdependencies'] : $prevadvdependencies;
+                    $innerdependencies = count($qu['advdependencies']) < count($prevadvdependencies) ? $qu['advdependencies'] : $prevadvdependencies;
+
+                    foreach ($outerdependencies as $okey => $outerdependency) {
+                        foreach ($innerdependencies as $ikey => $innerdependency) {
+                            if ($outerdependency->adv_dependquestion === $innerdependency->adv_dependquestion &&
+                                $outerdependency->adv_dependchoice === $innerdependency->adv_dependchoice &&
+                                $outerdependency->adv_dependlogic === $innerdependency->adv_dependlogic) {
+                                unset($outerdependencies[$okey]);
+                                unset($innerdependencies[$ikey]);
                             }
-                            $newpbids[] = $newqid;
-                            $movetopos = $i;
-                            $questionnaire = new questionnaire($questionnaire->id, null, $course, $cm);
-                            $questionnaire->move_question($newqid, $movetopos);
                         }
                     }
-                    if ($questionnaire->navigate == 2) {
-                        $prevtypeid = $positions[$j]['type_id'];
-                        $prevadvdependencies = $positions[$j]['advdependencies'];
 
-                        $outerdependencies = count($qu['advdependencies']) >= count($prevadvdependencies) ?
-                            $qu['advdependencies'] : $prevadvdependencies;
-                        $innerdependencies = count($qu['advdependencies']) < count($prevadvdependencies) ?
-                            $qu['advdependencies'] : $prevadvdependencies;
+                    $diff_advdependencies = count($outerdependencies) + count($innerdependencies);
 
-                        foreach ($outerdependencies as $okey => $outerdependency) {
-                            foreach ($innerdependencies as $ikey => $innerdependency) {
-                                if(	$outerdependency->adv_dependquestion === $innerdependency->adv_dependquestion &&
-                                    $outerdependency->adv_dependchoice === $innerdependency->adv_dependchoice &&
-                                    $outerdependency->adv_dependlogic === $innerdependency->adv_dependlogic) {
-                                        unset($outerdependencies[$okey]);
-                                        unset($innerdependencies[$ikey]);
-                                }
-                            }
+                    if (($prevtypeid != QUESPAGEBREAK && $diff_advdependencies != 0)
+                            || (!isset($qu['advdependencies']) && isset($prevadvdependencies))) {
+                        $sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
+                                'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
+                        if ($record = $DB->get_record_sql($sql)) {
+                            $pos = $record->maxpos + 1;
+                        } else {
+                            $pos = 1;
                         }
+                        $question = new stdClass();
+                        $question->survey_id = $questionnaire->survey->id;
+                        $question->type_id = QUESPAGEBREAK;
+                        $question->position = $pos;
+                        $question->content = 'break';
 
-                        $diff_advdependencies = count($outerdependencies) + count($innerdependencies);
-
-                        if (($prevtypeid != QUESPAGEBREAK && $diff_advdependencies != 0)
-                                || (!isset($qu['advdependencies']) && isset($prevadvdependencies))) {
-                            $sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
-                                    'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
-                            if ($record = $DB->get_record_sql($sql)) {
-                                $pos = $record->maxpos + 1;
-                            } else {
-                                $pos = 1;
-                            }
-                            $question = new stdClass();
-                            $question->survey_id = $questionnaire->survey->id;
-                            $question->type_id = QUESPAGEBREAK;
-                            $question->position = $pos;
-                            $question->content = 'break';
-
-                            if (!($newqid = $DB->insert_record('questionnaire_question', $question))) {
-                                return(false);
-                            }
-                            $newpbids[] = $newqid;
-                            $movetopos = $i;
-                            $questionnaire = new questionnaire($questionnaire->id, null, $course, $cm);
-                            $questionnaire->move_question($newqid, $movetopos);
+                        if (!($newqid = $DB->insert_record('questionnaire_question', $question))) {
+                            return(false);
                         }
+                        $newpbids[] = $newqid;
+                        $movetopos = $i;
+                        $questionnaire = new questionnaire($questionnaire->id, null, $course, $cm);
+                        $questionnaire->move_question($newqid, $movetopos);
                     }
                 }
             }
+        }
     }
     if (empty($newpbids) && !$msg) {
         $msg = get_string('checkbreaksok', 'questionnaire');
