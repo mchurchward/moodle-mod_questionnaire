@@ -3235,7 +3235,7 @@ class questionnaire {
         return false;
     }
 
-    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredSections = null) {
+    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredsections = null) {
         global $DB, $CFG;
         $action = optional_param('action', 'vall', PARAM_ALPHA);
 
@@ -3330,8 +3330,8 @@ class questionnaire {
         // True  -> qscore with weights
         $advdependencies = false;
         // $this->id == questionnaire id
-        $sql_navigate = "SELECT navigate FROM {questionnaire} WHERE id = $this->id";
-        if ($DB->get_record_sql($sql_navigate)->navigate == "2") {
+        $sqlnavigate = "SELECT navigate FROM {questionnaire} WHERE id = $this->id";
+        if ($DB->get_record_sql($sqlnavigate)->navigate == "2") {
             $advdependencies = true;
         }
 
@@ -3536,7 +3536,7 @@ class questionnaire {
 
         for ($section = 1; $section <= $feedbacksections; $section++) {
             // Get feedback messages only for this sections.
-            if ($filteredSections != null && !in_array($section, $filteredSections)) {
+            if ($filteredsections != null && !in_array($section, $filteredsections)) {
                 continue;
             }
             foreach ($fbsections as $key => $fbsection) {

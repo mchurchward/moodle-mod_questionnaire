@@ -53,18 +53,18 @@ class sectiontext extends base {
         }
 
         $fbsections = $DB->get_records('questionnaire_fb_sections', array('survey_id' => $this->survey_id));
-        $filteredSections = array();
+        $filteredsections = array();
 
         // In which section(s) is this question?
         foreach ($fbsections as $key => $fbsection) {
             $scorecalculation = unserialize($fbsection->scorecalculation);
             if (array_key_exists($this->id, $scorecalculation)) {
-                array_push($filteredSections, $fbsection->section);
+                array_push($filteredsections, $fbsection->section);
             }
         }
 
         // If empty then normal behavior as sectiontext question.
-        if (empty($filteredSections)) {
+        if (empty($filteredsections)) {
             return '';
         }
 
@@ -79,8 +79,8 @@ class sectiontext extends base {
         $isgroupmember = false;
         $resps = [$data->rid => null];
         $rid = $data->rid;
-        // $filteredSections -> get the feedback messages only for this sections!
-        $feedbackmessages = $questionnaire->response_analysis($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredSections);
+        // $filteredsections -> get the feedback messages only for this sections!
+        $feedbackmessages = $questionnaire->response_analysis($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredsections);
 
         // Output.
         $questiontags = new \stdClass();

@@ -59,7 +59,7 @@ if ($questionnaire->navigate == 2) {
     $advdependencies = true;
 }
 // [qid][section] = weight for question (qid) in section.
-$scorecalculation_weights = array();
+$scorecalculationweights = array();
 
 // Check if there are any feedbacks stored in database already to use them to check
 // the radio buttons on select questions in sections page.
@@ -76,11 +76,11 @@ if ($fbsections = $DB->get_records('questionnaire_fb_sections',
                     if ($advdependencies) {
                         if (!is_array($questionsinsections[$qid])) {
                             $questionsinsections[$qid] = array();
-                            $scorecalculation_weights[$qid] = array();
+                            $scorecalculationweights[$qid] = array();
                         }
                         array_push($questionsinsections[$qid], $section);
                         // $key != null -> 0.0 - 1.0
-                        $scorecalculation_weights[$qid][$section] = $key;
+                        $scorecalculationweights[$qid][$section] = $key;
                     } else {
                         $questionsinsections[$qid] = $section;
                     }
@@ -102,17 +102,17 @@ if (data_submitted()) {
     }
     $scorecalculation = array();
     $submittedvf = array();
-    $scorecalculation_weights = array();
+    $scorecalculationweights = array();
     foreach ($vf as $key => $value) {
-        $qid_section = explode("|", $key);
-        if ($qid_section[0] !== "weight") {
+        $qidsection = explode("|", $key);
+        if ($qidsection[0] !== "weight") {
             continue;
         }
-        if (!is_array($scorecalculation_weights[$qid_section[0]])) {
-            $scorecalculation_weights[$qid_section[0]] = array();
+        if (!is_array($scorecalculationweights[$qidsection[0]])) {
+            $scorecalculationweights[$qidsection[0]] = array();
         }
-        // $qid_section[1] = qid;  $qid_section[2] = section
-        $scorecalculation_weights[$qid_section[1]][$qid_section[2]] = $value;
+        // $qidsection[1] = qid;  $qidsection[2] = section
+        $scorecalculationweights[$qidsection[1]][$qidsection[2]] = $value;
     }
     foreach ($vf as $qs) {
         $sectionqid = explode("_", $qs);
@@ -120,7 +120,7 @@ if (data_submitted()) {
             if ($advdependencies) {
                 if (isset($sectionqid[1])) {
                     // $scorecalculation[$sectionqid[0]][$sectionqid[1]] != null
-                    $scorecalculation[$sectionqid[0]][$sectionqid[1]] = $scorecalculation_weights[$sectionqid[1]][$sectionqid[0]];
+                    $scorecalculation[$sectionqid[0]][$sectionqid[1]] = $scorecalculationweights[$sectionqid[1]][$sectionqid[0]];
                 }
                 if (count($sectionqid) == 2) {
                     // [1] - id; [0] - section
@@ -220,7 +220,7 @@ foreach ($questionnaire->questions as $question) {
     // Questions to be included in feedback sections must be required, have a name
     // and must not be child of a parent question.
     // radio buttons need different names
-    if ($qtype != QUESPAGEBREAK) { //&& $qtype != QUESSECTIONTEXT ) {
+    if ($qtype != QUESPAGEBREAK) { // && $qtype != QUESSECTIONTEXT ) {
         $n++;
     }
 
@@ -328,9 +328,9 @@ foreach ($questionnaire->questions as $question) {
                     // needs only the section number(s) without weights (section == 0 -> normal behavior as Label question).
                     if ($i > 0 && $qtype != QUESSECTIONTEXT) {
                         // Add Input fields for weights per section.
-                        if ($scorecalculation_weights[$qid][$i]) {
+                        if ($scorecalculationweights[$qid][$i]) {
                             $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
-                                '" min="0.0" max="1.0" step="0.01" value="'. $scorecalculation_weights[$qid][$i] .'">';
+                                '" min="0.0" max="1.0" step="0.01" value="'. $scorecalculationweights[$qid][$i] .'">';
                         } else {
                             $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
                                 '" min="0.0" max="1.0" step="0.01" value="0">';
@@ -373,8 +373,8 @@ foreach ($questionnaire->questions as $question) {
 if ($advdependencies) {
     // Customized checkbox behavior.
     // Section 0 selected? -> uncheck all other.
-    $str_func = "\n<script>\n";
-    $str_func .= ' function uncheck_boxes(name){
+    $strfunc = "\n<script>\n";
+    $strfunc .= ' function uncheck_boxes(name){
             var boxes = document.querySelectorAll("[name^=\'"+name+"_\']");
             for(var i=0;i<boxes.length; i++){
                 if(boxes[i].name != name+"_0"){
@@ -383,8 +383,8 @@ if ($advdependencies) {
             }
          }';
     // var boxes = document.querySelectorAll("[name^="+ name +"_"]); console.log(boxes);}';
-    $str_func .= "\n</script>\n";
-    $questionnaire->page->add_to_page('formarea', $str_func);
+    $strfunc .= "\n</script>\n";
+    $questionnaire->page->add_to_page('formarea', $strfunc);
 }
 // Submit/Cancel buttons.
 $url = $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id;
