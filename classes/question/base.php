@@ -1051,7 +1051,7 @@ abstract class base {
             }
             $questionrecord->content = '';
 
-            $this->add($questionrecord, null, null);
+            $this->add($questionrecord);
 
             // Handle any attachments in the content.
             $formdata->itemid  = $formdata->content['itemid'];
