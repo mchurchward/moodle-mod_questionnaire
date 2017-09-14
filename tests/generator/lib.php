@@ -80,7 +80,7 @@ class mod_questionnaire_generator extends testing_module_generator {
      * @param array $options
      * @return questionnaire
      */
-    public function create_instance($record = array(), array $options = array()) {
+    public function create_instance($record = null, array $options = null) {
         if (is_array($record)) {
             $record = (object)$record;
         }
