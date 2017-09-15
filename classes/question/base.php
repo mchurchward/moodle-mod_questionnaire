@@ -415,7 +415,7 @@ abstract class base {
                 $qid = $this->id;
             }
             foreach ($this->choices as $key => $choice) {
-                $choicrecord = new \stdClass();
+                $choicerecord = new \stdClass();
                 $choicerecord->id = $key;
                 $choicerecord->question_id = $qid;
                 $choicerecord->content = $choice->content;
@@ -858,14 +858,14 @@ abstract class base {
                 $mform->addElement('header', 'advdependencies_hdr', 'Dependencies');
                 $mform->setExpanded('advdependencies_hdr');
 
-                $advdependenciescount_and = 0;
-                $advdependenciescount_or = 0;
+                $advdependenciescountand = 0;
+                $advdependenciescountor = 0;
 
                 foreach ($this->advdependencies as $advdependency) {
                     if ($advdependency->adv_depend_and_or == "and") {
-                        $advdependenciescount_and++;
+                        $advdependenciescountand++;
                     } else if ($advdependency->adv_depend_and_or == "or") {
-                        $advdependenciescount_or++;
+                        $advdependenciescountor++;
                     }
                 }
 
@@ -882,28 +882,28 @@ abstract class base {
                     // TODO Replace static strings and set language variables.
                     $mform->addElement('static', 'mandatory', "",
                             '<div class="dimmed_text">Mandatory - All this dependencies have to be fulfilled.</div>');
-                    $select_and = $mform->createElement('select', 'advdependlogic_and', 'Condition', array('This answer not given', 'This answer given'));
-                    $select_and->setSelected('1');
-                    $groupitems_and = array();
-                    $groupitems_and[] =& $mform->createElement('selectgroups', 'advdependquestions_and', 'Parent', $dependencies);
-                    $groupitems_and[] =& $select_and;
-                    $group_and = $mform->createElement('group', 'selectdependencies_and', get_string('dependquestion', 'questionnaire'), $groupitems_and, ' ', false);
-                    $editquestionformobject->repeat_elements(array($group_and), $advdependenciescount_and + 1, array(), 'numdependencies_and', 'adddependencies_and', 2);
+                    $selectand = $mform->createElement('select', 'advdependlogic_and', 'Condition', array('This answer not given', 'This answer given'));
+                    $selectand->setSelected('1');
+                    $groupitemsand = array();
+                    $groupitemsand[] =& $mform->createElement('selectgroups', 'advdependquestions_and', 'Parent', $dependencies);
+                    $groupitemsand[] =& $selectand;
+                    $groupand = $mform->createElement('group', 'selectdependencies_and', get_string('dependquestion', 'questionnaire'), $groupitemsand, ' ', false);
+                    $editquestionformobject->repeat_elements(array($groupand), $advdependenciescountand + 1, array(), 'numdependencies_and', 'adddependencies_and', 2);
 
                     // Area for "can"-criteria.
                     // TODO Replace static strings and set language variables.
                     $mform->addElement('static', 'obligatory', "",
                             '<div class="dimmed_text">Obligatory - At least one of this dependencies has to be fulfilled.</div>');
-                    $select_or = $mform->createElement('select', 'advdependlogic_or', 'Condition', array('This answer not given', 'This answer given'));
-                    $select_or->setSelected('1');
-                    $groupitems_or = array();
-                    $groupitems_or[] =& $mform->createElement('selectgroups', 'advdependquestions_or', 'Parent', $dependencies);
-                    $groupitems_or[] =& $select_or;
-                    $group_or = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'), $groupitems_or, ' ', false);
-                    $editquestionformobject->repeat_elements(array($group_or), $advdependenciescount_or + 1, array(), 'numdependencies_or', 'adddependencies_or', 2);
+                    $selector = $mform->createElement('select', 'advdependlogic_or', 'Condition', array('This answer not given', 'This answer given'));
+                    $selector->setSelected('1');
+                    $groupitemsor = array();
+                    $groupitemsor[] =& $mform->createElement('selectgroups', 'advdependquestions_or', 'Parent', $dependencies);
+                    $groupitemsor[] =& $selector;
+                    $groupor = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'), $groupitemsor, ' ', false);
+                    $editquestionformobject->repeat_elements(array($groupor), $advdependenciescountor + 1, array(), 'numdependencies_or', 'adddependencies_or', 2);
                 /*} else {
                     // Has childs, now we have to check, whether to show just a message or the list of fixed dependencies too
-                    if ($advdependenciescount_and == 0 && $advdependenciescount_or == 0){
+                    if ($advdependenciescountand == 0 && $advdependenciescountor == 0){
                         $mform->addElement('hidden', 'fixed_deps', 1);
                         $mform->setType('fixed_deps', PARAM_INT);
                         $mform->addElement('static', 'showdependency', get_string('dependquestion', 'questionnaire'),

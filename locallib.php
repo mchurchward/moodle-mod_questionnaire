@@ -750,54 +750,54 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
                             'question_id' => $advdependency->adv_dependquestion,
                             'choice_id' => $questiondependchoice);
 
-                    $record_exists = $DB->record_exists('questionnaire_'.$responsetable, $params);
+                    $recordexists = $DB->record_exists('questionnaire_'.$responsetable, $params);
 
                     // Note: advdependencies are sorted, first all and-dependencies, then or-dependencies.
                     if ($advdependency->adv_depend_and_or == 'and') {
-                        $advdependency_and_fulfilled = false;
+                        $advdependencyandfulfilled = false;
                         // dependlogic == 1 -> this answer givven
-                        if ($advdependency->adv_dependlogic == 1 && $record_exists) {
-                            $advdependency_and_fulfilled = true;
+                        if ($advdependency->adv_dependlogic == 1 && $recordexists) {
+                            $advdependencyandfulfilled = true;
                         }
 
                         // dependlogic == 0 -> this answer NOT givven
-                        if ($advdependency->adv_dependlogic == 0 && !$record_exists) {
-                            $advdependency_and_fulfilled = true;
+                        if ($advdependency->adv_dependlogic == 0 && !$recordexists) {
+                            $advdependencyandfulfilled = true;
                         }
 
                         // Something mandatory not fulfilled? Stop looking and continue to next question.
-                        if ($advdependency_and_fulfilled == false) {
+                        if ($advdependencyandfulfilled == false) {
                             break;
                         }
 
                         // In case we have no or-dependencies.
-                        $advdependency_or_fulfilled = true;
+                        $advdependencyorfulfilled = true;
 
                     }
 
                     // Note: advdependencies are sorted, first all and-dependencies, then or-dependencies.
                     if ($advdependency->adv_depend_and_or == 'or') {
-                        $advdependency_or_fulfilled = false;
+                        $advdependencyorfulfilled = false;
                         // To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
-                        $advdependency_and_fulfilled = true;
+                        $advdependencyandfulfilled = true;
                         // dependlogic == 1 -> this answer givven
-                        if ($advdependency->adv_dependlogic == 1 && $record_exists) {
-                            $advdependency_or_fulfilled = true;
+                        if ($advdependency->adv_dependlogic == 1 && $recordexists) {
+                            $advdependencyorfulfilled = true;
                         }
 
                         // dependlogic == 0 -> this answer NOT givven
-                        if ($advdependency->adv_dependlogic == 0 && !$record_exists) {
-                            $advdependency_or_fulfilled = true;
+                        if ($advdependency->adv_dependlogic == 0 && !$recordexists) {
+                            $advdependencyorfulfilled = true;
                         }
 
                         // Something fulfilled? A single match is sufficient so continue to next question.
-                        if ($advdependency_or_fulfilled == true) {
+                        if ($advdependencyorfulfilled == true) {
                             break;
                         }
                     }
 
                 }
-                if ($advdependency_and_fulfilled && $advdependency_or_fulfilled) {
+                if ($advdependencyandfulfilled && $advdependencyorfulfilled) {
                     $questionstodisplay [] = $question->id;
                 }
             } else {
@@ -808,15 +808,15 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     return $questionstodisplay;
 }
 
-function questionnaire_get_dependencies($questions, $position, $additionalForAdvDeps = false) {
+function questionnaire_get_dependencies($questions, $position, $additionalforadvdeps = false) {
     $dependencies = array();
     $dependencies[''][0] = get_string('choosedots');
 
     foreach ($questions as $question) {
         if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESYESNO ||
-             ($question->type_id == QUESCHECK && $additionalForAdvDeps)) && $question->position < $position) {
+             ($question->type_id == QUESCHECK && $additionalforadvdeps)) && $question->position < $position) {
             if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP ||
-                ($question->type_id == QUESCHECK && $additionalForAdvDeps)) && $question->name != '') {
+                ($question->type_id == QUESCHECK && $additionalforadvdeps)) && $question->name != '') {
                 foreach ($question->choices as $key => $choice) {
                     $contents = questionnaire_choice_values($choice->content);
                     if ($contents->modname) {
@@ -1100,9 +1100,9 @@ function questionnaire_check_page_breaks($questionnaire) {
                         }
                     }
 
-                    $diff_advdependencies = count($outerdependencies) + count($innerdependencies);
+                    $diffadvdependencies = count($outerdependencies) + count($innerdependencies);
 
-                    if (($prevtypeid != QUESPAGEBREAK && $diff_advdependencies != 0)
+                    if (($prevtypeid != QUESPAGEBREAK && $diffadvdependencies != 0)
                             || (!isset($qu['advdependencies']) && isset($prevadvdependencies))) {
                         $sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
                                 'WHERE survey_id = '.$questionnaire->survey->id.' AND deleted = \'n\'';
