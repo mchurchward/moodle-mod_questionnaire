@@ -78,7 +78,8 @@ if ($delq) {
 
     // Does the question to be deleted have any child questions?
     if ($questionnairehasdependencies) {
-        if ($questionnaire->navigate != 2) {
+//        if ($questionnaire->navigate != 2) {
+        if ($questionnaire->navigate == 0) {
             $haschildren  = questionnaire_get_descendants ($questionnaire->questions, $qid);
         } else {
             // TODO refactor into questionnaire_get_descendants in locallib?
@@ -121,7 +122,8 @@ if ($delq) {
                 // Need to reload questions first.
                 $questions = $DB->get_records('questionnaire_question', array('survey_id' => $sid, 'deleted' => 'n'), 'id');
 
-                if ($questionnaire->navigate != 2) {
+//                if ($questionnaire->navigate != 2) {
+                if ($questionnaire->navigate == 0) {
                     $DB->set_field('questionnaire_question', 'deleted', 'y', array('id' => $qid, 'survey_id' => $sid));
                     $select = 'survey_id = '.$sid.' AND deleted = \'n\' AND position > '.
                     $questions[$qid]->position;
@@ -230,7 +232,8 @@ if ($action == 'main') {
                 redirect($CFG->wwwroot.'/mod/questionnaire/questions.php?id='.$questionnaire->cm->id.'&amp;delq='.$qid);
             }
             if ($questionnairehasdependencies) {
-                if ($questionnaire->navigate != 2) {
+//                if ($questionnaire->navigate != 2) {
+                if ($questionnaire->navigate == 0) {
                     $haschildren  = questionnaire_get_descendants ($questionnaire->questions, $qid);
                 } else {
                     // TODO refactor into questionnaire_get_descendants in locallib?
@@ -459,7 +462,8 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
     if ($action == "confirmdelquestionparent") {
         $strnum = get_string('position', 'questionnaire');
         $qid = key($qformdata->removebutton);
-        if ($questionnaire->navigate != 2) {
+//        if ($questionnaire->navigate != 2) {
+        if ($questionnaire->navigate == 0) {
             $msg .= '<div class="warning">'.get_string('confirmdelchildren', 'questionnaire').'</div><br />';
             foreach ($haschildren as $child) {
                 $childname = '';

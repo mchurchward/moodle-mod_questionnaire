@@ -697,7 +697,8 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     global $DB;
     $questionstodisplay = array();
 
-    if ($navigate == 1 || $navigate == 0) { // The plugin doesn't care if navigation-mode is 0 or 1.
+//    if ($navigate == 1 || $navigate == 0) { // The plugin doesn't care if navigation-mode is 0 or 1.
+    if ($navigate == 0) { // The plugin doesn't care if navigation-mode is 0 or 1.
         foreach ($questionsinsection as $question) {
             if ($question->dependquestion != 0) {
                 switch ($questionsinquestionnaire[$question->dependquestion]->type_id) {
@@ -726,7 +727,8 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     }
 
     // Use advdependencies for more complex branching.
-    if ($navigate == 2) {
+//    if ($navigate == 2) {
+    if ($navigate > 0) {
         foreach ($questionsinsection as $question) {
             if (!empty($question->advdependencies)) {
                 foreach ($question->advdependencies as $advdependency) {
@@ -898,7 +900,8 @@ function questionnaire_get_parent ($question) {
  */
 function questionnaire_get_parent_positions ($questionnaire) {
     $parentpositions = array();
-    if ($questionnaire->navigate != 2) { // Only this check, because we don't care whether 0 or 1.
+//    if ($questionnaire->navigate != 2) { // Only this check, because we don't care whether 0 or 1.
+    if ($questionnaire->navigate == 0) { // Only this check, because we don't care whether 0 or 1.
         foreach ($questionnaire->questions as $question) {
             $dependquestion = $question->dependquestion;
             if ($dependquestion != 0) {
@@ -908,7 +911,8 @@ function questionnaire_get_parent_positions ($questionnaire) {
             }
         }
     }
-    if ($questionnaire->navigate == 2) {
+//    if ($questionnaire->navigate == 2) {
+    if ($questionnaire->navigate != 0) {
         foreach ($questionnaire->questions as $question) {
             foreach ($question->advdependencies as $advdependency) {
                 $dependquestion = $advdependency->dependquestionid;
@@ -938,7 +942,8 @@ function questionnaire_get_parent_positions ($questionnaire) {
  */
 function questionnaire_get_child_positions ($questionnaire) {
     $childpositions = array();
-    if ($questionnaire->navigate != 2) { // Only this check, because we don't care whether 0 or 1.
+//    if ($questionnaire->navigate != 2) { // Only this check, because we don't care whether 0 or 1.
+    if ($questionnaire->navigate == 0) { // Only this check, because we don't care whether 0 or 1.
         foreach ($questionnaire->questions as $question) {
             $dependquestion = $question->dependquestion;
             if ($dependquestion != 0) {
@@ -951,7 +956,8 @@ function questionnaire_get_child_positions ($questionnaire) {
             }
         }
     }
-    if ($questionnaire->navigate == 2) {
+//    if ($questionnaire->navigate == 2) {
+    if ($questionnaire->navigate > 0) {
         foreach ($questionnaire->questions as $question) {
             foreach ($question->advdependencies as $advdependency) {
                 $dependquestion = $advdependency->dependquestionid;
@@ -1054,7 +1060,8 @@ function questionnaire_check_page_breaks($questionnaire) {
         if ($qu['type_id'] != QUESPAGEBREAK) {
             $j = $i - 1;
             if ($j != 0) {
-                if ($questionnaire->navigate != 2) { // Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
+//                if ($questionnaire->navigate != 2) { // Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
+                if ($questionnaire->navigate == 0) { // Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
                     $prevtypeid = $positions[$j]['type_id'];
                     $prevdependquestion = $positions[$j]['dependquestion'];
                     $prevdependchoice = $positions[$j]['dependchoice'];
@@ -1083,7 +1090,8 @@ function questionnaire_check_page_breaks($questionnaire) {
                         $questionnaire->move_question($newqid, $movetopos);
                     }
                 }
-                if ($questionnaire->navigate == 2) {
+//                if ($questionnaire->navigate == 2) {
+                if ($questionnaire->navigate > 0) {
                     $prevtypeid = $positions[$j]['type_id'];
                     $prevadvdependencies = $positions[$j]['advdependencies'];
 
