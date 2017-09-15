@@ -649,14 +649,47 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
         // Adding keys to table questionnaire_depenencies.
         $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
 
-        // Adding indexes to table questionnaire_depenencies.
+        // Adding indexes to table questionnaire_dependency.
         $table->add_index('quest_dependency_quesidx', XMLDB_INDEX_NOTUNIQUE, array('questionid'));
 
         // Conditionally launch create table for questionnaire_depenencies.
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
         }
+
+        // Copy all existing branching data into new branching structure.
+        $branchingqs = $DB->get_recordset_select('questionnaire_question', 'dependquestion > 0 AND deleted = \'n\'',
+            null, '', 'id, survey_id, dependquestion, dependchoice');
+        foreach ($branchingqs as $qid => $qinfo) {
+            $newrec = new stdClass();
+            $newrec->questionid = $qid;
+            $newrec->surveyid = $qinfo->survey_id;
+            $newrec->dependquestionid = $qinfo->dependquestion;
+            $newrec->dependchoiceid = $qinfo->dependchoice;
+            $newrec->dependlogic = 1; // Set to "answer given", previously the only option.
+            $newrec->dependandor = 'and'; // Not used previously.
+            $DB->insert_record('questionnaire_dependency', $newrec);
+        }
+
+        // After copying all old data, remove the unused fields.
+        $table = new xmldb_table('questionnaire_question');
+/*        $field1 = new xmldb_field('dependquestion');
+        $field2 = new xmldb_field('dependchoice');
+        if ($dbman->field_exists($table, $field1)) {
+            $dbman->drop_field($table, $field1);
+        }
+        if ($dbman->field_exists($table, $field2)) {
+            $dbman->drop_field($table, $field2);
+        } */
         // MOD Multiparent Advanceddependencies END.
+
+        // Add a new index for survey_id to the question table.
+        $index = new xmldb_index('quest_question_sididx', XMLDB_INDEX_NOTUNIQUE, ['survey_id', 'deleted']);
+        // Only add the index if it does not exist.
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
         // Questionnaire savepoint reached.
         upgrade_mod_savepoint(true, 2017050102, 'questionnaire');
     }
