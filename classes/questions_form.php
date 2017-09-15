@@ -125,14 +125,16 @@ class mod_questionnaire_questions_form extends moodleform {
 
             // Get displayable list of parents for the questions in questions_form.
             if ($questionnairehasdependencies) {
-                if ($question->dependquestion != 0 && $questionnaire->navigate != 2) {
+//                if ($question->dependquestion != 0 && $questionnaire->navigate != 2) {
+                if ($question->dependquestion != 0 && $questionnaire->navigate == 0) {
                     $parent = questionnaire_get_parent ($question);
                     $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
                         $strposition.' '.$parent[$qid]['parentposition'].' ('.$parent[$qid]['parent'].')';
                 }
 
                 // TODO create questionnaire_get_advparents in locallib.
-                if (isset($question->advdependencies) && $questionnaire->navigate == 2) {
+//                if (isset($question->advdependencies) && $questionnaire->navigate == 2) {
+                if (isset($question->advdependencies) && $questionnaire->navigate > 0) {
                     foreach ($question->advdependencies as $advdependencyhelper) {
                         $advdependencyhelper->dependquestion = $advdependencyhelper->dependquestionid;
                         $advdependencyhelper->dependchoice = $advdependencyhelper->dependchoiceid;
@@ -270,12 +272,14 @@ class mod_questionnaire_questions_form extends moodleform {
                                 $previousquestionadvdependencies = $DB->get_records('questionnaire_dependency',
                                                array('questionid' => $previousquestion->id , 'surveyid' => $sid), 'id ASC');
 
-                                if (($questionnaire->navigate != 2 &&
+//                                if (($questionnaire->navigate != 2 &&
+                                if (($questionnaire->navigate == 0 &&
                                      ($nextquestion->dependquestion != 0 ||
                                       ($previousquestion->dependquestion != 0 && $nextquestion->dependquestion == 0)
                                      )
                                     ) || // Add conditions for advdependencies, including navigate, so old and new don't interfere.
-                                    ($questionnaire->navigate == 2 &&
+//                                    ($questionnaire->navigate == 2 &&
+                                    ($questionnaire->navigate > 0 &&
                                      (!empty($nextquestionadvdependencies) ||
                                       (!empty($previousquestionadvdependencies) && empty($nextquestionadvdependencies))
                                      )

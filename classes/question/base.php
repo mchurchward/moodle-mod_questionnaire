@@ -722,12 +722,13 @@ abstract class base {
         $this->form_length($mform);
         $this->form_precise($mform);
 
-        if ($questionnaire->navigate == 1) {
-            $this->form_dependencies($mform, $questionnaire);
-        }
+//        if ($questionnaire->navigate == 1) {
+//            $this->form_dependencies($mform, $questionnaire);
+//        }
 
         // Added for advanced dependencies, parameter $editformobject is needed to use repeat_elements.
-        if ($questionnaire->navigate == 2) {
+//        if ($questionnaire->navigate == 2) {
+        if ($questionnaire->navigate > 0) {
             $this->form_advdependencies($mform, $questionnaire, $editformobject);
         }
 
@@ -803,7 +804,8 @@ abstract class base {
     protected function form_dependencies(\MoodleQuickForm $mform, $questionnaire) {
         // Dependence fields.
 
-        if ($questionnaire->navigate == 1) {
+//        if ($questionnaire->navigate == 1) {
+        if ($questionnaire->navigate == 1 && false) {
             $position = ($this->position !== 0) ? $this->position : count($questionnaire->questions) + 1;
             $dependencies = questionnaire_get_dependencies($questionnaire->questions, $position);
             $canchangeparent = true;
@@ -835,7 +837,8 @@ abstract class base {
 
     protected function form_advdependencies(\MoodleQuickForm $mform, $questionnaire, $editquestionformobject) {
         // Create a new area for multiple dependencies.
-        if ($questionnaire->navigate == 2) {
+//        if ($questionnaire->navigate == 2) {
+        if ($questionnaire->navigate > 0) {
             $position = ($this->position !== 0) ? $this->position : count($questionnaire->questions) + 1;
             $dependencies = questionnaire_get_dependencies($questionnaire->questions, $position, true);
             $advchildren = [];

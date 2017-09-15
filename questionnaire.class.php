@@ -3331,7 +3331,7 @@ class questionnaire {
         $advdependencies = false;
         // $this->id == questionnaire id
         $sqlnavigate = "SELECT navigate FROM {questionnaire} WHERE id = $this->id";
-        if ($DB->get_record_sql($sqlnavigate)->navigate == "2") {
+        if ($DB->get_record_sql($sqlnavigate)->navigate > "0") {
             $advdependencies = true;
         }
 

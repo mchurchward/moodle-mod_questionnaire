@@ -55,7 +55,7 @@ $errormsg = '';
 //       -> Checkboxes instead of RadioButtons
 //       -> Input for weights.
 $advdependencies = false;
-if ($questionnaire->navigate == 2) {
+if ($questionnaire->navigate > 0) {
     $advdependencies = true;
 }
 // [qid][section] = weight for question (qid) in section.
