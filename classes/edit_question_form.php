@@ -42,7 +42,7 @@ class mod_questionnaire_edit_question_form extends moodleform {
         $mform =& $this->_form;
 
         // Each question can provide its own form elements to the provided form, or use the default ones.
-        if (!$question->edit_form($mform, $questionnaire, $this->_customdata['modcontext'])) {
+        if (!$question->edit_form($mform, $questionnaire, $this->_customdata['modcontext'], $this)) {
             print_error("Question type had an unknown error in the edit_form method.");
         }
     }

@@ -61,6 +61,11 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
         $questchoice = new backup_nested_element('quest_choice', array('id'), array(
             'question_id', 'content', 'value'));
 
+        $questadvdependencies = new backup_nested_element('quest_advdependencies');
+
+        $questadvdependency = new backup_nested_element('quest_advdependency', array('id'), array(
+            'adv_dependquestion', 'adv_dependchoice', 'adv_dependlogic', 'question_id', 'survey_id', 'adv_depend_and_or'));
+
         $fbsections = new backup_nested_element('fb_sections');
 
         $fbsection = new backup_nested_element('fb_section', array('id'), array(
@@ -125,6 +130,10 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
 
         $question->add_child($questchoices);
         $questchoices->add_child($questchoice);
+
+        $question->add_child($questadvdependencies);
+        $questadvdependencies->add_child($questadvdependency);
+
         $survey->add_child($fbsections);
         $fbsections->add_child($fbsection);
 
@@ -177,6 +186,7 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
             $fbsection->set_source_table('questionnaire_fb_sections', array('survey_id' => backup::VAR_PARENTID));
             $feedback->set_source_table('questionnaire_feedback', array('section_id' => backup::VAR_PARENTID));
             $questchoice->set_source_table('questionnaire_quest_choice', array('question_id' => backup::VAR_PARENTID));
+            $questadvdependency->set_source_table('questionnaire_dependencies', array('question_id' => backup::VAR_PARENTID));
 
             // All the rest of elements only happen if we are including user info.
             if ($userinfo) {

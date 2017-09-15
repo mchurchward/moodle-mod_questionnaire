@@ -95,8 +95,9 @@ class mod_questionnaire_questions_form extends moodleform {
         // we must get now the parent and child positions.
 
         if ($questionnairehasdependencies) {
-            $parentpositions = questionnaire_get_parent_positions ($questionnaire->questions);
-            $childpositions = questionnaire_get_child_positions ($questionnaire->questions);
+            // Parameter changed to whole Questionnaire, to check for navigation-mode.
+            $parentpositions = questionnaire_get_parent_positions($questionnaire);
+            $childpositions = questionnaire_get_child_positions($questionnaire);
         }
 
         $mform->addElement('header', 'manageq', get_string('managequestions', 'questionnaire'));
@@ -114,12 +115,58 @@ class mod_questionnaire_questions_form extends moodleform {
             $required = $question->required;
 
             // Does this questionnaire contain branching questions already?
-            $dependency = '';
+            $dependencies = [];
+            $dependenciesor = [];
+            $parents = [];
+            $positions = [];
+
+            // TODO I think the plugin should ignore all dependencies, when branching is set to 0 later,
+            // instead of continuing to use the dependencies after switching the option off.
+
+            // Get displayable list of parents for the questions in questions_form.
             if ($questionnairehasdependencies) {
-                if ($question->dependquestion != 0) {
+                if ($question->dependquestion != 0 && $questionnaire->navigate != 2) {
                     $parent = questionnaire_get_parent ($question);
-                    $dependency = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+                    $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
                         $strposition.' '.$parent[$qid]['parentposition'].' ('.$parent[$qid]['parent'].')';
+                }
+
+                // TODO create questionnaire_get_advparents in locallib.
+                if (isset($question->advdependencies) && $questionnaire->navigate == 2) {
+                    foreach ($question->advdependencies as $advdependencyhelper) {
+                        $advdependencyhelper->dependquestion = $advdependencyhelper->adv_dependquestion;
+                        $advdependencyhelper->dependchoice = $advdependencyhelper->adv_dependchoice;
+                        $advdependencyhelper->position = 0;
+                        $advdependencyhelper->name = null;
+                        $advdependencyhelper->content = null;
+                        $advdependencyhelper->id = 0;
+
+                        $parent = questionnaire_get_parent ($advdependencyhelper);
+
+                        // TODO Could be placed in locallib as function.
+                        // TODO Replace static strings and set language variables.
+                        switch ($advdependencyhelper->adv_dependlogic) {
+                            case 0:
+                                $logic = ' not set';
+                                break;
+                            case 1:
+                                $logic = " set";
+                                break;
+                            default:
+                                $logic = "";
+                        }
+
+                        if ($advdependencyhelper->adv_depend_and_or == "and") {
+                            $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+                                    $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
+                        }
+
+                        // Use own array for or-dependencies, to apply a specific css-class later.
+                        if ($advdependencyhelper->adv_depend_and_or == "or") {
+                            $dependenciesor[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+                                    $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
+                        }
+                    }
                 }
             }
 
@@ -206,17 +253,34 @@ class mod_questionnaire_questions_form extends moodleform {
                             }
                         }
                     }
+
                     // Do not allow moving or deleting a page break if immediately followed by a child question
                     // or immediately preceded by a question with a dependency and followed by a non-dependent question.
                     if ($tid == QUESPAGEBREAK) {
                         if ($nextquestion = $DB->get_record('questionnaire_question', array('survey_id' => $sid,
-                                        'position' => $pos + 1, 'deleted' => 'n' ), $fields = 'dependquestion, name, content') ) {
+                                        'position' => $pos + 1, 'deleted' => 'n' ), $fields = 'id, dependquestion, name, content') ) {
+
+                            $nextquestionadvdependencies = $DB->get_records('questionnaire_dependencies',
+                                       array('question_id' => $nextquestion->id , 'survey_id' => $sid), 'id ASC');
+
                             if ($previousquestion = $DB->get_record('questionnaire_question', array('survey_id' => $sid,
                                             'position' => $pos - 1, 'deleted' => 'n' ),
-                                            $fields = 'dependquestion, name, content')) {
-                                if ($nextquestion->dependquestion != 0
-                                                || ($previousquestion->dependquestion != 0
-                                                    && $nextquestion->dependquestion == 0) ) {
+                                            $fields = 'id, dependquestion, name, content')) {
+
+                                $previousquestionadvdependencies = $DB->get_records('questionnaire_dependencies',
+                                               array('question_id' => $previousquestion->id , 'survey_id' => $sid), 'id ASC');
+
+                                if (($questionnaire->navigate != 2 &&
+                                     ($nextquestion->dependquestion != 0 ||
+                                      ($previousquestion->dependquestion != 0 && $nextquestion->dependquestion == 0)
+                                     )
+                                    ) || // Add conditions for advdependencies, including navigate, so old and new don't interfere.
+                                    ($questionnaire->navigate == 2 &&
+                                     (!empty($nextquestionadvdependencies) ||
+                                      (!empty($previousquestionadvdependencies) && empty($nextquestionadvdependencies))
+                                     )
+                                    )
+                                   ) {
                                     $strdisabled = get_string('movedisabled', 'questionnaire');
                                     $msrc = $questionnaire->renderer->image_url('t/block');
                                     $mextra = array('value' => $question->id,
@@ -310,8 +374,15 @@ class mod_questionnaire_questions_form extends moodleform {
             }
             $manageqgroup[] =& $mform->createElement('static', 'qinfo_'.$question->id, '', $qtype.' '.$qname);
 
-            if ($dependency) {
-                $mform->addElement('static', 'qdepend_'.$question->id, '', '<div class="qdepend">'.$dependency.'</div>');
+            if (isset($dependencies)) {
+                foreach ($dependencies as $dependency) {
+                    $mform->addElement('static', 'qdepend_'.$question->id, '', '<div class="qdepend">'.$dependency.'</div>');
+                }
+            }
+            if (isset($dependenciesor)) {
+                foreach ($dependenciesor as $dependencyor) {
+                    $mform->addElement('static', 'qdepend_or_'.$question->id, '', '<div class="qdepend-or">'.$dependencyor.'</div>');
+                }
             }
             if ($tid != QUESPAGEBREAK) {
                 if ($tid != QUESSECTIONTEXT) {

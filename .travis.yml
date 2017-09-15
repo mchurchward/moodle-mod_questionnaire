@@ -3,7 +3,8 @@ language: php
 sudo: false
 
 addons:
-  postgresql: 9.3
+  firefox: "47.0.1"
+  postgresql: "9.3"
   apt:
     packages:
       - oracle-java8-installer
@@ -15,7 +16,6 @@ cache:
     - $HOME/.npm
 
 php:
-# - 5.6 Disaabling for release because of weired Behat error.
  - 5.6
  - 7.0
  - 7.1
@@ -23,8 +23,7 @@ php:
 env:
  global:
   - MOODLE_BRANCH=MOODLE_33_STABLE
-# Temporarily turn off checking for this file. It will be replaced.
-#  - IGNORE_PATHS=module.js,tests
+
  matrix:
   - DB=pgsql
   - DB=mysqli
@@ -34,7 +33,6 @@ before_install:
   - nvm install node
   - cd ../..
   - composer selfupdate
-#  - composer create-project -n --no-dev --prefer-dist moodlerooms/moodle-plugin-ci ci dev-poet
   - composer create-project -n --no-dev --prefer-dist moodlerooms/moodle-plugin-ci ci ^2
   - export PATH="$(cd ci/bin; pwd):$(cd ci/vendor/bin; pwd):$PATH"
 
@@ -46,7 +44,6 @@ script:
   - moodle-plugin-ci phpcpd
   - moodle-plugin-ci phpmd
   - moodle-plugin-ci codechecker
-#  - moodle-plugin-ci codechecker --standard poet
   - moodle-plugin-ci validate
   - moodle-plugin-ci savepoints
   - moodle-plugin-ci mustache
