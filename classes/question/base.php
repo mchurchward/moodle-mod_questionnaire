@@ -228,13 +228,13 @@ abstract class base {
     private function get_advdependencies() {
         global $DB;
 
-        if ($advdependencies = $DB->get_records('questionnaire_dependencies', array('question_id' => $this->id , 'survey_id' => $this->survey_id), 'id ASC')) {
+        if ($advdependencies = $DB->get_records('questionnaire_dependency', array('questionid' => $this->id , 'surveyid' => $this->survey_id), 'id ASC')) {
             foreach ($advdependencies as $advdependency) {
                 $this->advdependencies[$advdependency->id] = new \stdClass();
-                $this->advdependencies[$advdependency->id]->adv_dependquestion = $advdependency->adv_dependquestion;
-                $this->advdependencies[$advdependency->id]->adv_dependchoice = $advdependency->adv_dependchoice;
-                $this->advdependencies[$advdependency->id]->adv_dependlogic = $advdependency->adv_dependlogic;
-                $this->advdependencies[$advdependency->id]->adv_depend_and_or = $advdependency->adv_depend_and_or;
+                $this->advdependencies[$advdependency->id]->dependquestionid = $advdependency->dependquestionid;
+                $this->advdependencies[$advdependency->id]->dependchoiceid = $advdependency->dependchoiceid;
+                $this->advdependencies[$advdependency->id]->dependlogic = $advdependency->dependlogic;
+                $this->advdependencies[$advdependency->id]->dependandor = $advdependency->dependandor;
             }
         } else {
             $this->advdependencies = [];
@@ -467,18 +467,18 @@ abstract class base {
 
     public function update_advdependency($advdependencyrecord) {
         global $DB;
-        return $DB->update_record('questionnaire_dependencies', $advdependencyrecord);
+        return $DB->update_record('questionnaire_dependency', $advdependencyrecord);
     }
 
     public function add_advdependency($advdependencyrecord) {
         global $DB;
         $retvalue = true;
-        if ($cid = $DB->insert_record('questionnaire_dependencies', $advdependencyrecord)) {
+        if ($cid = $DB->insert_record('questionnaire_dependency', $advdependencyrecord)) {
             $this->advdependencies[$cid] = new \stdClass();
-            $this->advdependencies[$cid]->adv_dependquestion = $advdependencyrecord->adv_dependquestion;
-            $this->advdependencies[$cid]->adv_dependchoice = $advdependencyrecord->adv_dependchoice;
-            $this->advdependencies[$cid]->adv_dependlogic = $advdependencyrecord->adv_dependlogic;
-            $this->advdependencies[$cid]->adv_depend_and_or = $advdependencyrecord->adv_depend_and_or;
+            $this->advdependencies[$cid]->dependquestionid = $advdependencyrecord->dependquestionid;
+            $this->advdependencies[$cid]->dependchoiceid = $advdependencyrecord->dependchoiceid;
+            $this->advdependencies[$cid]->dependlogic = $advdependencyrecord->dependlogic;
+            $this->advdependencies[$cid]->dependandor = $advdependencyrecord->dependandor;
         } else {
             $retvalue = false;
         }
@@ -498,7 +498,7 @@ abstract class base {
         } else {
             $cid = $advdependency->id;
         }
-        if ($DB->delete_records('questionnaire_dependencies', ['id' => $cid])) {
+        if ($DB->delete_records('questionnaire_dependency', ['id' => $cid])) {
             unset($this->advdependencies[$cid]);
         } else {
             $retvalue = false;
@@ -845,7 +845,7 @@ abstract class base {
                 foreach ($questionnaire->questions as $questionlistitem) {
                     if (isset($questionlistitem->advdependencies)) {
                         foreach ($questionlistitem->advdependencies as $key => $outeradvdependencies) {
-                            if ($outeradvdependencies->adv_dependquestion == $this->qid) {
+                            if ($outeradvdependencies->dependquestionid == $this->qid) {
                                 $advchildren[$key] = $outeradvdependencies;
                             }
                         }
@@ -862,9 +862,9 @@ abstract class base {
                 $advdependenciescountor = 0;
 
                 foreach ($this->advdependencies as $advdependency) {
-                    if ($advdependency->adv_depend_and_or == "and") {
+                    if ($advdependency->dependandor == "and") {
                         $advdependenciescountand++;
-                    } else if ($advdependency->adv_depend_and_or == "or") {
+                    } else if ($advdependency->dependandor == "or") {
                         $advdependenciescountor++;
                     }
                 }
@@ -911,8 +911,8 @@ abstract class base {
                     } else {
                         //TODO better create questionnaire_get_advparents in locallib
                         foreach ($this->advdependencies as $advdependencyhelper) {
-                            $advdependencyhelper->dependquestion = $advdependencyhelper->adv_dependquestion;
-                            $advdependencyhelper->dependchoice = $advdependencyhelper->adv_dependchoice;
+                            $advdependencyhelper->dependquestion = $advdependencyhelper->dependquestionid;
+                            $advdependencyhelper->dependchoice = $advdependencyhelper->dependchoiceid;
                             $advdependencyhelper->position = 0;
                             $advdependencyhelper->name = null;
                             $advdependencyhelper->content = null;
@@ -1143,19 +1143,19 @@ abstract class base {
                 $newcount = 0;
             }
             while (($nidx < $newcount) && ($cidx < $oldcount)) {
-                if ($formdata->advdependquestion[$nidx] != $eadvdependency->adv_dependquestion ||
-                    $formdata->advdependchoice[$nidx] != $eadvdependency->adv_dependchoice ||
-                    $formdata->advdependlogic_cleaned[$nidx] != $eadvdependency->adv_dependlogic ||
-                    $formdata->adv_depend_and_or[$nidx] != $eadvdependency->adv_depend_and_or) {
+                if ($formdata->advdependquestion[$nidx] != $eadvdependency->dependquestionid ||
+                    $formdata->advdependchoice[$nidx] != $eadvdependency->dependchoiceid ||
+                    $formdata->advdependlogic_cleaned[$nidx] != $eadvdependency->dependlogic ||
+                    $formdata->dependandor[$nidx] != $eadvdependency->dependandor) {
 
                     $advdependencyrecord = new \stdClass();
                     $advdependencyrecord->id = $ekey;
-                    $advdependencyrecord->question_id = $this->qid;
-                    $advdependencyrecord->survey_id = $this->survey_id;
-                    $advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
-                    $advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
-                    $advdependencyrecord->adv_dependlogic = $formdata->advdependlogic_cleaned[$nidx];
-                    $advdependencyrecord->adv_depend_and_or = $formdata->adv_depend_and_or[$nidx];
+                    $advdependencyrecord->questionid = $this->qid;
+                    $advdependencyrecord->surveyid = $this->survey_id;
+                    $advdependencyrecord->dependquestionid = $formdata->advdependquestion[$nidx];
+                    $advdependencyrecord->dependchoiceid = $formdata->advdependchoice[$nidx];
+                    $advdependencyrecord->dependlogic = $formdata->advdependlogic_cleaned[$nidx];
+                    $advdependencyrecord->dependandor = $formdata->dependandor[$nidx];
 
                     $this->update_advdependency($advdependencyrecord);
                 }
@@ -1168,12 +1168,12 @@ abstract class base {
             while ($nidx < $newcount) {
                 // New advdependencies
                 $advdependencyrecord = new \stdClass();
-                $advdependencyrecord->question_id = $this->qid;
-                $advdependencyrecord->survey_id = $formdata->sid;
-                $advdependencyrecord->adv_dependquestion = $formdata->advdependquestion[$nidx];
-                $advdependencyrecord->adv_dependchoice = $formdata->advdependchoice[$nidx];
-                $advdependencyrecord->adv_dependlogic = $formdata->advdependlogic_cleaned[$nidx];
-                $advdependencyrecord->adv_depend_and_or = $formdata->adv_depend_and_or[$nidx];
+                $advdependencyrecord->questionid = $this->qid;
+                $advdependencyrecord->surveyid = $formdata->sid;
+                $advdependencyrecord->dependquestionid = $formdata->advdependquestion[$nidx];
+                $advdependencyrecord->dependchoiceid = $formdata->advdependchoice[$nidx];
+                $advdependencyrecord->dependlogic = $formdata->advdependlogic_cleaned[$nidx];
+                $advdependencyrecord->dependandor = $formdata->dependandor[$nidx];
 
                 $this->add_advdependency($advdependencyrecord);
                 $nidx++;
@@ -1216,7 +1216,7 @@ abstract class base {
                     $formdata->advdependquestion[] = $advdependency[0];
                     $formdata->advdependchoice[] = $advdependency[1];
                     $formdata->advdependlogic_cleaned[] = $formdata->advdependlogic_and[$i];
-                    $formdata->adv_depend_and_or[] = "and";
+                    $formdata->dependandor[] = "and";
                 }
             }
         }
@@ -1229,7 +1229,7 @@ abstract class base {
                     $formdata->advdependquestion[] = $advdependency[0];
                     $formdata->advdependchoice[] = $advdependency[1];
                     $formdata->advdependlogic_cleaned[] = $formdata->advdependlogic_or[$i];
-                    $formdata->adv_depend_and_or[] = "or";
+                    $formdata->dependandor[] = "or";
                 }
             }
         }

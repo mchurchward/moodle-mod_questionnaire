@@ -134,8 +134,8 @@ class mod_questionnaire_questions_form extends moodleform {
                 // TODO create questionnaire_get_advparents in locallib.
                 if (isset($question->advdependencies) && $questionnaire->navigate == 2) {
                     foreach ($question->advdependencies as $advdependencyhelper) {
-                        $advdependencyhelper->dependquestion = $advdependencyhelper->adv_dependquestion;
-                        $advdependencyhelper->dependchoice = $advdependencyhelper->adv_dependchoice;
+                        $advdependencyhelper->dependquestion = $advdependencyhelper->dependquestionid;
+                        $advdependencyhelper->dependchoice = $advdependencyhelper->dependchoiceid;
                         $advdependencyhelper->position = 0;
                         $advdependencyhelper->name = null;
                         $advdependencyhelper->content = null;
@@ -145,7 +145,7 @@ class mod_questionnaire_questions_form extends moodleform {
 
                         // TODO Could be placed in locallib as function.
                         // TODO Replace static strings and set language variables.
-                        switch ($advdependencyhelper->adv_dependlogic) {
+                        switch ($advdependencyhelper->dependlogic) {
                             case 0:
                                 $logic = ' not set';
                                 break;
@@ -156,13 +156,13 @@ class mod_questionnaire_questions_form extends moodleform {
                                 $logic = "";
                         }
 
-                        if ($advdependencyhelper->adv_depend_and_or == "and") {
+                        if ($advdependencyhelper->dependandor == "and") {
                             $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
                                     $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
                         }
 
                         // Use own array for or-dependencies, to apply a specific css-class later.
-                        if ($advdependencyhelper->adv_depend_and_or == "or") {
+                        if ($advdependencyhelper->dependandor == "or") {
                             $dependenciesor[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
                                     $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
                         }
@@ -260,15 +260,15 @@ class mod_questionnaire_questions_form extends moodleform {
                         if ($nextquestion = $DB->get_record('questionnaire_question', array('survey_id' => $sid,
                                         'position' => $pos + 1, 'deleted' => 'n' ), $fields = 'id, dependquestion, name, content') ) {
 
-                            $nextquestionadvdependencies = $DB->get_records('questionnaire_dependencies',
-                                       array('question_id' => $nextquestion->id , 'survey_id' => $sid), 'id ASC');
+                            $nextquestionadvdependencies = $DB->get_records('questionnaire_dependency',
+                                       array('questionid' => $nextquestion->id , 'surveyid' => $sid), 'id ASC');
 
                             if ($previousquestion = $DB->get_record('questionnaire_question', array('survey_id' => $sid,
                                             'position' => $pos - 1, 'deleted' => 'n' ),
                                             $fields = 'id, dependquestion, name, content')) {
 
-                                $previousquestionadvdependencies = $DB->get_records('questionnaire_dependencies',
-                                               array('question_id' => $previousquestion->id , 'survey_id' => $sid), 'id ASC');
+                                $previousquestionadvdependencies = $DB->get_records('questionnaire_dependency',
+                                               array('questionid' => $previousquestion->id , 'surveyid' => $sid), 'id ASC');
 
                                 if (($questionnaire->navigate != 2 &&
                                      ($nextquestion->dependquestion != 0 ||

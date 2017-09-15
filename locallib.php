@@ -729,9 +729,9 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
         foreach ($questionsinsection as $question) {
             if (!empty($question->advdependencies)) {
                 foreach ($question->advdependencies as $advdependency) {
-                    switch ($questionsinquestionnaire[$advdependency->adv_dependquestion]->type_id) {
+                    switch ($questionsinquestionnaire[$advdependency->dependquestionid]->type_id) {
                         case QUESYESNO:
-                            if ($advdependency->adv_dependchoice == 0) {
+                            if ($advdependency->dependchoiceid == 0) {
                                 $questiondependchoice = 'y';
                             } else {
                                 $questiondependchoice = 'n';
@@ -739,29 +739,29 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
                             $responsetable = 'response_bool';
                             break;
                         case QUESCHECK:
-                            $questiondependchoice = $advdependency->adv_dependchoice;
+                            $questiondependchoice = $advdependency->dependchoiceid;
                             $responsetable = 'resp_multiple';
                             break;
                         default:
-                            $questiondependchoice = $advdependency->adv_dependchoice;
+                            $questiondependchoice = $advdependency->dependchoiceid;
                             $responsetable = 'resp_single';
                     }
                     $params = array('response_id' => $rid,
-                            'question_id' => $advdependency->adv_dependquestion,
+                            'question_id' => $advdependency->dependquestionid,
                             'choice_id' => $questiondependchoice);
 
                     $recordexists = $DB->record_exists('questionnaire_'.$responsetable, $params);
 
                     // Note: advdependencies are sorted, first all and-dependencies, then or-dependencies.
-                    if ($advdependency->adv_depend_and_or == 'and') {
+                    if ($advdependency->dependandor == 'and') {
                         $advdependencyandfulfilled = false;
                         // dependlogic == 1 -> this answer givven
-                        if ($advdependency->adv_dependlogic == 1 && $recordexists) {
+                        if ($advdependency->dependlogic == 1 && $recordexists) {
                             $advdependencyandfulfilled = true;
                         }
 
                         // dependlogic == 0 -> this answer NOT givven
-                        if ($advdependency->adv_dependlogic == 0 && !$recordexists) {
+                        if ($advdependency->dependlogic == 0 && !$recordexists) {
                             $advdependencyandfulfilled = true;
                         }
 
@@ -776,17 +776,17 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
                     }
 
                     // Note: advdependencies are sorted, first all and-dependencies, then or-dependencies.
-                    if ($advdependency->adv_depend_and_or == 'or') {
+                    if ($advdependency->dependandor == 'or') {
                         $advdependencyorfulfilled = false;
                         // To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
                         $advdependencyandfulfilled = true;
                         // dependlogic == 1 -> this answer givven
-                        if ($advdependency->adv_dependlogic == 1 && $recordexists) {
+                        if ($advdependency->dependlogic == 1 && $recordexists) {
                             $advdependencyorfulfilled = true;
                         }
 
                         // dependlogic == 0 -> this answer NOT givven
-                        if ($advdependency->adv_dependlogic == 0 && !$recordexists) {
+                        if ($advdependency->dependlogic == 0 && !$recordexists) {
                             $advdependencyorfulfilled = true;
                         }
 
@@ -910,7 +910,7 @@ function questionnaire_get_parent_positions ($questionnaire) {
     if ($questionnaire->navigate == 2) {
         foreach ($questionnaire->questions as $question) {
             foreach ($question->advdependencies as $advdependency) {
-                $dependquestion = $advdependency->adv_dependquestion;
+                $dependquestion = $advdependency->dependquestionid;
                 if (isset($dependquestion) && $dependquestion != 0) {
                     $childid = $question->id;
                     $parentpos = $questionnaire->questions[$dependquestion]->position;
@@ -953,7 +953,7 @@ function questionnaire_get_child_positions ($questionnaire) {
     if ($questionnaire->navigate == 2) {
         foreach ($questionnaire->questions as $question) {
             foreach ($question->advdependencies as $advdependency) {
-                $dependquestion = $advdependency->adv_dependquestion;
+                $dependquestion = $advdependency->dependquestionid;
                 if (isset($dependquestion) && $dependquestion != 0) {
                     $parentid = $questionnaire->questions[$dependquestion]->id; // Equals $dependquestion?.
                     $childpos = $question->position;
@@ -1014,8 +1014,8 @@ function questionnaire_check_page_breaks($questionnaire) {
         $positions[$qu->position]['qname'] = $qu->name;
         $positions[$qu->position]['qpos'] = $qu->position;
 
-        $advdependencies = $DB->get_records('questionnaire_dependencies', array('question_id' => $key , 'survey_id' => $sid),
-                'id ASC', 'id, adv_dependquestion, adv_dependchoice, adv_dependlogic');
+        $advdependencies = $DB->get_records('questionnaire_dependency', array('questionid' => $key , 'surveyid' => $sid),
+                'id ASC', 'id, dependquestionid, dependchoiceid, dependlogic');
         $positions[$qu->position]['advdependencies'] = $advdependencies;
     }
     $count = count($positions);
@@ -1091,9 +1091,9 @@ function questionnaire_check_page_breaks($questionnaire) {
 
                     foreach ($outerdependencies as $okey => $outerdependency) {
                         foreach ($innerdependencies as $ikey => $innerdependency) {
-                            if ($outerdependency->adv_dependquestion === $innerdependency->adv_dependquestion &&
-                                $outerdependency->adv_dependchoice === $innerdependency->adv_dependchoice &&
-                                $outerdependency->adv_dependlogic === $innerdependency->adv_dependlogic) {
+                            if ($outerdependency->dependquestionid === $innerdependency->dependquestionid &&
+                                $outerdependency->dependchoiceid === $innerdependency->dependchoiceid &&
+                                $outerdependency->dependlogic === $innerdependency->dependlogic) {
                                 unset($outerdependencies[$okey]);
                                 unset($innerdependencies[$ikey]);
                             }
@@ -1201,7 +1201,7 @@ function questionnaire_get_advdescendants ($questions, $questionid) {
     foreach ($questions as $question) {
         if ($question->advdependencies) {
             foreach ($question->advdependencies as $advdependency) {
-                $dq = $advdependency->adv_dependquestion;
+                $dq = $advdependency->dependquestionid;
                 $qid = $question->id;
                 if (!in_array($qid, $qu[$dq])) {
                     $qu[$dq][] = $qid;
@@ -1223,13 +1223,13 @@ function questionnaire_get_advdescendants ($questions, $questionid) {
 
             foreach ($childquestion->advdependencies as $advdependencyhelper) {
                 // TODO this is just a workaround to use questionnaire_get_parents.
-                $childquestion->dependquestion = $advdependencyhelper->adv_dependquestion;
-                $childquestion->dependchoice = $advdependencyhelper->adv_dependchoice;
+                $childquestion->dependquestion = $advdependencyhelper->dependquestionid;
+                $childquestion->dependchoice = $advdependencyhelper->dependchoiceid;
                 $parent = questionnaire_get_parent ($childquestion);
 
                 // Add advdependency specific data to the get_parent results so the presentation can be tailored.
-                $parent[key($parent)][adv_dependlogic] = $advdependencyhelper->adv_dependlogic;
-                $parent[key($parent)][adv_depend_and_or] = $advdependencyhelper->adv_depend_and_or;
+                $parent[key($parent)][dependlogic] = $advdependencyhelper->dependlogic;
+                $parent[key($parent)][dependandor] = $advdependencyhelper->dependandor;
 
                 // Create subarrays to avoid reducing the results to one dependency per question.
                 $descendants[key($parent)][] = $parent[key($parent)];
@@ -1268,12 +1268,12 @@ function questionnaire_prep_for_questionform($questionnaire, $qid, $qtype) {
 
         if (isset($question->advdependencies)) {
             foreach ($question->advdependencies as $advdependencies) {
-                if ($advdependencies->adv_depend_and_or === "and") {
-                    $question->advdependquestions_and[] = $advdependencies->adv_dependquestion.','.$advdependencies->adv_dependchoice;
-                    $question->advdependlogic_and[] = $advdependencies->adv_dependlogic;
-                } else if ($advdependencies->adv_depend_and_or === "or") {
-                    $question->advdependquestions_or[] = $advdependencies->adv_dependquestion.','.$advdependencies->adv_dependchoice;
-                    $question->advdependlogic_or[] = $advdependencies->adv_dependlogic;
+                if ($advdependencies->dependandor === "and") {
+                    $question->advdependquestions_and[] = $advdependencies->dependquestionid.','.$advdependencies->dependchoiceid;
+                    $question->advdependlogic_and[] = $advdependencies->dependlogic;
+                } else if ($advdependencies->dependandor === "or") {
+                    $question->advdependquestions_or[] = $advdependencies->dependquestionid.','.$advdependencies->dependchoiceid;
+                    $question->advdependlogic_or[] = $advdependencies->dependlogic;
                 }
             }
         }

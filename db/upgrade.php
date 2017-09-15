@@ -536,31 +536,6 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
             $dbman->add_index($table, $index);
         }
 
-        // MOD Multiparent Advanceddependencies START.
-        // Define table questionnaire_dependencies to be created.
-        $table = new xmldb_table('questionnaire_dependencies');
-
-        // Adding fields to table questionnaire_depenencies.
-        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
-        $table->add_field('adv_dependquestion', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
-        $table->add_field('adv_dependchoice', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
-        $table->add_field('adv_dependlogic', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
-        $table->add_field('question_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
-        $table->add_field('survey_id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
-        $table->add_field('adv_depend_and_or', XMLDB_TYPE_CHAR, '4', null, XMLDB_NOTNULL, null, null);
-
-        // Adding keys to table questionnaire_depenencies.
-        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
-
-        // Adding indexes to table questionnaire_depenencies.
-        $table->add_index('quest_dependencie_quesidx', XMLDB_INDEX_NOTUNIQUE, array('question_id'));
-
-        // Conditionally launch create table for questionnaire_depenencies.
-        if (!$dbman->table_exists($table)) {
-               $dbman->create_table($table);
-        }
-        // MOD Multiparent Advanceddependencies END.
-
         // Questionnaire savepoint reached.
         upgrade_mod_savepoint(true, 2015051102, 'questionnaire');
     }
@@ -654,6 +629,36 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
 
         // Questionnaire savepoint reached.
         upgrade_mod_savepoint(true, 2017050101, 'questionnaire');
+    }
+
+    // Converting to new dependency system.
+    if ($oldversion < 2017050102) {
+        // MOD Multiparent Advanceddependencies START.
+        // Define table questionnaire_dependency to be created.
+        $table = new xmldb_table('questionnaire_dependency');
+
+        // Adding fields to table questionnaire_depenencies.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('questionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('surveyid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('dependquestionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('dependchoiceid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('dependlogic', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('dependandor', XMLDB_TYPE_CHAR, '4', null, XMLDB_NOTNULL, null, null);
+
+        // Adding keys to table questionnaire_depenencies.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+
+        // Adding indexes to table questionnaire_depenencies.
+        $table->add_index('quest_dependency_quesidx', XMLDB_INDEX_NOTUNIQUE, array('questionid'));
+
+        // Conditionally launch create table for questionnaire_depenencies.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+        // MOD Multiparent Advanceddependencies END.
+        // Questionnaire savepoint reached.
+        upgrade_mod_savepoint(true, 2017050102, 'questionnaire');
     }
 
     return $result;
