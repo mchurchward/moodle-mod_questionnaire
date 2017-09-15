@@ -113,7 +113,7 @@ if ($delq) {
         questionnaire_delete_responses($qid);
 
         // Delete advdependencies pointing at the deleted question (parents to the deleted question).
-        $DB->delete_records('questionnaire_dependencies', array('question_id' => $qid));
+        $DB->delete_records('questionnaire_dependency', array('questionid' => $qid));
 
         // The deleted question was a parent, so now we must delete its child question(s).
         if (count($haschildren) !== 0) {
@@ -145,14 +145,14 @@ if ($delq) {
                     foreach ($questionnaire->questions as $questionlistitem) {
                         if (isset($questionlistitem->advdependencies)) {
                             foreach ($questionlistitem->advdependencies as $key => $outeradvdependencies) {
-                                if ($outeradvdependencies->adv_dependquestion == $delq) {
+                                if ($outeradvdependencies->dependquestionid == $delq) {
                                     $advchildren[$key] = $outeradvdependencies;
                                 }
                             }
                         }
                     }
                     foreach ($advchildren as $key => $value) {
-                        $DB->delete_records('questionnaire_dependencies', array('id' => $key));
+                        $DB->delete_records('questionnaire_dependency', array('id' => $key));
                     }
                 }
             }
@@ -502,7 +502,7 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                     }
 
                     // Add conditions.
-                    switch ($subchild['adv_dependlogic']) {
+                    switch ($subchild['dependlogic']) {
                         case 0:
                             $logic = ' not set';
                             break;
@@ -514,7 +514,7 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                     }
 
                     // Different colouring for and/or.
-                    switch ($subchild['adv_depend_and_or']) {
+                    switch ($subchild['dependandor']) {
                         case 'or':
                             $color = 'qdepend-or';
                             break;
@@ -555,7 +555,7 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                     }
 
                     // Add conditions.
-                    switch ($subchild['adv_dependlogic']) {
+                    switch ($subchild['dependlogic']) {
                         case 0:
                             $logic = ' not set';
                             break;
@@ -567,7 +567,7 @@ if ($action == "confirmdelquestion" || $action == "confirmdelquestionparent") {
                     }
 
                     // Different colouring for and/or.
-                    switch ($subchild['adv_depend_and_or']) {
+                    switch ($subchild['dependandor']) {
                         case 'or':
                             $color = 'qdepend-or';
                             break;
