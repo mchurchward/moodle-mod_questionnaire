@@ -602,9 +602,9 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
         }
 
         // Copy all existing branching data into new branching structure.
-        $branchingqs = $DB->get_recordset_select('questionnaire_question', 'dependquestion > 0 AND deleted = \'n\'',
+        $branchingrs = $DB->get_recordset_select('questionnaire_question', 'dependquestion > 0 AND deleted = \'n\'',
             null, '', 'id, survey_id, dependquestion, dependchoice');
-        foreach ($branchingqs as $qid => $qinfo) {
+        foreach ($branchingrs as $qid => $qinfo) {
             $newrec = new stdClass();
             $newrec->questionid = $qid;
             $newrec->surveyid = $qinfo->survey_id;
@@ -614,17 +614,18 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
             $newrec->dependandor = 'and'; // Not used previously.
             $DB->insert_record('questionnaire_dependency', $newrec);
         }
+        $branchingrs->close();
 
         // After copying all old data, remove the unused fields.
         $table = new xmldb_table('questionnaire_question');
-/*        $field1 = new xmldb_field('dependquestion');
+        $field1 = new xmldb_field('dependquestion');
         $field2 = new xmldb_field('dependchoice');
         if ($dbman->field_exists($table, $field1)) {
             $dbman->drop_field($table, $field1);
         }
         if ($dbman->field_exists($table, $field2)) {
             $dbman->drop_field($table, $field2);
-        } */
+        }
         // MOD Multiparent Advanceddependencies END.
 
         // Add a new index for survey_id to the question table.
