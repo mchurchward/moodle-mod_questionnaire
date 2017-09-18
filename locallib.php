@@ -991,10 +991,10 @@ function questionnaire_get_child_positions ($questionnaire) {
  */
 function questionnaire_has_dependencies($questions) {
     foreach ($questions as $question) {
-        if ($question->dependquestion != 0) {
-            return true;
-            break;
-        }
+//        if ($question->dependquestion != 0) {
+//            return true;
+//            break;
+//        }
         if (!empty($question->advdependencies)) {
             return true;
             break;
@@ -1015,8 +1015,8 @@ function questionnaire_check_page_breaks($questionnaire) {
     $positions = array();
     foreach ($questions as $key => $qu) {
         $positions[$qu->position]['question_id'] = $key;
-        $positions[$qu->position]['dependquestion'] = $qu->dependquestion;
-        $positions[$qu->position]['dependchoice'] = $qu->dependchoice;
+//        $positions[$qu->position]['dependquestion'] = $qu->dependquestion;
+//        $positions[$qu->position]['dependchoice'] = $qu->dependchoice;
         $positions[$qu->position]['type_id'] = $qu->type_id;
         $positions[$qu->position]['qname'] = $qu->name;
         $positions[$qu->position]['qpos'] = $qu->position;

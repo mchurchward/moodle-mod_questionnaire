@@ -126,11 +126,10 @@ class mod_questionnaire_questions_form extends moodleform {
             // Get displayable list of parents for the questions in questions_form.
             if ($questionnairehasdependencies) {
 //                if ($question->dependquestion != 0 && $questionnaire->navigate != 2) {
-                if ($question->dependquestion != 0 && $questionnaire->navigate == 0) {
-                    $parent = questionnaire_get_parent ($question);
-                    $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
-                        $strposition.' '.$parent[$qid]['parentposition'].' ('.$parent[$qid]['parent'].')';
-                }
+//                    $parent = questionnaire_get_parent ($question);
+//                    $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
+//                        $strposition.' '.$parent[$qid]['parentposition'].' ('.$parent[$qid]['parent'].')';
+//                }
 
                 // TODO create questionnaire_get_advparents in locallib.
 //                if (isset($question->advdependencies) && $questionnaire->navigate == 2) {
@@ -260,26 +259,27 @@ class mod_questionnaire_questions_form extends moodleform {
                     // or immediately preceded by a question with a dependency and followed by a non-dependent question.
                     if ($tid == QUESPAGEBREAK) {
                         if ($nextquestion = $DB->get_record('questionnaire_question', array('survey_id' => $sid,
-                                        'position' => $pos + 1, 'deleted' => 'n' ), $fields = 'id, dependquestion, name, content') ) {
+//                            'position' => $pos + 1, 'deleted' => 'n' ), $fields = 'id, dependquestion, name, content') ) {
+                            'position' => $pos + 1, 'deleted' => 'n' ), $fields = 'id, name, content') ) {
 
                             $nextquestionadvdependencies = $DB->get_records('questionnaire_dependency',
                                        array('questionid' => $nextquestion->id , 'surveyid' => $sid), 'id ASC');
 
                             if ($previousquestion = $DB->get_record('questionnaire_question', array('survey_id' => $sid,
                                             'position' => $pos - 1, 'deleted' => 'n' ),
-                                            $fields = 'id, dependquestion, name, content')) {
+//                                            $fields = 'id, dependquestion, name, content')) {
+                                            $fields = 'id, name, content')) {
 
                                 $previousquestionadvdependencies = $DB->get_records('questionnaire_dependency',
                                                array('questionid' => $previousquestion->id , 'surveyid' => $sid), 'id ASC');
 
 //                                if (($questionnaire->navigate != 2 &&
-                                if (($questionnaire->navigate == 0 &&
-                                     ($nextquestion->dependquestion != 0 ||
-                                      ($previousquestion->dependquestion != 0 && $nextquestion->dependquestion == 0)
-                                     )
-                                    ) || // Add conditions for advdependencies, including navigate, so old and new don't interfere.
+//                                     ($nextquestion->dependquestion != 0 ||
+//                                      ($previousquestion->dependquestion != 0 && $nextquestion->dependquestion == 0)
+//                                     )
+//                                    ) || // Add conditions for advdependencies, including navigate, so old and new don't interfere.
 //                                    ($questionnaire->navigate == 2 &&
-                                    ($questionnaire->navigate > 0 &&
+                                if (($questionnaire->navigate > 0 &&
                                      (!empty($nextquestionadvdependencies) ||
                                       (!empty($previousquestionadvdependencies) && empty($nextquestionadvdependencies))
                                      )

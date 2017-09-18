@@ -138,9 +138,6 @@ abstract class base {
             $this->id = $question->id;
             $this->survey_id = $question->survey_id;
             $this->name = $question->name;
-            // Added for skip feature.
-            $this->dependquestion = $question->dependquestion;
-            $this->dependchoice = $question->dependchoice;
             $this->length = $question->length;
             $this->precise = $question->precise;
             $this->position = $question->position;
