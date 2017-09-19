@@ -1061,10 +1061,10 @@ function questionnaire_check_page_breaks($questionnaire) {
             $j = $i - 1;
             if ($j != 0) {
 //                if ($questionnaire->navigate != 2) { // Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
-                if ($questionnaire->navigate == 0) { // Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
+                if ($questionnaire->navigate != 2 && false) { // Since the plugin doesn't care about changing the navigation-mode between 0 and 1...
                     $prevtypeid = $positions[$j]['type_id'];
-                    $prevdependquestion = $positions[$j]['dependquestion'];
-                    $prevdependchoice = $positions[$j]['dependchoice'];
+//                    $prevdependquestion = $positions[$j]['dependquestion'];
+//                    $prevdependchoice = $positions[$j]['dependchoice'];
                     if (($prevtypeid != QUESPAGEBREAK && ($prevdependquestion != $qu['dependquestion']
                             || $prevdependchoice != $qu['dependchoice']))
                             || ($qu['dependquestion'] == 0 && $prevdependquestion != 0)) {
