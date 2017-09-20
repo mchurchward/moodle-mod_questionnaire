@@ -164,7 +164,7 @@ if ($delq) {
 }
 
 if ($action == 'main') {
-    $questionsform = new mod_questionnaire_questions_form('questions.php', $moveq);
+    $questionsform = new \mod_questionnaire\questions_form('questions.php', $moveq);
     $sdata = clone($questionnaire->survey);
     $sdata->sid = $questionnaire->survey->id;
     $sdata->id = $cm->id;
@@ -294,7 +294,7 @@ if ($action == 'main') {
 
 } else if ($action == 'question') {
     $question = questionnaire_prep_for_questionform($questionnaire, $qid, $qtype);
-    $questionsform = new mod_questionnaire_edit_question_form('questions.php');
+    $questionsform = new \mod_questionnaire\edit_question_form('questions.php');
     $questionsform->set_data($question);
     if ($questionsform->is_cancelled()) {
         // Switch to main screen.
@@ -346,7 +346,7 @@ if ($reload) {
     $questionnaire->add_renderer($PAGE->get_renderer('mod_questionnaire'));
     $questionnaire->add_page(new \mod_questionnaire\output\questionspage());
     if ($action == 'main') {
-        $questionsform = new mod_questionnaire_questions_form('questions.php', $moveq);
+        $questionsform = new \mod_questionnaire\questions_form('questions.php', $moveq);
         $sdata = clone($questionnaire->survey);
         $sdata->sid = $questionnaire->survey->id;
         $sdata->id = $cm->id;
@@ -360,7 +360,7 @@ if ($reload) {
         $questionsform->set_data($sdata);
     } else if ($action == 'question') {
         $question = questionnaire_prep_for_questionform($questionnaire, $qid, $qtype);
-        $questionsform = new mod_questionnaire_edit_question_form('questions.php');
+        $questionsform = new \mod_questionnaire\edit_question_form('questions.php');
         $questionsform->set_data($question);
     }
 }
