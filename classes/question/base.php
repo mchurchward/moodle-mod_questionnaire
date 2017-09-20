@@ -231,6 +231,14 @@ abstract class base {
     }
 
     /**
+     * Return true if the question has defined dependencies.
+     * @return boolean
+     */
+    public function has_dependencies() {
+        return !empty($this->dependencies);
+    }
+
+    /**
      * Insert response data method.
      */
     public function insert_response($rid, $val) {
