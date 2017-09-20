@@ -1081,7 +1081,7 @@ function questionnaire_get_descendants ($questions, $questionid) {
             foreach ($question->dependencies as $dependency) {
                 $dq = $dependency->dependquestionid;
                 $qid = $question->id;
-                if (!in_array($qid, $qu[$dq])) {
+                if (!isset($qu[$dq]) || !in_array($qid, $qu[$dq])) {
                     $qu[$dq][] = $qid;
                 }
                 if (array_key_exists($qid, $qu)) {
@@ -1106,8 +1106,8 @@ function questionnaire_get_descendants ($questions, $questionid) {
                 $parent = questionnaire_get_parent ($childquestion);
 
                 // Add dependency specific data to the get_parent results so the presentation can be tailored.
-                $parent[key($parent)][dependlogic] = $dependencyhelper->dependlogic;
-                $parent[key($parent)][dependandor] = $dependencyhelper->dependandor;
+                $parent[key($parent)]['dependlogic'] = $dependencyhelper->dependlogic;
+                $parent[key($parent)]['dependandor'] = $dependencyhelper->dependandor;
 
                 // Create subarrays to avoid reducing the results to one dependency per question.
                 $descendants[key($parent)][] = $parent[key($parent)];
