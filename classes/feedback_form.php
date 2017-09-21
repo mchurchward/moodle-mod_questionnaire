@@ -23,12 +23,14 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  */
 
+namespace mod_questionnaire;
+
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/formslib.php');
 require_once($CFG->dirroot.'/mod/questionnaire/lib.php');
 
-class mod_questionnaire_feedback_form extends moodleform {
+class feedback_form extends \moodleform {
 
     protected $_feedbacks;
 

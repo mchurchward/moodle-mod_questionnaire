@@ -259,21 +259,21 @@
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
     </TABLE>
-    <TABLE NAME="questionnaire_dependencies" COMMENT="Holds the combined dependencies per question to navigate in the test">
+    <TABLE NAME="questionnaire_dependency" COMMENT="Holds the combined dependencies per question to navigate in the test">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="adv_dependquestion" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="adv_dependchoice" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="adv_dependlogic" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="question_id" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="survey_id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="adv_depend_and_or" TYPE="char" LENGTH="4" NOTNULL="true" SEQUENCE="false" COMMENT="Mandatory or obligatory dependency"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="ID of question with dependency."/>
+        <FIELD NAME="surveyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="ID of survey question contained in."/>
+        <FIELD NAME="dependquestionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="ID of question dependent on."/>
+        <FIELD NAME="dependchoiceid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="ID of question choice dependent on."/>
+        <FIELD NAME="dependlogic" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="dependandor" TYPE="char" LENGTH="4" NOTNULL="true" SEQUENCE="false" COMMENT="Mandatory or obligatory dependency"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="quest_dependencie_quesidx" UNIQUE="false" FIELDS="question_id"/>
+        <INDEX NAME="quest_dependency_quesidx" UNIQUE="false" FIELDS="questionid"/>
       </INDEXES>
     </TABLE>
   </TABLES>

@@ -22,11 +22,13 @@
  * @package questionnaire
  */
 
+namespace mod_questionnaire;
+
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/formslib.php');
 
-class mod_questionnaire_edit_question_form extends moodleform {
+class edit_question_form extends \moodleform {
 
     public function definition() {
         global $questionnaire, $question, $SESSION;

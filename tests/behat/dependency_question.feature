@@ -34,14 +34,14 @@ Feature: Questions can be defined to be dependent on answers to previous questio
       | No | n |
       | Input box length | 10 |
       | Max. text length | 15 |
-      | id_dependquestion  | Q1->Yes |
+      | id_dependquestions_and_0  | Q1->Yes |
       | Question Text | What colour is the car? |
     Then I should see "[Text Box] (Q2a)"
     And I should see "What colour is the car?"
     And I add a "Yes/No" question and I fill the form with:
       | Question Name | Q2b |
       | No | n |
-      | id_dependquestion  | Q1->No |
+      | id_dependquestions_and_0  | Q1->No |
       | Question Text | Will you buy a car this year? |
     Then I should see "[Yes/No] (Q2b)"
     And I should see "Will you buy a car this year?"
