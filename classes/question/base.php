@@ -795,7 +795,6 @@ abstract class base {
         self::form_precise_text($mform, $helpname);
     }
 
-
     protected function form_dependencies(\MoodleQuickForm $mform, $questionnaire, $editquestionformobject) {
         // Create a new area for multiple dependencies.
         if ($questionnaire->navigate > 0) {
