@@ -3235,7 +3235,7 @@ class questionnaire {
         return false;
     }
 
-    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredsections = null) {
+    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid) {
         global $DB, $CFG;
         $action = optional_param('action', 'vall', PARAM_ALPHA);
 
@@ -3325,15 +3325,6 @@ class questionnaire {
         // Get individual scores for each question in this responses set.
         $qscore = array();
         $allqscore = array();
-
-        // False -> original behavior, nothing changed
-        // True  -> qscore with weights
-        $dependencies = false;
-        // $this->id == questionnaire id
-        $sqlnavigate = "SELECT navigate FROM {questionnaire} WHERE id = $this->id";
-        if ($DB->get_record_sql($sqlnavigate)->navigate > "0") {
-            $dependencies = true;
-        }
 
         // Get all response ids for all respondents.
         $rids = array();
@@ -3533,10 +3524,6 @@ class questionnaire {
         }
 
         for ($section = 1; $section <= $feedbacksections; $section++) {
-            // Get feedback messages only for this sections.
-            if ($filteredsections != null && !in_array($section, $filteredsections)) {
-                continue;
-            }
             foreach ($fbsections as $key => $fbsection) {
                 if ($fbsection->section == $section) {
                     $feedbacksectionid = $key;
@@ -3550,18 +3537,10 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    if ($dependencies) {
-                        $score[$section] += round($qscore[$qid] * $key);
-                        $maxscore[$section] += round($qmax[$qid] * $key);
-                        if ($compare  || $allresponses) {
-                            $allscore[$section] += round($allqscore[$qid] * $key);
-                        }
-                    } else {
-                        $score[$section] += $qscore[$qid];
-                        $maxscore[$section] += $qmax[$qid];
-                        if ($compare || $allresponses) {
-                            $allscore[$section] += $allqscore[$qid];
-                        }
+                    $score[$section] += $qscore[$qid];
+                    $maxscore[$section] += $qmax[$qid];
+                    if ($compare || $allresponses) {
+                        $allscore[$section] += $allqscore[$qid];
                     }
                 }
             }

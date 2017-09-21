@@ -52,6 +52,28 @@ class yesno extends base {
     }
 
     /**
+     * Override this and return true if the question type allows dependent questions.
+     * @return boolean
+     */
+    public function allows_dependents() {
+        return true;
+    }
+
+    /**
+     * Returns an array of dependency options for the question as an array of id value / display value pairs. Override in specific
+     * question types that support this.
+     * @return array An array of valid pair options.
+     */
+    protected function get_dependency_options() {
+        $options = [];
+        if ($this->name != '') {
+            $options[$this->id . ',0'] = $this->name . '->' . get_string('yes');
+            $options[$this->id . ',1'] = $this->name . '->' . get_string('no');
+        }
+        return $options;
+    }
+
+    /**
      * Return the context tags for the check question template.
      * @param object $data
      * @param string $descendantdata
