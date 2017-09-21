@@ -79,7 +79,6 @@ class sectiontext extends base {
         $isgroupmember = false;
         $resps = [$data->rid => null];
         $rid = $data->rid;
-        // $filteredsections -> get the feedback messages only for this sections!
         $feedbackmessages = $questionnaire->response_analysis($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredsections);
 
         // Output.
@@ -107,13 +106,6 @@ class sectiontext extends base {
     public function response_complete($responsedata) {
         return true;
     }
-
-    /*
-    //name is required for feedbacksections and better organization of different sectiontext questions
-    protected function form_name(\MoodleQuickForm $mform) {
-        return $mform;
-    }
-    */
 
     protected function form_required(\MoodleQuickForm $mform) {
         return $mform;

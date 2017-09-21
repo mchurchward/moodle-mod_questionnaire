@@ -536,7 +536,7 @@ class questionnaire {
         }
         $numresp = $this->count_submissions();
         if ($usernumresp === null) {
-            $usernumresp = $questionnaire->count_submissions($USER->id);
+            $usernumresp = $this->count_submissions($USER->id);
         }
 
         // Number of Responses in currently selected group (or all participants etc.).
@@ -664,7 +664,7 @@ class questionnaire {
                 $formdata->sec++;
                 if (questionnaire_has_dependencies($this->questions)) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
+                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
                         $this->response_delete($formdata->rid, $formdata->sec);
                         $formdata->sec++;
@@ -674,7 +674,7 @@ class questionnaire {
                             break;
                         }
                         $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
+                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -701,11 +701,11 @@ class questionnaire {
                 // Skip logic.
                 if (questionnaire_has_dependencies($this->questions)) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
+                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
                         $formdata->sec--;
                         $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid, $this->navigate);
+                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -3328,11 +3328,11 @@ class questionnaire {
 
         // False -> original behavior, nothing changed
         // True  -> qscore with weights
-        $advdependencies = false;
+        $dependencies = false;
         // $this->id == questionnaire id
         $sqlnavigate = "SELECT navigate FROM {questionnaire} WHERE id = $this->id";
         if ($DB->get_record_sql($sqlnavigate)->navigate > "0") {
-            $advdependencies = true;
+            $dependencies = true;
         }
 
         // Get all response ids for all respondents.
@@ -3550,13 +3550,13 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    if ($advdependencies) {
+                    if ($dependencies) {
                         $score[$section] += round($qscore[$qid] * $key);
                         $maxscore[$section] += round($qmax[$qid] * $key);
                         if ($compare  || $allresponses) {
                             $allscore[$section] += round($allqscore[$qid] * $key);
                         }
-                    } else { // $advdependencies == false
+                    } else {
                         $score[$section] += $qscore[$qid];
                         $maxscore[$section] += $qmax[$qid];
                         if ($compare || $allresponses) {

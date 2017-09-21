@@ -132,8 +132,8 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         $this->set_mapping('questionnaire_question', $oldid, $newitemid, true);
 
         if (isset($data->dependquestion)) {
-            // We'll need to process dependent questions in after_execute, after we have processed all questions,
-            // to ensure the id's are available. See CONTRIB-6787.
+            // Questions using the old dependency system will need to be processed and restored using the new system.
+            // See CONTRIB-6787.
             $this->olddependquestions[$newitemid] = $data->dependquestion;
             $this->olddependchoices[$newitemid] = $data->dependchoice;
         }
@@ -337,31 +337,36 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
 
         // Process any question dependencies after all questions and choices have already been processed to ensure we have all of
         // the new id's.
+
+        // First, process any old system question dependencies into the new system.
         foreach ($this->olddependquestions as $newid => $olddependid) {
-            $newdependid = $this->get_mappingid('questionnaire_question', $olddependid);
-            $DB->set_field('questionnaire_question', 'dependquestion', $newdependid, ['id' => $newid]);
-            // Dependchoice.
+            $newrec = new stdClass();
+            $newrec->questionid = $newid;
+            $newrec->surveyid = $this->get_new_parentid('questionnaire_survey');
+            $newrec->dependquestionid = $this->get_mappingid('questionnaire_question', $olddependid);
             // Only change mapping for RADIO and DROP question types, not for YESNO question.
-            $dependquestion = $DB->get_record('questionnaire_question', array('id' => $newdependid), 'type_id');
-            if (is_object($dependquestion)) {
-                if ($dependquestion->type_id != 1) {
-                    $newdependchoice = $this->get_mappingid('questionnaire_quest_choice', $this->olddependchoices[$newid]);
-                    $DB->set_field('questionnaire_question', 'dependchoice', $newdependchoice, ['id' => $newid]);
-                }
+            $dependqtype = $DB->get_field('questionnaire_question', 'type_id', ['id' => $newrec->dependquestionid]);
+            if (($dependqtype !== false) && ($dependqtype != 1)) {
+                $newrec->dependchoiceid = $this->get_mappingid('questionnaire_quest_choice',
+                    $this->olddependchoices[$newid]);
+            } else {
+                $newrec->dependchoiceid = $this->olddependchoices[$newid];
             }
+            $newrec->dependlogic = 1; // Set to "answer given", previously the only option.
+            $newrec->dependandor = 'and'; // Not used previously.
+            $DB->insert_record('questionnaire_dependency', $newrec);
         }
 
+        // Next process all new system dependencies.
         foreach ($this->olddependencies as $data) {
             $data->dependquestionid = $this->get_mappingid('questionnaire_question', $data->dependquestionid);
 
             // Only change mapping for RADIO and DROP question types, not for YESNO question.
-            // $dependquestion = $DB->get_record('questionnaire_question', array('id' => $data->dependquestionid), 'type_id');
-            if (is_object($dependquestion)) {
-                if ($dependquestion->type_id != 1) {
-                    $data->dependchoiceid = $this->get_mappingid('questionnaire_quest_choice', $data->dependchoiceid);
-                }
+            $dependqtype = $DB->get_field('questionnaire_question', 'type_id', ['id' => $data->dependquestionid]);
+            if (($dependqtype !== false) && ($dependqtype != 1)) {
+                $data->dependchoiceid = $this->get_mappingid('questionnaire_quest_choice', $data->dependchoiceid);
             }
-            $newitemid = $DB->insert_record('questionnaire_dependency', $data);
+            $DB->insert_record('questionnaire_dependency', $data);
         }
 
         // Add questionnaire related files, no need to match by itemname (just internally handled context).

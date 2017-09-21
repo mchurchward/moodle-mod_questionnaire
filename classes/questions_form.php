@@ -21,11 +21,13 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace mod_questionnaire;
+
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/formslib.php');
 
-class mod_questionnaire_questions_form extends moodleform {
+class questions_form extends \moodleform {
 
     public function __construct($action, $moveq=false) {
         $this->moveq = $moveq;
@@ -95,9 +97,8 @@ class mod_questionnaire_questions_form extends moodleform {
         // we must get now the parent and child positions.
 
         if ($questionnairehasdependencies) {
-            // Parameter changed to whole Questionnaire, to check for navigation-mode.
-            $parentpositions = questionnaire_get_parent_positions($questionnaire);
-            $childpositions = questionnaire_get_child_positions($questionnaire);
+            $parentpositions = questionnaire_get_parent_positions($questionnaire->questions);
+            $childpositions = questionnaire_get_child_positions($questionnaire->questions);
         }
 
         $mform->addElement('header', 'manageq', get_string('managequestions', 'questionnaire'));
@@ -125,29 +126,19 @@ class mod_questionnaire_questions_form extends moodleform {
 
             // Get displayable list of parents for the questions in questions_form.
             if ($questionnairehasdependencies) {
-//                if ($question->dependquestion != 0 && $questionnaire->navigate != 2) {
-                if ($question->dependquestion != 0 && $questionnaire->navigate == 0) {
-                    $parent = questionnaire_get_parent ($question);
-                    $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
-                        $strposition.' '.$parent[$qid]['parentposition'].' ('.$parent[$qid]['parent'].')';
-                }
-
                 // TODO create questionnaire_get_advparents in locallib.
-//                if (isset($question->advdependencies) && $questionnaire->navigate == 2) {
-                if (isset($question->advdependencies) && $questionnaire->navigate > 0) {
-                    foreach ($question->advdependencies as $advdependencyhelper) {
-                        $advdependencyhelper->dependquestion = $advdependencyhelper->dependquestionid;
-                        $advdependencyhelper->dependchoice = $advdependencyhelper->dependchoiceid;
-                        $advdependencyhelper->position = 0;
-                        $advdependencyhelper->name = null;
-                        $advdependencyhelper->content = null;
-                        $advdependencyhelper->id = 0;
+                if (isset($question->dependencies) && $questionnaire->navigate > 0) {
+                    foreach ($question->dependencies as $dependencyhelper) {
+                        $dependencyhelper->position = 0;
+                        $dependencyhelper->name = null;
+                        $dependencyhelper->content = null;
+                        $dependencyhelper->id = 0;
 
-                        $parent = questionnaire_get_parent ($advdependencyhelper);
+                        $parent = questionnaire_get_parent ($dependencyhelper);
 
                         // TODO Could be placed in locallib as function.
                         // TODO Replace static strings and set language variables.
-                        switch ($advdependencyhelper->dependlogic) {
+                        switch ($dependencyhelper->dependlogic) {
                             case 0:
                                 $logic = ' not set';
                                 break;
@@ -158,13 +149,13 @@ class mod_questionnaire_questions_form extends moodleform {
                                 $logic = "";
                         }
 
-                        if ($advdependencyhelper->dependandor == "and") {
+                        if ($dependencyhelper->dependandor == "and") {
                             $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
                                     $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
                         }
 
                         // Use own array for or-dependencies, to apply a specific css-class later.
-                        if ($advdependencyhelper->dependandor == "or") {
+                        if ($dependencyhelper->dependandor == "or") {
                             $dependenciesor[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
                                     $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
                         }
@@ -259,32 +250,20 @@ class mod_questionnaire_questions_form extends moodleform {
                     // Do not allow moving or deleting a page break if immediately followed by a child question
                     // or immediately preceded by a question with a dependency and followed by a non-dependent question.
                     if ($tid == QUESPAGEBREAK) {
-                        if ($nextquestion = $DB->get_record('questionnaire_question', array('survey_id' => $sid,
-                                        'position' => $pos + 1, 'deleted' => 'n' ), $fields = 'id, dependquestion, name, content') ) {
+                        if ($nextquestion = $DB->get_record('questionnaire_question',
+                            ['survey_id' => $sid, 'position' => $pos + 1, 'deleted' => 'n'], 'id, name, content') ) {
 
-                            $nextquestionadvdependencies = $DB->get_records('questionnaire_dependency',
-                                       array('questionid' => $nextquestion->id , 'surveyid' => $sid), 'id ASC');
+                            $nextquestiondependencies = $DB->get_records('questionnaire_dependency',
+                                ['questionid' => $nextquestion->id , 'surveyid' => $sid], 'id ASC');
 
-                            if ($previousquestion = $DB->get_record('questionnaire_question', array('survey_id' => $sid,
-                                            'position' => $pos - 1, 'deleted' => 'n' ),
-                                            $fields = 'id, dependquestion, name, content')) {
+                            if ($previousquestion = $DB->get_record('questionnaire_question',
+                                ['survey_id' => $sid, 'position' => $pos - 1, 'deleted' => 'n'], 'id, name, content')) {
 
-                                $previousquestionadvdependencies = $DB->get_records('questionnaire_dependency',
-                                               array('questionid' => $previousquestion->id , 'surveyid' => $sid), 'id ASC');
+                                $previousquestiondependencies = $DB->get_records('questionnaire_dependency',
+                                    ['questionid' => $previousquestion->id , 'surveyid' => $sid], 'id ASC');
 
-//                                if (($questionnaire->navigate != 2 &&
-                                if (($questionnaire->navigate == 0 &&
-                                     ($nextquestion->dependquestion != 0 ||
-                                      ($previousquestion->dependquestion != 0 && $nextquestion->dependquestion == 0)
-                                     )
-                                    ) || // Add conditions for advdependencies, including navigate, so old and new don't interfere.
-//                                    ($questionnaire->navigate == 2 &&
-                                    ($questionnaire->navigate > 0 &&
-                                     (!empty($nextquestionadvdependencies) ||
-                                      (!empty($previousquestionadvdependencies) && empty($nextquestionadvdependencies))
-                                     )
-                                    )
-                                   ) {
+                                if (!empty($nextquestiondependencies) ||
+                                    (!empty($previousquestiondependencies) && empty($nextquestiondependencies))) {
                                     $strdisabled = get_string('movedisabled', 'questionnaire');
                                     $msrc = $questionnaire->renderer->image_url('t/block');
                                     $mextra = array('value' => $question->id,

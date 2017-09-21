@@ -52,9 +52,8 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
 
         $questions = new backup_nested_element('questions');
 
-        $question = new backup_nested_element('question', array('id'), array(
-            'survey_id', 'name', 'type_id', 'result_id', 'length', 'precise',
-            'position', 'content', 'required', 'deleted', 'dependquestion', 'dependchoice'));
+        $question = new backup_nested_element('question', array('id'), array('survey_id', 'name', 'type_id', 'result_id',
+            'length', 'precise', 'position', 'content', 'required', 'deleted'));
 
         $questchoices = new backup_nested_element('quest_choices');
 
@@ -186,7 +185,7 @@ class backup_questionnaire_activity_structure_step extends backup_activity_struc
             $fbsection->set_source_table('questionnaire_fb_sections', array('survey_id' => backup::VAR_PARENTID));
             $feedback->set_source_table('questionnaire_feedback', array('section_id' => backup::VAR_PARENTID));
             $questchoice->set_source_table('questionnaire_quest_choice', array('question_id' => backup::VAR_PARENTID));
-            $questdependency->set_source_table('questionnaire_dependency', array('question_id' => backup::VAR_PARENTID));
+            $questdependency->set_source_table('questionnaire_dependency', array('questionid' => backup::VAR_PARENTID));
 
             // All the rest of elements only happen if we are including user info.
             if ($userinfo) {
