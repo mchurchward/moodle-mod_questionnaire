@@ -15,6 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace mod_questionnaire\question;
+use mod_questionnaire\edit_question_form;
+use \questionnaire;
+
 defined('MOODLE_INTERNAL') || die();
 use \html_writer;
 
@@ -223,6 +226,22 @@ abstract class base {
         }
     }
 
+    /**
+     * Return true if the question has defined dependencies.
+     * @return boolean
+     */
+    public function has_dependencies() {
+        return !empty($this->dependencies);
+    }
+
+    /**
+     * Override this and return true if the question type allows dependent questions.
+     * @return boolean
+     */
+    public function allows_dependents() {
+        return false;
+    }
+
     private function get_dependencies() {
         global $DB;
 
@@ -239,11 +258,26 @@ abstract class base {
     }
 
     /**
-     * Return true if the question has defined dependencies.
-     * @return boolean
+     * Returns an array of dependency options for the question as an array of id value / display value pairs. Override in specific
+     * question types that support this differently.
+     * @return array An array of valid pair options.
      */
-    public function has_dependencies() {
-        return !empty($this->dependencies);
+    protected function get_dependency_options() {
+        $options = [];
+        if ($this->allows_dependents() && $this->has_choices()) {
+            foreach ($this->choices as $key => $choice) {
+                $contents = questionnaire_choice_values($choice->content);
+                if (!empty($contents->modname)) {
+                    $choice->content = $contents->modname;
+                } else if (!empty($contents->title)) { // Must be an image; use its title for the dropdown list.
+                    $choice->content = $contents->title;
+                } else {
+                    $choice->content = $contents->text;
+                }
+                $options[$this->id . ',' . $key] = $this->name . '->' . $choice->content;
+            }
+        }
+        return $options;
     }
 
     /**
@@ -721,15 +755,19 @@ abstract class base {
     /**
      * Override this, or any of the internal methods, to provide specific form data for editing the question type.
      * The structure of the elements here is the default layout for the question form.
+     * @param edit_question_form $form The main moodleform object.
+     * @param questionnaire $questionnaire The questionnaire being edited.
+     * @return bool
      */
-    public function edit_form(\MoodleQuickForm $mform, $questionnaire, $modcontext, $editformobject) {
+    public function edit_form(edit_question_form $form, questionnaire $questionnaire) {
+        $mform =& $form->_form;
         $this->form_header($mform);
         $this->form_name($mform);
         $this->form_required($mform);
         $this->form_length($mform);
         $this->form_precise($mform);
 
-        $this->form_question_text($mform, $modcontext);
+        $this->form_question_text($mform, $form->_customdata['modcontext']);
 
         if ($this->has_choices()) {
             $this->allchoices = $this->form_choices($mform, $this->choices);
@@ -737,7 +775,7 @@ abstract class base {
 
         // Added for advanced dependencies, parameter $editformobject is needed to use repeat_elements.
         if ($questionnaire->navigate > 0) {
-            $this->form_dependencies($mform, $questionnaire, $editformobject);
+            $this->form_dependencies($form, $questionnaire->questions);
         }
 
         // Exclude the save/cancel buttons from any collapsing sections.
@@ -806,80 +844,93 @@ abstract class base {
         self::form_precise_text($mform, $helpname);
     }
 
-    protected function form_dependencies(\MoodleQuickForm $mform, $questionnaire, $editquestionformobject) {
+    /**
+     * @param \MoodleQuickForm $mform The moodle form to add elements to.
+     * @param $questionnaire
+     * @param $editquestionformobject
+     * @return bool
+     */
+    protected function form_dependencies($form, $questions) {
         // Create a new area for multiple dependencies.
-        if ($questionnaire->navigate) {
-            $position = ($this->position !== 0) ? $this->position : count($questionnaire->questions) + 1;
-            $dependencies = questionnaire_get_dependencies($questionnaire->questions, $position, true);
-            $children = [];
-            if (isset($this->qid)) {
-                // TODO this should be placed in locallib, see "questionnaire_get_descendants".
-                // Use also for the delete dialogue later.
-                foreach ($questionnaire->questions as $questionlistitem) {
-                    if (isset($questionlistitem->dependencies)) {
-                        foreach ($questionlistitem->dependencies as $key => $outerdependencies) {
-                            if ($outerdependencies->dependquestionid == $this->qid) {
-                                $children[$key] = $outerdependencies;
-                            }
+        $mform = $form->_form;
+        $position = ($this->position !== 0) ? $this->position : count($questions) + 1;
+        $dependencies = [];
+        $dependencies[''][0] = get_string('choosedots');
+        foreach ($questions as $question) {
+            if (($question->position < $position) && !empty($question->name) &&
+                !empty($dependopts = $question->get_dependency_options())) {
+                $dependencies[$question->name] = $dependopts;
+            }
+        }
+
+        $children = [];
+        if (isset($this->qid)) {
+            // TODO this should be placed in locallib, see "questionnaire_get_descendants".
+            // Use also for the delete dialogue later.
+            foreach ($questions as $questionlistitem) {
+                if (isset($questionlistitem->dependencies)) {
+                    foreach ($questionlistitem->dependencies as $key => $outerdependencies) {
+                        if ($outerdependencies->dependquestionid == $this->qid) {
+                            $children[$key] = $outerdependencies;
                         }
                     }
                 }
             }
+        }
 
-            if (count($dependencies) > 1) {
-                $mform->addElement('header', 'dependencies_hdr', get_string('dependencies', 'questionnaire'));
-                $mform->setExpanded('dependencies_hdr');
-                $mform->closeHeaderBefore('qst_and_choices_hdr');
+        if (count($dependencies) > 1) {
+            $mform->addElement('header', 'dependencies_hdr', get_string('dependencies', 'questionnaire'));
+            $mform->setExpanded('dependencies_hdr');
+            $mform->closeHeaderBefore('qst_and_choices_hdr');
 
-                $dependenciescountand = 0;
-                $dependenciescountor = 0;
+            $dependenciescountand = 0;
+            $dependenciescountor = 0;
 
-                foreach ($this->dependencies as $dependency) {
-                    if ($dependency->dependandor == "and") {
-                        $dependenciescountand++;
-                    } else if ($dependency->dependandor == "or") {
-                        $dependenciescountor++;
-                    }
+            foreach ($this->dependencies as $dependency) {
+                if ($dependency->dependandor == "and") {
+                    $dependenciescountand++;
+                } else if ($dependency->dependandor == "or") {
+                    $dependenciescountor++;
                 }
-
-                /* I decided to allow changing dependencies of parent questions, because forcing the editor to remove dependencies
-                 * bottom up, starting at the lowest child question is a pain for large questionnaires.
-                 * So the following "if" becomes the default and the else-branch is completely commented.
-                 * TODO Since the best way to get the list of child questions is currently to click on delete (and choose not to delete),
-                 * one might consider to list the child questions in addition here.
-                 */
-
-                // Area for "must"-criteria.
-                // TODO Replace static strings and set language variables.
-                $mform->addElement('static', 'mandatory', '',
-                        '<div class="dimmed_text">'.get_string('mandatory', 'questionnaire').'</div>');
-                $selectand = $mform->createElement('select', 'dependlogic_and', get_string('condition', 'questionnaire'),
-                    [get_string('answernotgiven', 'questionnaire'), get_string('answergiven', 'questionnaire')]);
-                $selectand->setSelected('1');
-                $groupitemsand = [];
-                $groupitemsand[] =& $mform->createElement('selectgroups', 'dependquestions_and',
-                    get_string('parent', 'questionnaire'), $dependencies);
-                $groupitemsand[] =& $selectand;
-                $groupand = $mform->createElement('group', 'selectdependencies_and', get_string('dependquestion', 'questionnaire'),
-                    $groupitemsand, ' ', false);
-                $editquestionformobject->repeat_elements([$groupand], $dependenciescountand + 1, [],
-                    'numdependencies_and', 'adddependencies_and', 2, null, true);
-
-                // Area for "can"-criteria.
-                $mform->addElement('static', 'obligatory', '',
-                    '<div class="dimmed_text">'.get_string('obligatory', 'questionnaire').'</div>');
-                $selector = $mform->createElement('select', 'dependlogic_or', get_string('condition', 'questionnaire'),
-                    [get_string('answernotgiven', 'questionnaire'), get_string('answergiven', 'questionnaire')]);
-                $selector->setSelected('1');
-                $groupitemsor = [];
-                $groupitemsor[] =& $mform->createElement('selectgroups', 'dependquestions_or',
-                    get_string('parent', 'questionnaire'), $dependencies);
-                $groupitemsor[] =& $selector;
-                $groupor = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'),
-                    $groupitemsor, ' ', false);
-                $editquestionformobject->repeat_elements([$groupor], $dependenciescountor + 1, [], 'numdependencies_or',
-                    'adddependencies_or', 2, null, true);
             }
+
+            /* I decided to allow changing dependencies of parent questions, because forcing the editor to remove dependencies
+             * bottom up, starting at the lowest child question is a pain for large questionnaires.
+             * So the following "if" becomes the default and the else-branch is completely commented.
+             * TODO Since the best way to get the list of child questions is currently to click on delete (and choose not to delete),
+             * one might consider to list the child questions in addition here.
+             */
+
+            // Area for "must"-criteria.
+            // TODO Replace static strings and set language variables.
+            $mform->addElement('static', 'mandatory', '',
+                '<div class="dimmed_text">' . get_string('mandatory', 'questionnaire') . '</div>');
+            $selectand = $mform->createElement('select', 'dependlogic_and', get_string('condition', 'questionnaire'),
+                [get_string('answernotgiven', 'questionnaire'), get_string('answergiven', 'questionnaire')]);
+            $selectand->setSelected('1');
+            $groupitemsand = [];
+            $groupitemsand[] =& $mform->createElement('selectgroups', 'dependquestions_and',
+                get_string('parent', 'questionnaire'), $dependencies);
+            $groupitemsand[] =& $selectand;
+            $groupand = $mform->createElement('group', 'selectdependencies_and', get_string('dependquestion', 'questionnaire'),
+                $groupitemsand, ' ', false);
+            $form->repeat_elements([$groupand], $dependenciescountand + 1, [],
+                'numdependencies_and', 'adddependencies_and', 2, null, true);
+
+            // Area for "can"-criteria.
+            $mform->addElement('static', 'obligatory', '',
+                '<div class="dimmed_text">' . get_string('obligatory', 'questionnaire') . '</div>');
+            $selector = $mform->createElement('select', 'dependlogic_or', get_string('condition', 'questionnaire'),
+                [get_string('answernotgiven', 'questionnaire'), get_string('answergiven', 'questionnaire')]);
+            $selector->setSelected('1');
+            $groupitemsor = [];
+            $groupitemsor[] =& $mform->createElement('selectgroups', 'dependquestions_or',
+                get_string('parent', 'questionnaire'), $dependencies);
+            $groupitemsor[] =& $selector;
+            $groupor = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'),
+                $groupitemsor, ' ', false);
+            $form->repeat_elements([$groupor], $dependenciescountor + 1, [], 'numdependencies_or',
+                'adddependencies_or', 2, null, true);
         }
         return true;
     }

@@ -777,36 +777,6 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     return $questionstodisplay;
 }
 
-function questionnaire_get_dependencies($questions, $position, $additionalforadvdeps = false) {
-    $dependencies = array();
-    $dependencies[''][0] = get_string('choosedots');
-
-    foreach ($questions as $question) {
-        if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESYESNO ||
-             ($question->type_id == QUESCHECK && $additionalforadvdeps)) && $question->position < $position) {
-            if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP ||
-                ($question->type_id == QUESCHECK && $additionalforadvdeps)) && $question->name != '') {
-                foreach ($question->choices as $key => $choice) {
-                    $contents = questionnaire_choice_values($choice->content);
-                    if ($contents->modname) {
-                        $choice->content = $contents->modname;
-                    } else if ($contents->title) { // Must be an image; use its title for the dropdown list.
-                        $choice->content = $contents->title;
-                    } else {
-                        $choice->content = $contents->text;
-                    }
-                    $dependencies[$question->name][$question->id.','.$key] = $question->name.'->'.$choice->content;
-                }
-            }
-            if ($question->type_id == QUESYESNO && $question->name != '') {
-                $dependencies[$question->name][$question->id.',0'] = $question->name.'->'.get_string('yes');
-                $dependencies[$question->name][$question->id.',1'] = $question->name.'->'.get_string('no');
-            }
-        }
-    }
-    return $dependencies;
-}
-
 // Get the parent of a child question.
 function questionnaire_get_parent ($question) {
     global $DB;
