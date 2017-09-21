@@ -239,6 +239,14 @@ abstract class base {
     }
 
     /**
+     * Return true if the question has defined dependencies.
+     * @return boolean
+     */
+    public function has_dependencies() {
+        return !empty($this->dependencies);
+    }
+
+    /**
      * Insert response data method.
      */
     public function insert_response($rid, $val) {
@@ -721,16 +729,19 @@ abstract class base {
         $this->form_length($mform);
         $this->form_precise($mform);
 
-        // Added for advanced dependencies, parameter $editformobject is needed to use repeat_elements.
-        if ($questionnaire->navigate > 0) {
-            $this->form_dependencies($mform, $questionnaire, $editformobject);
-        }
-
         $this->form_question_text($mform, $modcontext);
 
         if ($this->has_choices()) {
             $this->allchoices = $this->form_choices($mform, $this->choices);
         }
+
+        // Added for advanced dependencies, parameter $editformobject is needed to use repeat_elements.
+        if ($questionnaire->navigate > 0) {
+            $this->form_dependencies($mform, $questionnaire, $editformobject);
+        }
+
+        // Exclude the save/cancel buttons from any collapsing sections.
+        $mform->closeHeaderBefore('buttonar');
 
         // Hidden fields.
         $mform->addElement('hidden', 'id', 0);
@@ -797,7 +808,7 @@ abstract class base {
 
     protected function form_dependencies(\MoodleQuickForm $mform, $questionnaire, $editquestionformobject) {
         // Create a new area for multiple dependencies.
-        if ($questionnaire->navigate > 0) {
+        if ($questionnaire->navigate) {
             $position = ($this->position !== 0) ? $this->position : count($questionnaire->questions) + 1;
             $dependencies = questionnaire_get_dependencies($questionnaire->questions, $position, true);
             $children = [];
@@ -816,9 +827,9 @@ abstract class base {
             }
 
             if (count($dependencies) > 1) {
-                // TODO Replace static strings and set language variables.
-                $mform->addElement('header', 'dependencies_hdr', 'Dependencies');
+                $mform->addElement('header', 'dependencies_hdr', get_string('dependencies', 'questionnaire'));
                 $mform->setExpanded('dependencies_hdr');
+                $mform->closeHeaderBefore('qst_and_choices_hdr');
 
                 $dependenciescountand = 0;
                 $dependenciescountor = 0;
@@ -840,30 +851,34 @@ abstract class base {
 
                 // Area for "must"-criteria.
                 // TODO Replace static strings and set language variables.
-                $mform->addElement('static', 'mandatory', "",
-                        '<div class="dimmed_text">Mandatory - All this dependencies have to be fulfilled.</div>');
-                $selectand = $mform->createElement('select', 'dependlogic_and', 'Condition', array('This answer not given', 'This answer given'));
+                $mform->addElement('static', 'mandatory', '',
+                        '<div class="dimmed_text">'.get_string('mandatory', 'questionnaire').'</div>');
+                $selectand = $mform->createElement('select', 'dependlogic_and', get_string('condition', 'questionnaire'),
+                    [get_string('answernotgiven', 'questionnaire'), get_string('answergiven', 'questionnaire')]);
                 $selectand->setSelected('1');
-                $groupitemsand = array();
-                $groupitemsand[] =& $mform->createElement('selectgroups', 'dependquestions_and', 'Parent', $dependencies);
+                $groupitemsand = [];
+                $groupitemsand[] =& $mform->createElement('selectgroups', 'dependquestions_and',
+                    get_string('parent', 'questionnaire'), $dependencies);
                 $groupitemsand[] =& $selectand;
-                $groupand = $mform->createElement('group', 'selectdependencies_and', get_string('dependquestion', 'questionnaire'), $groupitemsand, ' ', false);
-                $editquestionformobject->repeat_elements(array($groupand), $dependenciescountand + 1, array(), 'numdependencies_and', 'adddependencies_and', 2);
+                $groupand = $mform->createElement('group', 'selectdependencies_and', get_string('dependquestion', 'questionnaire'),
+                    $groupitemsand, ' ', false);
+                $editquestionformobject->repeat_elements([$groupand], $dependenciescountand + 1, [],
+                    'numdependencies_and', 'adddependencies_and', 2, null, true);
 
                 // Area for "can"-criteria.
-                // TODO Replace static strings and set language variables.
-                $mform->addElement('static', 'obligatory', "",
-                        '<div class="dimmed_text">Obligatory - At least one of this dependencies has to be fulfilled.</div>');
-                $selector = $mform->createElement('select', 'dependlogic_or', 'Condition', array('This answer not given', 'This answer given'));
+                $mform->addElement('static', 'obligatory', '',
+                    '<div class="dimmed_text">'.get_string('obligatory', 'questionnaire').'</div>');
+                $selector = $mform->createElement('select', 'dependlogic_or', get_string('condition', 'questionnaire'),
+                    [get_string('answernotgiven', 'questionnaire'), get_string('answergiven', 'questionnaire')]);
                 $selector->setSelected('1');
-                $groupitemsor = array();
-                $groupitemsor[] =& $mform->createElement('selectgroups', 'dependquestions_or', 'Parent', $dependencies);
+                $groupitemsor = [];
+                $groupitemsor[] =& $mform->createElement('selectgroups', 'dependquestions_or',
+                    get_string('parent', 'questionnaire'), $dependencies);
                 $groupitemsor[] =& $selector;
-                $groupor = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'), $groupitemsor, ' ', false);
-                $editquestionformobject->repeat_elements(array($groupor), $dependenciescountor + 1, array(), 'numdependencies_or', 'adddependencies_or', 2);
-
-                // TODO Replace static strings and set language variables.
-                $mform->addElement('header', 'qst_and_choices_hdr', 'Questiontext and answers');
+                $groupor = $mform->createElement('group', 'selectdependencies_or', get_string('dependquestion', 'questionnaire'),
+                    $groupitemsor, ' ', false);
+                $editquestionformobject->repeat_elements([$groupor], $dependenciescountor + 1, [], 'numdependencies_or',
+                    'adddependencies_or', 2, null, true);
             }
         }
         return true;
