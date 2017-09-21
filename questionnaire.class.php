@@ -599,6 +599,116 @@ class questionnaire {
         return false;
     }
 
+    /**
+     * Check if current questionnaire has dependencies set and any question has dependencies.
+     *
+     * @return boolean Whether dependencies are set or not.
+     */
+    public function has_dependencies() {
+        $hasdependencies = false;
+        if (($this->navigate > 0) && isset($this->questions) && !empty($this->questions)) {
+            foreach ($this->questions as $question) {
+                if (!empty($question->dependencies)) {
+                    $hasdependencies = true;
+                    break;
+                }
+            }
+        }
+        return $hasdependencies;
+    }
+
+    /**
+     * @param $questionid
+     * @return array
+     */
+    public function get_descendants($questionid) {
+        $questions = array_reverse($this->questions, true);
+        $qu = [];
+
+        // Create an array which shows for every question the child-IDs.
+        foreach ($questions as $question) {
+            if ($question->has_dependencies()) {
+                foreach ($question->dependencies as $dependency) {
+                    $dq = $dependency->dependquestionid;
+                    $qid = $question->id;
+                    if (!isset($qu[$dq]) || !in_array($qid, $qu[$dq])) {
+                        $qu[$dq][] = $qid;
+                    }
+                    if (array_key_exists($qid, $qu)) {
+                        foreach ($qu[$qid] as $q) {
+                            $qu[$dq][] = $q;
+                        }
+                    }
+
+                }
+            }
+        }
+
+        $descendants = [];
+        if (isset($qu[$questionid])) {
+            foreach ($qu[$questionid] as $descendant) {
+                $childquestion = $questions[$descendant];
+
+                foreach ($childquestion->dependencies as $dependencyhelper) {
+                    // TODO this is just a workaround to use questionnaire_get_parents.
+                    $childquestion->dependquestionid = $dependencyhelper->dependquestionid;
+                    $childquestion->dependchoiceid = $dependencyhelper->dependchoiceid;
+                    $parent = questionnaire_get_parent($childquestion);
+
+                    // Add dependency specific data to the get_parent results so the presentation can be tailored.
+                    $parent[key($parent)]['dependlogic'] = $dependencyhelper->dependlogic;
+                    $parent[key($parent)]['dependandor'] = $dependencyhelper->dependandor;
+
+                    // Create subarrays to avoid reducing the results to one dependency per question.
+                    $descendants[key($parent)][] = $parent[key($parent)];
+                }
+            }
+            uasort($descendants, 'self::cmp');
+        }
+        return($descendants);
+    }
+
+    /**
+     * Function to sort descendants array in get_descendants function.
+     * @param $a
+     * @param $b
+     * @return int
+     */
+    private static function cmp($a, $b) {
+        if ($a == $b) {
+            return 0;
+        } else if ($a < $b) {
+            return -1;
+        } else {
+            return 1;
+        }
+    }
+
+    /**
+     * Get all descendants and choices for questions with descendants.
+     * @return array
+     */
+    public function get_descendants_and_choices() {
+        $questions = array_reverse($this->questions, true);
+        $qu = array();
+        foreach ($questions as $question) {
+            if ($question->dependquestion) {
+                $dq = $question->dependquestion;
+                $dc = $question->dependchoice;
+                $qid = $question->id;
+
+                $qu['descendants'][$dq][] = 'qn-'.$qid;
+                if (array_key_exists($qid, $qu['descendants'])) {
+                    foreach ($qu['descendants'][$qid] as $q) {
+                        $qu['descendants'][$dq][] = $q;
+                    }
+                }
+                $qu['choices'][$dq][$dc][] = 'qn-'.$qid;
+            }
+        }
+        return($qu);
+    }
+
     // Display Methods.
 
     public function print_survey($userid=false, $quser) {
@@ -662,7 +772,7 @@ class questionnaire {
             } else {
                 // Skip logic.
                 $formdata->sec++;
-                if (questionnaire_has_dependencies($this->questions)) {
+                if ($this->has_dependencies()) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
                                     $this->questionsbysec[$formdata->sec], $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
@@ -699,7 +809,7 @@ class questionnaire {
             } else {
                 $formdata->sec--;
                 // Skip logic.
-                if (questionnaire_has_dependencies($this->questions)) {
+                if ($this->has_dependencies()) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
                                     $this->questionsbysec[$formdata->sec], $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
@@ -991,8 +1101,8 @@ class questionnaire {
 
         $descendantsandchoices = array();
 
-        if ($referer == 'preview' && questionnaire_has_dependencies($this->questions) ) {
-                $descendantsandchoices = questionnaire_get_descendants_and_choices($this->questions);
+        if (($referer == 'preview') && $this->has_dependencies()) {
+                $descendantsandchoices = $this->get_descendants_and_choices();
         }
         if ($errors == 0) {
             $this->page->add_to_page('message',

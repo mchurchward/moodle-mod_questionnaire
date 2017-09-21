@@ -777,36 +777,6 @@ function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questio
     return $questionstodisplay;
 }
 
-function questionnaire_get_dependencies($questions, $position, $additionalforadvdeps = false) {
-    $dependencies = array();
-    $dependencies[''][0] = get_string('choosedots');
-
-    foreach ($questions as $question) {
-        if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP || $question->type_id == QUESYESNO ||
-             ($question->type_id == QUESCHECK && $additionalforadvdeps)) && $question->position < $position) {
-            if (($question->type_id == QUESRADIO || $question->type_id == QUESDROP ||
-                ($question->type_id == QUESCHECK && $additionalforadvdeps)) && $question->name != '') {
-                foreach ($question->choices as $key => $choice) {
-                    $contents = questionnaire_choice_values($choice->content);
-                    if ($contents->modname) {
-                        $choice->content = $contents->modname;
-                    } else if ($contents->title) { // Must be an image; use its title for the dropdown list.
-                        $choice->content = $contents->title;
-                    } else {
-                        $choice->content = $contents->text;
-                    }
-                    $dependencies[$question->name][$question->id.','.$key] = $question->name.'->'.$choice->content;
-                }
-            }
-            if ($question->type_id == QUESYESNO && $question->name != '') {
-                $dependencies[$question->name][$question->id.',0'] = $question->name.'->'.get_string('yes');
-                $dependencies[$question->name][$question->id.',1'] = $question->name.'->'.get_string('no');
-            }
-        }
-    }
-    return $dependencies;
-}
-
 // Get the parent of a child question.
 function questionnaire_get_parent ($question) {
     global $DB;
@@ -911,28 +881,6 @@ function questionnaire_get_child_positions ($questions) {
         }
     }
     return $childpositions;
-}
-
-
-/**
- * Check if current questionnaire has (adv)dependencies set.
- * TODO would be a good place to toggle behaviour for
- * branching-modes (0=off, 1=normal, 2=advanced)
- * E.g. always return false if $questionnaire->navigate == 0
- *
- * @param array $questions Array of question objects in the questionnaire.
- * @return boolean Whether dependencies are set or not.
- */
-function questionnaire_has_dependencies($questions) {
-    foreach ($questions as $question) {
-        if (!($question instanceof \mod_questionnaire\question\base)) {
-            throw new coding_exception('Non question object passed in the array.');
-        } else if (!empty($question->dependencies)) {
-            return true;
-            break;
-        }
-    }
-    return false;
 }
 
 // Check that the needed page breaks are present to separate child questions.
@@ -1046,86 +994,6 @@ function questionnaire_check_page_breaks($questionnaire) {
         }
     }
     return($msg);
-}
-
-// Get all descendants and choices for questions with descendants.
-function questionnaire_get_descendants_and_choices ($questions) {
-    $questions = array_reverse($questions, true);
-    $qu = array();
-    foreach ($questions as $question) {
-        if ($question->dependquestion) {
-            $dq = $question->dependquestion;
-            $dc = $question->dependchoice;
-            $qid = $question->id;
-
-            $qu['descendants'][$dq][] = 'qn-'.$qid;
-            if (array_key_exists($qid, $qu['descendants'])) {
-                foreach ($qu['descendants'][$qid] as $q) {
-                    $qu['descendants'][$dq][] = $q;
-                }
-            }
-            $qu['choices'][$dq][$dc][] = 'qn-'.$qid;
-        }
-    }
-    return($qu);
-}
-
-function questionnaire_get_descendants ($questions, $questionid) {
-    $questions = array_reverse($questions, true);
-    $qu = [];
-
-    // Create an array which shows for every question the child-IDs.
-    foreach ($questions as $question) {
-        if ($question->dependencies) {
-            foreach ($question->dependencies as $dependency) {
-                $dq = $dependency->dependquestionid;
-                $qid = $question->id;
-                if (!isset($qu[$dq]) || !in_array($qid, $qu[$dq])) {
-                    $qu[$dq][] = $qid;
-                }
-                if (array_key_exists($qid, $qu)) {
-                    foreach ($qu[$qid] as $q) {
-                            $qu[$dq][] = $q;
-                    }
-                }
-
-            }
-        }
-    }
-
-    $descendants = [];
-    if (isset($qu[$questionid])) {
-        foreach ($qu[$questionid] as $descendant) {
-            $childquestion = $questions[$descendant];
-
-            foreach ($childquestion->dependencies as $dependencyhelper) {
-                // TODO this is just a workaround to use questionnaire_get_parents.
-                $childquestion->dependquestionid = $dependencyhelper->dependquestionid;
-                $childquestion->dependchoiceid = $dependencyhelper->dependchoiceid;
-                $parent = questionnaire_get_parent ($childquestion);
-
-                // Add dependency specific data to the get_parent results so the presentation can be tailored.
-                $parent[key($parent)]['dependlogic'] = $dependencyhelper->dependlogic;
-                $parent[key($parent)]['dependandor'] = $dependencyhelper->dependandor;
-
-                // Create subarrays to avoid reducing the results to one dependency per question.
-                $descendants[key($parent)][] = $parent[key($parent)];
-            }
-        }
-        uasort($descendants, 'questionnaire_cmp');
-    }
-    return($descendants);
-}
-
-// Function to sort descendants array in questionnaire_get_descendants function.
-function questionnaire_cmp($a, $b) {
-    if ($a == $b) {
-        return 0;
-    } else if ($a < $b) {
-        return -1;
-    } else {
-        return 1;
-    }
 }
 
 /**
