@@ -883,28 +883,6 @@ function questionnaire_get_child_positions ($questions) {
     return $childpositions;
 }
 
-
-/**
- * Check if current questionnaire has (adv)dependencies set.
- * TODO would be a good place to toggle behaviour for
- * branching-modes (0=off, 1=normal, 2=advanced)
- * E.g. always return false if $questionnaire->navigate == 0
- *
- * @param array $questions Array of question objects in the questionnaire.
- * @return boolean Whether dependencies are set or not.
- */
-function questionnaire_has_dependencies($questions) {
-    foreach ($questions as $question) {
-        if (!($question instanceof \mod_questionnaire\question\base)) {
-            throw new coding_exception('Non question object passed in the array.');
-        } else if (!empty($question->dependencies)) {
-            return true;
-            break;
-        }
-    }
-    return false;
-}
-
 // Check that the needed page breaks are present to separate child questions.
 function questionnaire_check_page_breaks($questionnaire) {
     global $DB;

@@ -81,7 +81,7 @@ class questions_form extends \moodleform {
 
         $addqgroup[] =& $mform->createElement('submit', 'addqbutton', get_string('addselqtype', 'questionnaire'));
 
-        $questionnairehasdependencies = questionnaire_has_dependencies($questionnaire->questions);
+        $questionnairehasdependencies = $questionnaire->has_dependencies();
 
         $mform->addGroup($addqgroup, 'addqgroup', '', ' ', false);
 
@@ -134,7 +134,7 @@ class questions_form extends \moodleform {
                         $dependencyhelper->content = null;
                         $dependencyhelper->id = 0;
 
-                        $parent = questionnaire_get_parent ($dependencyhelper);
+                        $parent = questionnaire_get_parent($dependencyhelper);
 
                         // TODO Could be placed in locallib as function.
                         // TODO Replace static strings and set language variables.

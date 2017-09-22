@@ -345,6 +345,13 @@ abstract class base {
     abstract protected function responseclass();
 
     /**
+     * True if question type allows responses.
+     */
+    public function supports_responses() {
+        return !empty($this->responseclass());
+    }
+
+    /**
      * Check question's form data for complete response.
      *
      * @param object $responsedata The data entered into the response.
@@ -767,6 +774,7 @@ abstract class base {
         $this->form_length($mform);
         $this->form_precise($mform);
 
+        /** @noinspection Annotator */
         $this->form_question_text($mform, $form->_customdata['modcontext']);
 
         if ($this->has_choices()) {
@@ -1028,7 +1036,7 @@ abstract class base {
 
             $this->update($questionrecord, false);
 
-            if (questionnaire_has_dependencies($questionnaire->questions)) {
+            if ($questionnaire->has_dependencies()) {
                 questionnaire_check_page_breaks($questionnaire);
             }
         } else {

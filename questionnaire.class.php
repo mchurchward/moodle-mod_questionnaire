@@ -599,6 +599,24 @@ class questionnaire {
         return false;
     }
 
+    /**
+     * Check if current questionnaire has dependencies set and any question has dependencies.
+     *
+     * @return boolean Whether dependencies are set or not.
+     */
+    public function has_dependencies() {
+        $hasdependencies = false;
+        if (($this->navigate > 0) && isset($this->questions) && !empty($this->questions)) {
+            foreach ($this->questions as $question) {
+                if (!empty($question->dependencies)) {
+                    $hasdependencies = true;
+                    break;
+                }
+            }
+        }
+        return $hasdependencies;
+    }
+
     // Display Methods.
 
     public function print_survey($userid=false, $quser) {
@@ -662,7 +680,7 @@ class questionnaire {
             } else {
                 // Skip logic.
                 $formdata->sec++;
-                if (questionnaire_has_dependencies($this->questions)) {
+                if ($this->has_dependencies()) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
                                     $this->questionsbysec[$formdata->sec], $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
@@ -699,7 +717,7 @@ class questionnaire {
             } else {
                 $formdata->sec--;
                 // Skip logic.
-                if (questionnaire_has_dependencies($this->questions)) {
+                if ($this->has_dependencies()) {
                     $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
                                     $this->questionsbysec[$formdata->sec], $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
@@ -991,7 +1009,7 @@ class questionnaire {
 
         $descendantsandchoices = array();
 
-        if ($referer == 'preview' && questionnaire_has_dependencies($this->questions) ) {
+        if ($referer == 'preview' && $this->has_dependencies() ) {
                 $descendantsandchoices = questionnaire_get_descendants_and_choices($this->questions);
         }
         if ($errors == 0) {
