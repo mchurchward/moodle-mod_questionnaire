@@ -668,7 +668,7 @@ abstract class base {
         $displayclass = 'qn-container';
         if ($pagetype == 'mod-questionnaire-preview' || ($nonumbering
                         && ($currenttab == 'mybyresponse' || $currenttab == 'individualresp'))) {
-            $parent = questionnaire_get_parent ($this);
+            $parent = questionnaire_get_parent($this);
             if ($parent) {
                 $dependquestion = $parent[$this->id]['qdependquestion'];
                 $dependchoice = $parent[$this->id]['qdependchoice'];
@@ -876,7 +876,7 @@ abstract class base {
             // TODO this should be placed in locallib, see "questionnaire_get_descendants".
             // Use also for the delete dialogue later.
             foreach ($questions as $questionlistitem) {
-                if (isset($questionlistitem->dependencies)) {
+                if ($questionlistitem->has_dependencies()) {
                     foreach ($questionlistitem->dependencies as $key => $outerdependencies) {
                         if ($outerdependencies->dependquestionid == $this->qid) {
                             $children[$key] = $outerdependencies;
@@ -1126,7 +1126,7 @@ abstract class base {
         // Shouldn't the MOODLE-API provide this case of insert/update/delete?.
         // First handle dependendies updates.
         if (!isset($formdata->fixed_deps)) {
-            if (isset($this->dependencies) && !isset($formdata->makecopy)) {
+            if ($this->has_dependencies() && !isset($formdata->makecopy)) {
                 $oldcount = count($this->dependencies);
                 $edependency = reset($this->dependencies);
                 $ekey = key($this->dependencies);

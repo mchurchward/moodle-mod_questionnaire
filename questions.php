@@ -78,7 +78,7 @@ if ($delq) {
 
     // Does the question to be deleted have any child questions?
     if ($questionnairehasdependencies) {
-        $haschildren = questionnaire_get_descendants($questionnaire->questions, $qid);
+        $haschildren = $questionnaire->get_descendants($qid);
     }
 
     // Need to reload questions before setting deleted question to 'y'.
@@ -212,7 +212,7 @@ if ($action == 'main') {
             if ($questionnairehasdependencies) {
                 // Important: due to possibly multiple parents per question
                 // just remove the dependency and inform the user about it.
-                $haschildren = questionnaire_get_descendants ($questionnaire->questions, $qid);
+                $haschildren = $questionnaire->get_descendants($qid);
             }
             if (count($haschildren) != 0) {
                 $action = "confirmdelquestionparent";
