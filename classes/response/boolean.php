@@ -72,6 +72,20 @@ class boolean extends base {
         return $DB->get_records_sql($sql, $params);
     }
 
+    /**
+     * If the choice id needs to be transformed into a different value, override this in the child class.
+     * @param $choiceid
+     * @return mixed
+     */
+    public function transform_choiceid($choiceid) {
+        if ($choiceid == 0) {
+            $choice = 'y';
+        } else {
+            $choice = 'n';
+        }
+        return $choice;
+    }
+
     public function display_results($rids=false, $sort='', $anonymous=false) {
         $output = '';
 
