@@ -76,7 +76,7 @@ abstract class base {
     /** @var array $dependencies Array holding any dependencies for this question. */
     public $dependencies = [];
 
-    /** @var string $response_table The table name for responses. */
+    /** @var string $responsetable The table name for responses. */
     public $responsetable = '';
 
     /** @var int $length The length field. */
@@ -150,7 +150,7 @@ abstract class base {
 
             $this->type_id = $question->type_id;
             $this->type = $qtypes[$this->type_id]->type;
-            $this->response_table = $qtypes[$this->type_id]->response_table;
+            $this->responsetable = $qtypes[$this->type_id]->response_table;
             if ($qtypes[$this->type_id]->has_choices == 'y') {
                 $this->get_choices();
             }
@@ -280,6 +280,9 @@ abstract class base {
         return $options;
     }
 
+    public function response_table() {
+        return 'questionnaire_' . $this->responsetable;
+    }
     /**
      * Insert response data method.
      */

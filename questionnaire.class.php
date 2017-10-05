@@ -608,7 +608,7 @@ class questionnaire {
         $hasdependencies = false;
         if (($this->navigate > 0) && isset($this->questions) && !empty($this->questions)) {
             foreach ($this->questions as $question) {
-                if (!empty($question->dependencies)) {
+                if ($question->has_dependencies()) {
                     $hasdependencies = true;
                     break;
                 }
@@ -709,6 +709,94 @@ class questionnaire {
         return($qu);
     }
 
+    /**
+     * Skip logic: we need to find out how many questions will actually be displayed on next page/section.
+     * @param $secnum The section number to check.
+     * @param $rid The current response id.
+     * @return array
+     */
+    public function get_questions_on_page($secnum, $rid) {
+        global $DB;
+        $questionstodisplay = [];
+
+        foreach ($this->questionsbysec[$secnum] as $question) {
+            if (!empty($question->dependencies)) {
+                foreach ($question->dependencies as $dependency) {
+                    switch ($this->questions[$dependency->dependquestionid]->type_id) {
+                        case QUESYESNO:
+                            if ($dependency->dependchoiceid == 0) {
+                                $questiondependchoice = 'y';
+                            } else {
+                                $questiondependchoice = 'n';
+                            }
+                            break;
+                        case QUESCHECK:
+                            $questiondependchoice = $dependency->dependchoiceid;
+                            break;
+                        default:
+                            $questiondependchoice = $dependency->dependchoiceid;
+                    }
+                    $params = array('response_id' => $rid,
+                        'question_id' => $dependency->dependquestionid,
+                        'choice_id' => $questiondependchoice);
+
+                    $recordexists = $DB->record_exists($this->questions[$dependency->dependquestionid]->response_table(), $params);
+
+                    // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
+                    if ($dependency->dependandor == 'and') {
+                        $dependencyandfulfilled = false;
+                        // dependlogic == 1 -> this answer givven
+                        if ($dependency->dependlogic == 1 && $recordexists) {
+                            $dependencyandfulfilled = true;
+                        }
+
+                        // dependlogic == 0 -> this answer NOT givven
+                        if ($dependency->dependlogic == 0 && !$recordexists) {
+                            $dependencyandfulfilled = true;
+                        }
+
+                        // Something mandatory not fulfilled? Stop looking and continue to next question.
+                        if ($dependencyandfulfilled == false) {
+                            break;
+                        }
+
+                        // In case we have no or-dependencies.
+                        $dependencyorfulfilled = true;
+
+                    }
+
+                    // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
+                    if ($dependency->dependandor == 'or') {
+                        $dependencyorfulfilled = false;
+                        // To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
+                        $dependencyandfulfilled = true;
+                        // dependlogic == 1 -> this answer givven
+                        if ($dependency->dependlogic == 1 && $recordexists) {
+                            $dependencyorfulfilled = true;
+                        }
+
+                        // dependlogic == 0 -> this answer NOT givven
+                        if ($dependency->dependlogic == 0 && !$recordexists) {
+                            $dependencyorfulfilled = true;
+                        }
+
+                        // Something fulfilled? A single match is sufficient so continue to next question.
+                        if ($dependencyorfulfilled == true) {
+                            break;
+                        }
+                    }
+
+                }
+                if ($dependencyandfulfilled && $dependencyorfulfilled) {
+                    $questionstodisplay [] = $question->id;
+                }
+            } else {
+                $questionstodisplay [] = $question->id;
+            }
+        }
+        return $questionstodisplay;
+    }
+
     // Display Methods.
 
     public function print_survey($userid=false, $quser) {
@@ -773,8 +861,7 @@ class questionnaire {
                 // Skip logic.
                 $formdata->sec++;
                 if ($this->has_dependencies()) {
-                    $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
+                    $nbquestionsonpage = $this->get_questions_on_page($formdata->sec, $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
                         $this->response_delete($formdata->rid, $formdata->sec);
                         $formdata->sec++;
@@ -783,8 +870,7 @@ class questionnaire {
                             $SESSION->questionnaire->end = true; // End of questionnaire reached on a no questions page.
                             break;
                         }
-                        $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
+                        $nbquestionsonpage = $this->get_questions_on_page($formdata->sec, $formdata->rid);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -810,12 +896,10 @@ class questionnaire {
                 $formdata->sec--;
                 // Skip logic.
                 if ($this->has_dependencies()) {
-                    $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                    $this->questionsbysec[$formdata->sec], $formdata->rid);
+                    $nbquestionsonpage = $this->get_questions_on_page($formdata->sec, $formdata->rid);
                     while (count($nbquestionsonpage) == 0) {
                         $formdata->sec--;
-                        $nbquestionsonpage = questionnaire_nb_questions_on_page($this->questions,
-                                        $this->questionsbysec[$formdata->sec], $formdata->rid);
+                        $nbquestionsonpage = $this->get_questions_on_page($formdata->sec, $formdata->rid);
                     }
                     $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
@@ -1844,7 +1928,7 @@ class questionnaire {
             foreach ($this->questionsbysec[$section] as $question) {
                 // NOTE *** $val really should be a value obtained from the caller or somewhere else.
                 // Note that "optional_param" accepting arrays is deprecated for optional_param_array.
-                if ($question->response_table == 'resp_multiple') {
+                if ($question->responsetable == 'resp_multiple') {
                     $val = optional_param_array('q'.$question->id, '', PARAM_RAW);
                 } else {
                     $val = optional_param('q'.$question->id, '', PARAM_RAW);
@@ -2584,7 +2668,7 @@ class questionnaire {
 
         // Load survey title (and other globals).
         if (empty($this->survey)) {
-            $errmsg = get_string('erroropening', 'questionnaire') ." [ ID:${sid} R:";
+            $errmsg = get_string('erroropening', 'questionnaire') ." [ ID:{$this->sid} R:";
             return($errmsg);
         }
 
@@ -2715,7 +2799,7 @@ class questionnaire {
 
         foreach ($this->questions as $question) {
             $type = $question->type_id;
-            $responsetable = $question->response_table;
+            $responsetable = $question->responsetable;
             // Build SQL for this question type if not already done.
             if (!$uniquebytable || !in_array($responsetable, $uniquetables)) {
                 if (!in_array($type, $uniquetypes)) {
