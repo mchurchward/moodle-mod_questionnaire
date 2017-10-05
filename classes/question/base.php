@@ -281,8 +281,22 @@ abstract class base {
     }
 
     public function response_table() {
-        return 'questionnaire_' . $this->responsetable;
+        return $this->response->response_table();
     }
+
+    /**
+     * Return true if the specified response for this question contains the specified choice.
+     * @param $rid
+     * @param $choiceid
+     * @return bool
+     */
+    public function response_has_choice($rid, $choiceid) {
+        global $DB;
+        $choiceval = $this->response->transform_choiceid($choiceid);
+        return $DB->record_exists($this->response_table(),
+            ['response_id' => $rid, 'question_id' => $this->id, 'choice_id' => $choiceval]);
+    }
+
     /**
      * Insert response data method.
      */

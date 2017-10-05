@@ -716,42 +716,23 @@ class questionnaire {
      * @return array
      */
     public function get_questions_on_page($secnum, $rid) {
-        global $DB;
         $questionstodisplay = [];
 
         foreach ($this->questionsbysec[$secnum] as $question) {
             if (!empty($question->dependencies)) {
                 foreach ($question->dependencies as $dependency) {
-                    switch ($this->questions[$dependency->dependquestionid]->type_id) {
-                        case QUESYESNO:
-                            if ($dependency->dependchoiceid == 0) {
-                                $questiondependchoice = 'y';
-                            } else {
-                                $questiondependchoice = 'n';
-                            }
-                            break;
-                        case QUESCHECK:
-                            $questiondependchoice = $dependency->dependchoiceid;
-                            break;
-                        default:
-                            $questiondependchoice = $dependency->dependchoiceid;
-                    }
-                    $params = array('response_id' => $rid,
-                        'question_id' => $dependency->dependquestionid,
-                        'choice_id' => $questiondependchoice);
-
-                    $recordexists = $DB->record_exists($this->questions[$dependency->dependquestionid]->response_table(), $params);
-
+                    $choicematches = $this->questions[$dependency->dependquestionid]->response_has_choice($rid,
+                        $dependency->dependchoiceid);
                     // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
                     if ($dependency->dependandor == 'and') {
                         $dependencyandfulfilled = false;
                         // dependlogic == 1 -> this answer givven
-                        if ($dependency->dependlogic == 1 && $recordexists) {
+                        if ($dependency->dependlogic == 1 && $choicematches) {
                             $dependencyandfulfilled = true;
                         }
 
                         // dependlogic == 0 -> this answer NOT givven
-                        if ($dependency->dependlogic == 0 && !$recordexists) {
+                        if ($dependency->dependlogic == 0 && !$choicematches) {
                             $dependencyandfulfilled = true;
                         }
 
@@ -771,12 +752,12 @@ class questionnaire {
                         // To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
                         $dependencyandfulfilled = true;
                         // dependlogic == 1 -> this answer givven
-                        if ($dependency->dependlogic == 1 && $recordexists) {
+                        if ($dependency->dependlogic == 1 && $choicematches) {
                             $dependencyorfulfilled = true;
                         }
 
                         // dependlogic == 0 -> this answer NOT givven
-                        if ($dependency->dependlogic == 0 && !$recordexists) {
+                        if ($dependency->dependlogic == 0 && !$choicematches) {
                             $dependencyorfulfilled = true;
                         }
 

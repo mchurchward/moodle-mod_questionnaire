@@ -77,6 +77,15 @@ abstract class base {
      */
     abstract public function display_results($rids=false, $sort='', $anonymous=false);
 
+    /**
+     * If the choice id needs to be transformed into a different value, override this in the child class.
+     * @param $choiceid
+     * @return mixed
+     */
+    public function transform_choiceid($choiceid) {
+        return $choiceid;
+    }
+
     protected function display_response_choice_results($rows, $rids, $sort) {
         $output = '';
         if (is_array($rids)) {
