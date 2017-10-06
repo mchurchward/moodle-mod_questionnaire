@@ -790,8 +790,6 @@ abstract class base {
         $this->form_required($mform);
         $this->form_length($mform);
         $this->form_precise($mform);
-
-        /** @noinspection Annotator */
         $this->form_question_text($mform, $form->_customdata['modcontext']);
 
         if ($this->has_choices()) {
