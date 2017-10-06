@@ -114,8 +114,7 @@ if ($delq) {
             foreach ($haschildren as $qid => $child) {
                 // Need to reload questions first.
                 $questions = $DB->get_records('questionnaire_question', ['survey_id' => $sid, 'deleted' => 'n'], 'id');
-                /*
-                 * Dependencies to the deleted question are listed and the direct ones removed - but not the childs themselfes.
+                /* Dependencies to the deleted question are listed and the direct ones removed - but not the childs themselfes.
                  *
                  * It would be painful for users to force deletion of all dependend questions in dependency-mode.
                  * 1. childs can have multiple parents
