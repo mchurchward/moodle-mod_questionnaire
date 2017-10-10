@@ -40,11 +40,19 @@ Feature: Questions can be defined to be dependent on answers to previous questio
     And I add a "Yes/No" question and I fill the form with:
       | Question Name | MP.1 |
       | Yes | y |
+      | Question Text | Do you like Math but not Physics? |
+      | id_dependquestions_and_0  | Y.1->Math |
+      | id_dependquestions_and_1  | Y.1->Physics |
+      | id_dependlogic_and_1  | This answer not given |
+    Then I should see "[Yes/No] (MP.1)"
+    And I add a "Yes/No" question and I fill the form with:
+      | Question Name | MP.2 |
+      | Yes | y |
       | Question Text | Do you plan to take a B.Sc.? |
       | id_dependquestions_and_0  | Q1->Yes |
       | id_dependquestions_or_0  | Y.1->Math |
       | id_dependquestions_or_1  | Y.1->Physics |
-    Then I should see "[Yes/No] (MP.1)"
+    Then I should see "[Yes/No] (MP.2)"
     And I add a "Yes/No" question and I fill the form with:
       | Question Name | AM.1 |
       | Yes | y |
@@ -78,13 +86,19 @@ Feature: Questions can be defined to be dependent on answers to previous questio
     Then I should see "Are you taking:"
     And I set the field "Math" to "checked"
     And I press "Next Page >>"
+    Then I should see "Do you like Math but not Physics?"
+    And I click on "No" "radio"
+    And I press "Next Page >>"
     Then I should see "Do you plan to take a B.Sc.?"
     And I click on "Yes" "radio"
     And I press "Next Page >>"
     Then I should see "Are you happy?"
     And I press "<< Previous Page"
     And I press "<< Previous Page"
+    And I press "<< Previous Page"
     And I set the field "Art" to "checked"
+    And I press "Next Page >>"
+    Then I should see "Do you like Math but not Physics?"
     And I press "Next Page >>"
     Then I should see "Do you plan to take a B.Sc.?"
     And I press "Next Page >>"
@@ -92,6 +106,7 @@ Feature: Questions can be defined to be dependent on answers to previous questio
     And I click on "No" "radio"
     And I press "Next Page >>"
     Then I should see "Are you happy?"
+    And I press "<< Previous Page"
     And I press "<< Previous Page"
     And I press "<< Previous Page"
     And I press "<< Previous Page"
