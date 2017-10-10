@@ -115,52 +115,13 @@ class questions_form extends \moodleform {
             $qtype = $question->type;
             $required = $question->required;
 
-            // Does this questionnaire contain branching questions already?
-            $dependencies = [];
-            $dependenciesor = [];
-            $parents = [];
-            $positions = [];
-
-            // TODO I think the plugin should ignore all dependencies, when branching is set to 0 later,
-            // instead of continuing to use the dependencies after switching the option off.
-
             // Get displayable list of parents for the questions in questions_form.
             if ($questionnairehasdependencies) {
-                // TODO create questionnaire_get_advparents in locallib.
-                if (isset($question->dependencies) && $questionnaire->navigate > 0) {
-                    foreach ($question->dependencies as $dependencyhelper) {
-                        $dependencyhelper->position = 0;
-                        $dependencyhelper->name = null;
-                        $dependencyhelper->content = null;
-                        $dependencyhelper->id = 0;
-
-                        $parent = questionnaire_get_parent($dependencyhelper);
-
-                        // TODO Could be placed in locallib as function.
-                        // TODO Replace static strings and set language variables.
-                        switch ($dependencyhelper->dependlogic) {
-                            case 0:
-                                $logic = ' not set';
-                                break;
-                            case 1:
-                                $logic = " set";
-                                break;
-                            default:
-                                $logic = "";
-                        }
-
-                        if ($dependencyhelper->dependandor == "and") {
-                            $dependencies[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
-                                    $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
-                        }
-
-                        // Use own array for or-dependencies, to apply a specific css-class later.
-                        if ($dependencyhelper->dependandor == "or") {
-                            $dependenciesor[] = '<strong>'.get_string('dependquestion', 'questionnaire').'</strong> : '.
-                                    $strposition.' '.$parent [0]['parentposition'].' ('.$parent [0]['parent'].')' . $logic;
-                        }
-                    }
-                }
+                // TODO - Perhaps this should be a function called by the questionnaire after it loads all questions?
+                $questionnaire->load_parents($question);
+                $dependencies = $questionnaire->renderer->get_dependency_html($question->id, $question->dependencies);
+            } else {
+                $dependencies = '';
             }
 
             $pos = $question->position;
@@ -357,16 +318,10 @@ class questions_form extends \moodleform {
             }
             $manageqgroup[] =& $mform->createElement('static', 'qinfo_'.$question->id, '', $qtype.' '.$qname);
 
-            if (isset($dependencies)) {
-                foreach ($dependencies as $dependency) {
-                    $mform->addElement('static', 'qdepend_'.$question->id, '', '<div class="qdepend">'.$dependency.'</div>');
-                }
+            if (!empty($dependencies)) {
+                $mform->addElement('static', 'qdepend_' . $question->id, '', $dependencies);
             }
-            if (isset($dependenciesor)) {
-                foreach ($dependenciesor as $dependencyor) {
-                    $mform->addElement('static', 'qdepend_or_'.$question->id, '', '<div class="qdepend-or">'.$dependencyor.'</div>');
-                }
-            }
+
             if ($tid != QUESPAGEBREAK) {
                 if ($tid != QUESSECTIONTEXT) {
                     $qnumber = '<div class="qn-info"><h2 class="qn-number">'.$qnum.'</h2></div>';

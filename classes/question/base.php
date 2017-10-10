@@ -280,6 +280,68 @@ abstract class base {
         return $options;
     }
 
+    /**
+     * Return true if all dependencies or this question have been fulfilled, or there aren't any.
+     * @param int $rid The response ID to check.
+     * @param array $questions An array containing all possible parent question objects.
+     * @return bool
+     */
+    public function dependency_fulfilled($rid, $questions) {
+        if (!$this->has_dependencies()) {
+            $fulfilled = true;
+        } else {
+            foreach ($this->dependencies as $dependency) {
+                $choicematches = $questions[$dependency->dependquestionid]->response_has_choice($rid, $dependency->dependchoiceid);
+
+                // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
+                if ($dependency->dependandor == 'and') {
+                    $dependencyandfulfilled = false;
+                    // This answer given.
+                    if (($dependency->dependlogic == 1) && $choicematches) {
+                        $dependencyandfulfilled = true;
+                    }
+
+                    // This answer NOT given.
+                    if (($dependency->dependlogic == 0) && !$choicematches) {
+                        $dependencyandfulfilled = true;
+                    }
+
+                    // Something mandatory not fulfilled? Stop looking and continue to next question.
+                    if ($dependencyandfulfilled == false) {
+                        break;
+                    }
+
+                    // In case we have no or-dependencies.
+                    $dependencyorfulfilled = true;
+                }
+
+                // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
+                if ($dependency->dependandor == 'or') {
+                    $dependencyorfulfilled = false;
+                    // To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
+                    $dependencyandfulfilled = true;
+                    // This answer given
+                    if (($dependency->dependlogic == 1) && $choicematches) {
+                        $dependencyorfulfilled = true;
+                    }
+
+                    // This answer NOT given
+                    if (($dependency->dependlogic == 0) && !$choicematches) {
+                        $dependencyorfulfilled = true;
+                    }
+
+                    // Something fulfilled? A single match is sufficient so continue to next question.
+                    if ($dependencyorfulfilled == true) {
+                        break;
+                    }
+                }
+
+            }
+            $fulfilled = ($dependencyandfulfilled && $dependencyorfulfilled);
+        }
+        return $fulfilled;
+    }
+
     public function response_table() {
         return $this->response->response_table();
     }
@@ -594,7 +656,7 @@ abstract class base {
      * Question specific display method.
      *
      * @param object $formdata
-     * @param string $descendantdata
+     * @param array $descendantdata
      * @param boolean $blankquestionnaire
      *
      */
@@ -628,13 +690,13 @@ abstract class base {
     /**
      * Get the output for question renderers / templates.
      * @param object $formdata
-     * @param string $descendantdata
+     * @param array $dependants Array of all questions/choices depending on this question.
      * @param integer $qnum
      * @param boolean $blankquestionnaire
      */
-    public function question_output($formdata, $descendantsdata, $qnum='', $blankquestionnaire) {
+    public function question_output($formdata, $dependants=[], $qnum='', $blankquestionnaire) {
         $pagetags = $this->questionstart_survey_display($qnum, $formdata);
-        $pagetags->qformelement = $this->question_survey_display($formdata, $descendantsdata, $blankquestionnaire);
+        $pagetags->qformelement = $this->question_survey_display($formdata, $dependants, $blankquestionnaire);
         return $pagetags;
     }
 
@@ -683,38 +745,13 @@ abstract class base {
         // In report mode, If questionnaire is set to no numbering,
         // also hide answers to questions that have not been answered.
         $displayclass = 'qn-container';
-        if ($pagetype == 'mod-questionnaire-preview' || ($nonumbering
-                        && ($currenttab == 'mybyresponse' || $currenttab == 'individualresp'))) {
-            $parent = questionnaire_get_parent($this);
-            if ($parent) {
-                $dependquestion = $parent[$this->id]['qdependquestion'];
-                $dependchoice = $parent[$this->id]['qdependchoice'];
-                $parenttype = $parent[$this->id]['parenttype'];
-                $displayclass = 'hidedependquestion';
-                if (isset($formdata->{'q'.$this->id}) && $formdata->{'q'.$this->id}) {
-                    $displayclass = 'qn-container';
-                }
-
-                if ($this->type_id == QUESRATE) {
-                    foreach ($this->choices as $key => $choice) {
-                        if (isset($formdata->{'q'.$this->id.'_'.$key})) {
-                            $displayclass = 'qn-container';
-                            break;
-                        }
-                    }
-                }
-
-                if (isset($formdata->$dependquestion) && $formdata->$dependquestion == $dependchoice) {
-                    $displayclass = 'qn-container';
-                }
-
-                if ($parenttype == QUESDROP) {
-                    $qnid = preg_quote('qn-'.$this->id, '/');
-                    if (isset($formdata->$dependquestion) && preg_match("/$qnid/", $formdata->$dependquestion)) {
-                        $displayclass = 'qn-container';
-                    }
-                }
-            }
+        if ($pagetype == 'mod-questionnaire-preview' || ($nonumbering &&
+            ($currenttab == 'mybyresponse' || $currenttab == 'individualresp'))) {
+            // This needs to be done to ensure all dependency data is loaded.
+            // TODO - Perhaps this should be a function called by the questionnaire after it loads all questions?
+            $questionnaire->load_parents($this);
+            // Want this to come from the renderer, meaning we need $questionnaire.
+            $pagetags->dependencylist = $questionnaire->renderer->get_dependency_html($this->id, $this->dependencies);
         }
 
         $pagetags->fieldset = (object)['id' => $this->id, 'class' => $displayclass];
@@ -920,8 +957,8 @@ abstract class base {
             /* I decided to allow changing dependencies of parent questions, because forcing the editor to remove dependencies
              * bottom up, starting at the lowest child question is a pain for large questionnaires.
              * So the following "if" becomes the default and the else-branch is completely commented.
-             * TODO Since the best way to get the list of child questions is currently to click on delete (and choose not to delete),
-             * one might consider to list the child questions in addition here.
+             * TODO Since the best way to get the list of child questions is currently to click on delete (and choose not to
+             * delete), one might consider to list the child questions in addition here.
              */
 
             // Area for "must"-criteria.
@@ -1182,7 +1219,7 @@ abstract class base {
             }
 
             while ($nidx < $newcount) {
-                // New dependencies
+                // New dependencies.
                 $dependencyrecord = new \stdClass();
                 $dependencyrecord->questionid = $this->qid;
                 $dependencyrecord->surveyid = $formdata->sid;
@@ -1216,8 +1253,8 @@ abstract class base {
             $this->form_preprocess_choicedata($formdata);
         }
 
-        // Dependencies logic does not (yet) need preprocessing, might change with more complex conditions
-        // Check, if entries exist and whether they are not only 0 (form elements created but no value selected)
+        // Dependencies logic does not (yet) need preprocessing, might change with more complex conditions.
+        // Check, if entries exist and whether they are not only 0 (form elements created but no value selected).
         if (isset($formdata->dependquestions_and) &&
             !(count(array_keys($formdata->dependquestions_and, 0, true)) == count($formdata->dependquestions_and))) {
             for ($i = 0; $i < count($formdata->dependquestions_and); $i++) {

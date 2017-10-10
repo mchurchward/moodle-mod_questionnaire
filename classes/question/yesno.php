@@ -76,30 +76,30 @@ class yesno extends base {
     /**
      * Return the context tags for the check question template.
      * @param object $data
-     * @param string $descendantdata
+     * @param array $dependants Array of all questions/choices depending on this question.
      * @param boolean $blankquestionnaire
      * @return object The check question context tags.
      *
      */
-    protected function question_survey_display($data, $descendantsdata, $blankquestionnaire=false) {
+    protected function question_survey_display($data, $dependants=[], $blankquestionnaire=false) {
         global $idcounter;  // To make sure all radio buttons have unique ids. // JR 20 NOV 2007.
 
         // To display or hide dependent questions on Preview page.
         $onclickdepend = [];
-        if ($descendantsdata) {
-            $descendants = implode(',', $descendantsdata['descendants']);
-            if (isset($descendantsdata['choices'][0])) {
-                $choices['y'] = implode(',', $descendantsdata['choices'][0]);
-            } else {
-                $choices['y'] = '';
+        $dqids = '';
+        $choices['y'] = '';
+        $choices['n'] = '';
+        foreach ($dependants as $did => $dependant) {
+            $dqids .= empty($dqids) ? 'qn-'.$did : ',qn-'.$did;
+            foreach ($dependant as $choice) {
+                if ($choice->choiceid == 0) {
+                    $choices['y'] .= empty($choices['y']) ? 'qn-'.$did : ',qn-'.$did;
+                } else {
+                    $choices['n'] .= empty($choices['n']) ? 'qn-'.$did : ',qn-'.$did;
+                }
             }
-            if (isset($descendantsdata['choices'][1])) {
-                $choices['n'] = implode(',', $descendantsdata['choices'][1]);
-            } else {
-                $choices['n'] = '';
-            }
-            $onclickdepend['y'] = 'depend(\''.$descendants.'\', \''.$choices['y'].'\')';
-            $onclickdepend['n'] = 'depend(\''.$descendants.'\', \''.$choices['n'].'\')';
+            $onclickdepend['y'] = 'depend(\''.$dqids.'\', \''.$choices['y'].'\')';
+            $onclickdepend['n'] = 'depend(\''.$dqids.'\', \''.$choices['n'].'\')';
         }
 
         $stryes = get_string('yes');

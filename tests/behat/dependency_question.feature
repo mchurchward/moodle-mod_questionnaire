@@ -1,5 +1,5 @@
 @mod @mod_questionnaire
-Feature: Questions can be defined to be dependent on answers to previous questions
+Feature: Questions can be defined to be dependent on answers to multiple previous questions
   In order to define a dependency
   As a teacher
   I must specify that branching questions are allowed and then create question dependencies

@@ -384,8 +384,11 @@ function questionnaire_delete_survey($sid, $questionnaireid) {
     if ($questions = $DB->get_records('questionnaire_question', array('survey_id' => $sid), 'id')) {
         foreach ($questions as $question) {
             $DB->delete_records('questionnaire_quest_choice', array('question_id' => $question->id));
+            questionnaire_delete_dependencies($question->id);
         }
         $status = $status && $DB->delete_records('questionnaire_question', array('survey_id' => $sid));
+        // Just to make sure.
+        $status = $status && $DB->delete_records('questionnaire_dependency', ['surveyid' => $sid]);
     }
 
     // Delete all feedback sections and feedback messages for the survey.
@@ -450,6 +453,18 @@ function questionnaire_delete_responses($qid) {
 
     $status = $status && $DB->delete_records('questionnaire_response', array('id' => $qid));
     $status = $status && $DB->delete_records('questionnaire_attempts', array('rid' => $qid));
+
+    return $status;
+}
+
+function questionnaire_delete_dependencies($qid) {
+    global $DB;
+
+    $status = true;
+
+    // Delete all dependencies for this question.
+    $DB->delete_records('questionnaire_dependency', ['questionid' => $qid]);
+    $DB->delete_records('questionnaire_dependency', ['dependquestionid' => $qid]);
 
     return $status;
 }
@@ -692,6 +707,7 @@ function questionnaire_get_editor_options($context) {
 }
 
 // Get the parent of a child question.
+// TODO - This needs to be refactored or removed.
 function questionnaire_get_parent ($question) {
     global $DB;
     $qid = $question->id;

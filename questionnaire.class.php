@@ -621,55 +621,54 @@ class questionnaire {
      * @param $questionid
      * @return array
      */
-    public function get_descendants($questionid) {
-        $questions = array_reverse($this->questions, true);
-        $qu = [];
-
-        // Create an array which shows for every question the child-IDs.
-        foreach ($questions as $question) {
-            if ($question->has_dependencies()) {
-                foreach ($question->dependencies as $dependency) {
-                    $dq = $dependency->dependquestionid;
-                    $qid = $question->id;
-                    if (!isset($qu[$dq]) || !in_array($qid, $qu[$dq])) {
-                        $qu[$dq][] = $qid;
+    public function get_all_dependants($questionid) {
+        $directids = $this->get_dependants($questionid);
+        $directs = [];
+        $indirects = [];
+        foreach ($directids as $directid) {
+            $this->load_parents($this->questions[$directid]);
+            $indirectids = $this->get_dependants($directid);
+            foreach ($this->questions[$directid]->dependencies as $dep) {
+                if ($dep->dependquestionid == $questionid) {
+                    $directs[$directid][] = $dep;
+                }
+            }
+            foreach ($indirectids as $indirectid) {
+                $this->load_parents($this->questions[$indirectid]);
+                foreach ($this->questions[$indirectid]->dependencies as $dep) {
+                    if ($dep->dependquestionid != $questionid) {
+                        $indirects[$indirectid][] = $dep;
                     }
-                    if (array_key_exists($qid, $qu)) {
-                        foreach ($qu[$qid] as $q) {
-                            $qu[$dq][] = $q;
-                        }
-                    }
-
                 }
             }
         }
-
-        $descendants = [];
-        if (isset($qu[$questionid])) {
-            foreach ($qu[$questionid] as $descendant) {
-                $childquestion = $questions[$descendant];
-
-                foreach ($childquestion->dependencies as $dependencyhelper) {
-                    // TODO this is just a workaround to use questionnaire_get_parents.
-                    $childquestion->dependquestionid = $dependencyhelper->dependquestionid;
-                    $childquestion->dependchoiceid = $dependencyhelper->dependchoiceid;
-                    $parent = questionnaire_get_parent($childquestion);
-
-                    // Add dependency specific data to the get_parent results so the presentation can be tailored.
-                    $parent[key($parent)]['dependlogic'] = $dependencyhelper->dependlogic;
-                    $parent[key($parent)]['dependandor'] = $dependencyhelper->dependandor;
-
-                    // Create subarrays to avoid reducing the results to one dependency per question.
-                    $descendants[key($parent)][] = $parent[key($parent)];
-                }
-            }
-            uasort($descendants, 'self::cmp');
-        }
-        return($descendants);
+        $alldependants = new stdClass();
+        $alldependants->directs = $directs;
+        $alldependants->indirects = $indirects;
+        return($alldependants);
     }
 
     /**
-     * Function to sort descendants array in get_descendants function.
+     * @param $questionid
+     * @return array
+     */
+    public function get_dependants($questionid) {
+        $qu = [];
+        // Create an array which shows for every question the child-IDs.
+        foreach ($this->questions as $question) {
+            if ($question->has_dependencies()) {
+                foreach ($question->dependencies as $dependency) {
+                    if (($dependency->dependquestionid == $questionid) && !in_array($question->id, $qu)) {
+                        $qu[] = $question->id;
+                    }
+                }
+            }
+        }
+        return($qu);
+    }
+
+    /**
+     * Function to sort descendants array in get_dependants function.
      * @param $a
      * @param $b
      * @return int
@@ -688,91 +687,82 @@ class questionnaire {
      * Get all descendants and choices for questions with descendants.
      * @return array
      */
-    public function get_descendants_and_choices() {
+    public function get_dependants_and_choices() {
         $questions = array_reverse($this->questions, true);
-        $qu = array();
+        $parents = [];
         foreach ($questions as $question) {
-            if ($question->dependquestion) {
-                $dq = $question->dependquestion;
-                $dc = $question->dependchoice;
-                $qid = $question->id;
-
-                $qu['descendants'][$dq][] = 'qn-'.$qid;
-                if (array_key_exists($qid, $qu['descendants'])) {
-                    foreach ($qu['descendants'][$qid] as $q) {
-                        $qu['descendants'][$dq][] = $q;
-                    }
-                }
-                $qu['choices'][$dq][$dc][] = 'qn-'.$qid;
+            foreach ($question->dependencies as $dependency) {
+                $child = new stdClass();
+                $child->choiceid = $dependency->dependchoiceid;
+                $child->logic = $dependency->dependlogic;
+                $child->andor = $dependency->dependandor;
+                $parents[$dependency->dependquestionid][$question->id][] = $child;
             }
         }
-        return($qu);
+        return($parents);
     }
 
     /**
-     * Skip logic: we need to find out how many questions will actually be displayed on next page/section.
+     * Load needed parent question information into the dependencies structure for the requested question.
+     * @param $question
+     * @return bool
+     */
+    public function load_parents($question) {
+        foreach ($question->dependencies as $did => $dependency) {
+            $dependquestion = $this->questions[$dependency->dependquestionid];
+            $qdependchoice = '';
+            switch ($dependquestion->type_id) {
+                case QUESRADIO:
+                case QUESDROP:
+                case QUESCHECK:
+                    $qdependchoice = $dependency->dependchoiceid;
+                    $dependchoice = $dependquestion->choices[$dependency->dependchoiceid]->content;
+
+                    $contents = questionnaire_choice_values($dependchoice);
+                    if ($contents->modname) {
+                        $dependchoice = $contents->modname;
+                    }
+                    break;
+                case QUESYESNO:
+                    switch ($dependency->dependchoiceid) {
+                        case 0:
+                            $dependchoice = get_string('yes');
+                            $qdependchoice = 'y';
+                            break;
+                        case 1:
+                            $dependchoice = get_string('no');
+                            $qdependchoice = 'n';
+                            break;
+                    }
+                    break;
+            }
+            // Qdependquestion, parenttype and qdependchoice fields to be used in preview mode.
+            $question->dependencies[$did]->qdependquestion = 'q'.$dependquestion->id;
+            $question->dependencies[$did]->qdependchoice = $qdependchoice;
+            $question->dependencies[$did]->parenttype = $dependquestion->type_id;
+            // Other fields to be used in Questions edit mode.
+            $question->dependencies[$did]->position = $question->position;
+            $question->dependencies[$did]->name = $question->name;
+            $question->dependencies[$did]->content = $question->content;
+            $question->dependencies[$did]->parentposition = $dependquestion->position;
+            $question->dependencies[$did]->parent = $dependquestion->name.'->'.$dependchoice;
+        }
+        return true;
+    }
+
+    /**
+     * Are there any eligible questions to be displayed on the specified page/section.
      * @param $secnum The section number to check.
      * @param $rid The current response id.
-     * @return array
+     * @return boolean
      */
-    public function get_questions_on_page($secnum, $rid) {
-        $questionstodisplay = [];
+    public function eligible_questions_on_page($secnum, $rid) {
+        $questionstodisplay = false;
 
         foreach ($this->questionsbysec[$secnum] as $question) {
-            if (!empty($question->dependencies)) {
-                foreach ($question->dependencies as $dependency) {
-                    $choicematches = $this->questions[$dependency->dependquestionid]->response_has_choice($rid,
-                        $dependency->dependchoiceid);
-                    // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
-                    if ($dependency->dependandor == 'and') {
-                        $dependencyandfulfilled = false;
-                        // dependlogic == 1 -> this answer givven
-                        if ($dependency->dependlogic == 1 && $choicematches) {
-                            $dependencyandfulfilled = true;
-                        }
-
-                        // dependlogic == 0 -> this answer NOT givven
-                        if ($dependency->dependlogic == 0 && !$choicematches) {
-                            $dependencyandfulfilled = true;
-                        }
-
-                        // Something mandatory not fulfilled? Stop looking and continue to next question.
-                        if ($dependencyandfulfilled == false) {
-                            break;
-                        }
-
-                        // In case we have no or-dependencies.
-                        $dependencyorfulfilled = true;
-
-                    }
-
-                    // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
-                    if ($dependency->dependandor == 'or') {
-                        $dependencyorfulfilled = false;
-                        // To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
-                        $dependencyandfulfilled = true;
-                        // dependlogic == 1 -> this answer givven
-                        if ($dependency->dependlogic == 1 && $choicematches) {
-                            $dependencyorfulfilled = true;
-                        }
-
-                        // dependlogic == 0 -> this answer NOT givven
-                        if ($dependency->dependlogic == 0 && !$choicematches) {
-                            $dependencyorfulfilled = true;
-                        }
-
-                        // Something fulfilled? A single match is sufficient so continue to next question.
-                        if ($dependencyorfulfilled == true) {
-                            break;
-                        }
-                    }
-
-                }
-                if ($dependencyandfulfilled && $dependencyorfulfilled) {
-                    $questionstodisplay [] = $question->id;
-                }
-            } else {
-                $questionstodisplay [] = $question->id;
+            if ($question->dependency_fulfilled($rid, $this->questions)) {
+                $questionstodisplay = true;
+                break;
             }
         }
         return $questionstodisplay;
@@ -809,8 +799,6 @@ class questionnaire {
         if ($formdata->sec == 1) {
             $SESSION->questionnaire->end = false;
         }
-        // Skip logic: reset this just in case.
-        $SESSION->questionnaire->nbquestionsonpage = '';
 
         if (!empty($formdata->submit)) {
             // Skip logic: we have reached the last page without any questions on it.
@@ -842,8 +830,7 @@ class questionnaire {
                 // Skip logic.
                 $formdata->sec++;
                 if ($this->has_dependencies()) {
-                    $nbquestionsonpage = $this->get_questions_on_page($formdata->sec, $formdata->rid);
-                    while (count($nbquestionsonpage) == 0) {
+                    while (!$this->eligible_questions_on_page($formdata->sec, $formdata->rid)) {
                         $this->response_delete($formdata->rid, $formdata->sec);
                         $formdata->sec++;
                         // We have reached the end of questionnaire on a page without any question left.
@@ -851,9 +838,7 @@ class questionnaire {
                             $SESSION->questionnaire->end = true; // End of questionnaire reached on a no questions page.
                             break;
                         }
-                        $nbquestionsonpage = $this->get_questions_on_page($formdata->sec, $formdata->rid);
                     }
-                    $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
             }
         }
@@ -863,12 +848,12 @@ class questionnaire {
 
             // If skip logic and this is last page reached with no questions,
             // unlock questionnaire->end to allow navigate back to previous page.
-            if (isset($SESSION->questionnaire->end) && $SESSION->questionnaire->end == true) {
+            if (isset($SESSION->questionnaire->end) && ($SESSION->questionnaire->end == true)) {
                 $SESSION->questionnaire->end = false;
-                $formdata->sec --;
+                $formdata->sec--;
             }
 
-                $formdata->rid = $this->response_insert($this->survey->id, $formdata->sec, $formdata->rid, $quser);
+            $formdata->rid = $this->response_insert($this->survey->id, $formdata->sec, $formdata->rid, $quser);
             // Prevent navigation to previous page if wrong format in answered questions).
             $msg = $this->response_check_format($formdata->sec, $formdata, $checkmissing = false, $checkwrongformat = true);
             if ( $msg ) {
@@ -877,12 +862,9 @@ class questionnaire {
                 $formdata->sec--;
                 // Skip logic.
                 if ($this->has_dependencies()) {
-                    $nbquestionsonpage = $this->get_questions_on_page($formdata->sec, $formdata->rid);
-                    while (count($nbquestionsonpage) == 0) {
+                    while (($formdata->sec > 0) && !$this->eligible_questions_on_page($formdata->sec, $formdata->rid)) {
                         $formdata->sec--;
-                        $nbquestionsonpage = $this->get_questions_on_page($formdata->sec, $formdata->rid);
                     }
-                    $SESSION->questionnaire->nbquestionsonpage = $nbquestionsonpage;
                 }
             }
         }
@@ -958,10 +940,10 @@ class questionnaire {
             if ($question->type_id != QUESSECTIONTEXT) {
                 $i++;
             }
-            // need questionnaire id to get the questionnaire object in sectiontext (Label) question class
+            // Need questionnaire id to get the questionnaire object in sectiontext (Label) question class.
             $formdata->questionnaire_id = $this->id;
             $this->page->add_to_page('questions',
-                $this->renderer->question_output($question, $formdata, '', $i, $this->usehtmleditor));
+                $this->renderer->question_output($question, $formdata, [], $i, $this->usehtmleditor));
         }
 
         $this->print_survey_end($section, $numsections);
@@ -1164,10 +1146,10 @@ class questionnaire {
 
         $this->print_survey_start($message, $section = 1, 1, $hasrequired, $rid = '');
 
-        $descendantsandchoices = array();
-
         if (($referer == 'preview') && $this->has_dependencies()) {
-                $descendantsandchoices = $this->get_descendants_and_choices();
+            $allqdependants = $this->get_dependants_and_choices();
+        } else {
+            $allqdependants = [];
         }
         if ($errors == 0) {
             $this->page->add_to_page('message',
@@ -1183,19 +1165,15 @@ class questionnaire {
                 $page++;
             }
             foreach ($section as $question) {
-                $descendantsdata = array();
                 if ($question->type_id == QUESSECTIONTEXT) {
                     $i--;
                 }
-                if ($referer == 'preview' && $descendantsandchoices && ($question->type_id == QUESYESNO
-                                || $question->type_id == QUESRADIO || $question->type_id == QUESDROP) ) {
-                    if (isset ($descendantsandchoices['descendants'][$question->id])) {
-                        $descendantsdata['descendants'] = $descendantsandchoices['descendants'][$question->id];
-                        $descendantsdata['choices'] = $descendantsandchoices['choices'][$question->id];
-                    }
+                if (isset($allqdependants[$question->id])) {
+                    $dependants = $allqdependants[$question->id];
+                } else {
+                    $dependants = [];
                 }
-
-                $output .= $this->renderer->question_output($question, $formdata, $descendantsdata, $i++, null);
+                $output .= $this->renderer->question_output($question, $formdata, $dependants, $i++, null);
                 $this->page->add_to_page('questions', $output);
                 $output = '';
             }
@@ -1589,71 +1567,6 @@ class questionnaire {
             }
         }
         return $max;
-    }
-
-    /* {{{ proto array response_select_name(int survey_id, int response_id, array question_ids)
-       A wrapper around response_select(), that returns an array of
-       key/value pairs using the field name as the key.
-       $csvexport = true: a parameter to return a different response formatting for CSV export from normal report formatting
-     */
-    private function response_select_name($rid, $choicecodes, $choicetext) {
-        $res = $this->response_select($rid, 'position, type_id, name', true, $choicecodes, $choicetext);
-        $nam = array();
-        reset($res);
-        $subqnum = 0;
-        $oldpos = '';
-        while (list($qid, $arr) = each($res)) {
-            // Question position (there may be "holes" in positions list).
-            $qpos = $arr[0];
-            // Question type (1-bool,2-text,3-essay,4-radio,5-check,6-dropdn,7-rating(not used),8-rate,9-date,10-numeric).
-            $qtype = $arr[1];
-            // Variable name; (may be empty); for rate questions: 'variable group' name.
-            $qname = $arr[2];
-            // Modality; for rate questions: variable.
-            $qchoice = $arr[3];
-
-            // Strip potential html tags from modality name.
-            if (!empty($qchoice)) {
-                $qchoice = strip_tags($arr[3]);
-                $qchoice = preg_replace("/[\r\n\t]/", ' ', $qchoice);
-            }
-            // For rate questions: modality; for multichoice: selected = 1; not selected = 0.
-            $q4 = '';
-            if (isset($arr[4])) {
-                $q4 = $arr[4];
-            }
-            if (strstr($qid, '_')) {
-                if ($qtype == QUESRADIO) {     // Single.
-                    $nam[$qpos][$qname.'_'.get_string('other', 'questionnaire')] = $q4;
-                    continue;
-                }
-                // Multiple OR rank.
-                if ($oldpos != $qpos) {
-                    $subqnum = 1;
-                    $oldpos = $qpos;
-                } else {
-                        $subqnum++;
-                }
-                if ($qtype == QUESRATE) {     // Rate.
-                    $qname .= "->$qchoice";
-                    if ($q4 == -1) {
-                        // Here $q4 = get_string('notapplicable', 'questionnaire'); DEV JR choose one solution please.
-                        $q4 = '';
-                    } else {
-                        if (is_numeric($q4)) {
-                            $q4++;
-                        }
-                    }
-                } else {     // Multiple.
-                    $qname .= "->$qchoice";
-                }
-                $nam[$qpos][$qname] = $q4;
-                continue;
-            }
-            $val = $qchoice;
-            $nam[$qpos][$qname] = $val;
-        }
-        return $nam;
     }
 
     /**
