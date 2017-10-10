@@ -76,7 +76,7 @@ abstract class base {
     /** @var array $dependencies Array holding any dependencies for this question. */
     public $dependencies = [];
 
-    /** @var string $response_table The table name for responses. */
+    /** @var string $responsetable The table name for responses. */
     public $responsetable = '';
 
     /** @var int $length The length field. */
@@ -150,7 +150,7 @@ abstract class base {
 
             $this->type_id = $question->type_id;
             $this->type = $qtypes[$this->type_id]->type;
-            $this->response_table = $qtypes[$this->type_id]->response_table;
+            $this->responsetable = $qtypes[$this->type_id]->response_table;
             if ($qtypes[$this->type_id]->has_choices == 'y') {
                 $this->get_choices();
             }
@@ -280,6 +280,23 @@ abstract class base {
         return $options;
     }
 
+    public function response_table() {
+        return $this->response->response_table();
+    }
+
+    /**
+     * Return true if the specified response for this question contains the specified choice.
+     * @param $rid
+     * @param $choiceid
+     * @return bool
+     */
+    public function response_has_choice($rid, $choiceid) {
+        global $DB;
+        $choiceval = $this->response->transform_choiceid($choiceid);
+        return $DB->record_exists($this->response_table(),
+            ['response_id' => $rid, 'question_id' => $this->id, 'choice_id' => $choiceval]);
+    }
+
     /**
      * Insert response data method.
      */
@@ -343,6 +360,13 @@ abstract class base {
      *
      */
     abstract protected function responseclass();
+
+    /**
+     * True if question type allows responses.
+     */
+    public function supports_responses() {
+        return !empty($this->responseclass());
+    }
 
     /**
      * Check question's form data for complete response.
@@ -661,7 +685,7 @@ abstract class base {
         $displayclass = 'qn-container';
         if ($pagetype == 'mod-questionnaire-preview' || ($nonumbering
                         && ($currenttab == 'mybyresponse' || $currenttab == 'individualresp'))) {
-            $parent = questionnaire_get_parent ($this);
+            $parent = questionnaire_get_parent($this);
             if ($parent) {
                 $dependquestion = $parent[$this->id]['qdependquestion'];
                 $dependchoice = $parent[$this->id]['qdependchoice'];
@@ -766,7 +790,6 @@ abstract class base {
         $this->form_required($mform);
         $this->form_length($mform);
         $this->form_precise($mform);
-
         $this->form_question_text($mform, $form->_customdata['modcontext']);
 
         if ($this->has_choices()) {
@@ -868,7 +891,7 @@ abstract class base {
             // TODO this should be placed in locallib, see "questionnaire_get_descendants".
             // Use also for the delete dialogue later.
             foreach ($questions as $questionlistitem) {
-                if (isset($questionlistitem->dependencies)) {
+                if ($questionlistitem->has_dependencies()) {
                     foreach ($questionlistitem->dependencies as $key => $outerdependencies) {
                         if ($outerdependencies->dependquestionid == $this->qid) {
                             $children[$key] = $outerdependencies;
@@ -1028,7 +1051,7 @@ abstract class base {
 
             $this->update($questionrecord, false);
 
-            if (questionnaire_has_dependencies($questionnaire->questions)) {
+            if ($questionnaire->has_dependencies()) {
                 questionnaire_check_page_breaks($questionnaire);
             }
         } else {
@@ -1118,7 +1141,7 @@ abstract class base {
         // Shouldn't the MOODLE-API provide this case of insert/update/delete?.
         // First handle dependendies updates.
         if (!isset($formdata->fixed_deps)) {
-            if (isset($this->dependencies) && !isset($formdata->makecopy)) {
+            if ($this->has_dependencies() && !isset($formdata->makecopy)) {
                 $oldcount = count($this->dependencies);
                 $edependency = reset($this->dependencies);
                 $ekey = key($this->dependencies);

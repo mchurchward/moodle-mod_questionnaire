@@ -28,6 +28,12 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/formslib.php');
 
+/**
+ * Class edit_question_form
+ * @package mod_questionnaire
+ * @property \MoodleQuickForm _form
+ * @property array _customdata
+ */
 class edit_question_form extends \moodleform {
 
     public function definition() {

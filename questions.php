@@ -60,7 +60,7 @@ if (!$questionnaire->capabilities->editquestions) {
     print_error('nopermissions', 'error', 'mod:questionnaire:edit');
 }
 
-$questionnairehasdependencies = questionnaire_has_dependencies($questionnaire->questions);
+$questionnairehasdependencies = $questionnaire->has_dependencies();
 $haschildren = array();
 if (!isset($SESSION->questionnaire)) {
     $SESSION->questionnaire = new stdClass();
@@ -78,7 +78,7 @@ if ($delq) {
 
     // Does the question to be deleted have any child questions?
     if ($questionnairehasdependencies) {
-        $haschildren = questionnaire_get_descendants ($questionnaire->questions, $qid);
+        $haschildren = $questionnaire->get_descendants($qid);
     }
 
     // Need to reload questions before setting deleted question to 'y'.
@@ -99,9 +99,8 @@ if ($delq) {
         }
     }
     // Delete section breaks without asking for confirmation.
-    $qtype = $questionnaire->questions[$qid]->type_id;
     // No need to delete responses to those "question types" which are not real questions.
-    if ($qtype == QUESPAGEBREAK || $qtype == QUESSECTIONTEXT) {
+    if (!$questionnaire->questions[$qid]->supports_responses()) {
         $reload = true;
     } else {
         // Delete responses to that deleted question.
@@ -115,8 +114,7 @@ if ($delq) {
             foreach ($haschildren as $qid => $child) {
                 // Need to reload questions first.
                 $questions = $DB->get_records('questionnaire_question', ['survey_id' => $sid, 'deleted' => 'n'], 'id');
-                /*
-                 * Dependencies to the deleted question are listed and the direct ones removed - but not the childs themselfes.
+                /* Dependencies to the deleted question are listed and the direct ones removed - but not the childs themselfes.
                  *
                  * It would be painful for users to force deletion of all dependend questions in dependency-mode.
                  * 1. childs can have multiple parents
@@ -148,7 +146,7 @@ if ($delq) {
 
     // Log question deleted event.
     $context = context_module::instance($questionnaire->cm->id);
-    $questiontype = \mod_questionnaire\question\base::qtypename($qtype);
+    $questiontype = \mod_questionnaire\question\base::qtypename($questionnaire->questions[$qid]->type_id);
     $params = array(
                     'context' => $context,
                     'courseid' => $questionnaire->course->id,
@@ -213,7 +211,7 @@ if ($action == 'main') {
             if ($questionnairehasdependencies) {
                 // Important: due to possibly multiple parents per question
                 // just remove the dependency and inform the user about it.
-                $haschildren = questionnaire_get_descendants ($questionnaire->questions, $qid);
+                $haschildren = $questionnaire->get_descendants($qid);
             }
             if (count($haschildren) != 0) {
                 $action = "confirmdelquestionparent";

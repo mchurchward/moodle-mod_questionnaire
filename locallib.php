@@ -691,92 +691,6 @@ function questionnaire_get_editor_options($context) {
     );
 }
 
-// Skip logic: we need to find out how many questions will actually be displayed on next page/section.
-function questionnaire_nb_questions_on_page ($questionsinquestionnaire, $questionsinsection, $rid) {
-    global $DB;
-    $questionstodisplay = [];
-
-    foreach ($questionsinsection as $question) {
-        if (!empty($question->dependencies)) {
-            foreach ($question->dependencies as $dependency) {
-                switch ($questionsinquestionnaire[$dependency->dependquestionid]->type_id) {
-                    case QUESYESNO:
-                        if ($dependency->dependchoiceid == 0) {
-                            $questiondependchoice = 'y';
-                        } else {
-                            $questiondependchoice = 'n';
-                        }
-                        $responsetable = 'response_bool';
-                        break;
-                    case QUESCHECK:
-                        $questiondependchoice = $dependency->dependchoiceid;
-                        $responsetable = 'resp_multiple';
-                        break;
-                    default:
-                        $questiondependchoice = $dependency->dependchoiceid;
-                        $responsetable = 'resp_single';
-                }
-                $params = array('response_id' => $rid,
-                        'question_id' => $dependency->dependquestionid,
-                        'choice_id' => $questiondependchoice);
-
-                $recordexists = $DB->record_exists('questionnaire_'.$responsetable, $params);
-
-                // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
-                if ($dependency->dependandor == 'and') {
-                    $dependencyandfulfilled = false;
-                    // dependlogic == 1 -> this answer givven
-                    if ($dependency->dependlogic == 1 && $recordexists) {
-                        $dependencyandfulfilled = true;
-                    }
-
-                    // dependlogic == 0 -> this answer NOT givven
-                    if ($dependency->dependlogic == 0 && !$recordexists) {
-                        $dependencyandfulfilled = true;
-                    }
-
-                    // Something mandatory not fulfilled? Stop looking and continue to next question.
-                    if ($dependencyandfulfilled == false) {
-                        break;
-                    }
-
-                    // In case we have no or-dependencies.
-                    $dependencyorfulfilled = true;
-
-                }
-
-                // Note: dependencies are sorted, first all and-dependencies, then or-dependencies.
-                if ($dependency->dependandor == 'or') {
-                    $dependencyorfulfilled = false;
-                    // To reach this point, the and-dependencies have all been fultilled or do not exist, so set them ok.
-                    $dependencyandfulfilled = true;
-                    // dependlogic == 1 -> this answer givven
-                    if ($dependency->dependlogic == 1 && $recordexists) {
-                        $dependencyorfulfilled = true;
-                    }
-
-                    // dependlogic == 0 -> this answer NOT givven
-                    if ($dependency->dependlogic == 0 && !$recordexists) {
-                        $dependencyorfulfilled = true;
-                    }
-
-                    // Something fulfilled? A single match is sufficient so continue to next question.
-                    if ($dependencyorfulfilled == true) {
-                        break;
-                    }
-                }
-
-            }
-            if ($dependencyandfulfilled && $dependencyorfulfilled) {
-                $questionstodisplay [] = $question->id;
-            }
-        } else {
-            $questionstodisplay [] = $question->id;
-        }
-    }
-    return $questionstodisplay;
-}
-
 // Get the parent of a child question.
 function questionnaire_get_parent ($question) {
     global $DB;
@@ -881,28 +795,6 @@ function questionnaire_get_child_positions ($questions) {
         }
     }
     return $childpositions;
-}
-
-
-/**
- * Check if current questionnaire has (adv)dependencies set.
- * TODO would be a good place to toggle behaviour for
- * branching-modes (0=off, 1=normal, 2=advanced)
- * E.g. always return false if $questionnaire->navigate == 0
- *
- * @param array $questions Array of question objects in the questionnaire.
- * @return boolean Whether dependencies are set or not.
- */
-function questionnaire_has_dependencies($questions) {
-    foreach ($questions as $question) {
-        if (!($question instanceof \mod_questionnaire\question\base)) {
-            throw new coding_exception('Non question object passed in the array.');
-        } else if (!empty($question->dependencies)) {
-            return true;
-            break;
-        }
-    }
-    return false;
 }
 
 // Check that the needed page breaks are present to separate child questions.
@@ -1016,86 +908,6 @@ function questionnaire_check_page_breaks($questionnaire) {
         }
     }
     return($msg);
-}
-
-// Get all descendants and choices for questions with descendants.
-function questionnaire_get_descendants_and_choices ($questions) {
-    $questions = array_reverse($questions, true);
-    $qu = array();
-    foreach ($questions as $question) {
-        if ($question->dependquestion) {
-            $dq = $question->dependquestion;
-            $dc = $question->dependchoice;
-            $qid = $question->id;
-
-            $qu['descendants'][$dq][] = 'qn-'.$qid;
-            if (array_key_exists($qid, $qu['descendants'])) {
-                foreach ($qu['descendants'][$qid] as $q) {
-                    $qu['descendants'][$dq][] = $q;
-                }
-            }
-            $qu['choices'][$dq][$dc][] = 'qn-'.$qid;
-        }
-    }
-    return($qu);
-}
-
-function questionnaire_get_descendants ($questions, $questionid) {
-    $questions = array_reverse($questions, true);
-    $qu = [];
-
-    // Create an array which shows for every question the child-IDs.
-    foreach ($questions as $question) {
-        if ($question->dependencies) {
-            foreach ($question->dependencies as $dependency) {
-                $dq = $dependency->dependquestionid;
-                $qid = $question->id;
-                if (!isset($qu[$dq]) || !in_array($qid, $qu[$dq])) {
-                    $qu[$dq][] = $qid;
-                }
-                if (array_key_exists($qid, $qu)) {
-                    foreach ($qu[$qid] as $q) {
-                            $qu[$dq][] = $q;
-                    }
-                }
-
-            }
-        }
-    }
-
-    $descendants = [];
-    if (isset($qu[$questionid])) {
-        foreach ($qu[$questionid] as $descendant) {
-            $childquestion = $questions[$descendant];
-
-            foreach ($childquestion->dependencies as $dependencyhelper) {
-                // TODO this is just a workaround to use questionnaire_get_parents.
-                $childquestion->dependquestionid = $dependencyhelper->dependquestionid;
-                $childquestion->dependchoiceid = $dependencyhelper->dependchoiceid;
-                $parent = questionnaire_get_parent ($childquestion);
-
-                // Add dependency specific data to the get_parent results so the presentation can be tailored.
-                $parent[key($parent)]['dependlogic'] = $dependencyhelper->dependlogic;
-                $parent[key($parent)]['dependandor'] = $dependencyhelper->dependandor;
-
-                // Create subarrays to avoid reducing the results to one dependency per question.
-                $descendants[key($parent)][] = $parent[key($parent)];
-            }
-        }
-        uasort($descendants, 'questionnaire_cmp');
-    }
-    return($descendants);
-}
-
-// Function to sort descendants array in questionnaire_get_descendants function.
-function questionnaire_cmp($a, $b) {
-    if ($a == $b) {
-        return 0;
-    } else if ($a < $b) {
-        return -1;
-    } else {
-        return 1;
-    }
 }
 
 /**
