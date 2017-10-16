@@ -22,6 +22,8 @@
  * @package questionnaire
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->dirroot.'/course/moodleform_mod.php');
 require_once($CFG->dirroot.'/mod/questionnaire/questionnaire.class.php');
 require_once($CFG->dirroot.'/mod/questionnaire/locallib.php');
@@ -74,11 +76,13 @@ class mod_questionnaire_mod_form extends moodleform_mod {
         $mform->addElement('select', 'resp_view', get_string('responseview', 'questionnaire'), $questionnaireresponseviewers);
         $mform->addHelpButton('resp_view', 'responseview', 'questionnaire');
 
+        $mform->addElement('selectyesno', 'notifications', get_string('notifications', 'questionnaire'));
+        $mform->addHelpButton('notifications', 'notifications', 'questionnaire');
+
         $options = array('0' => get_string('no'), '1' => get_string('yes'));
         $mform->addElement('select', 'resume', get_string('resume', 'questionnaire'), $options);
         $mform->addHelpButton('resume', 'resume', 'questionnaire');
-
-        $options = array('0' => get_string('no'), '1' => get_string('yes'));
+        $options = array('0' => get_string('no'), '1' => get_string('yes'), '2' => get_string('advancedsettings'));
         $mform->addElement('select', 'navigate', get_string('navigate', 'questionnaire'), $options);
         $mform->addHelpButton('navigate', 'navigate', 'questionnaire');
 

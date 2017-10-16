@@ -15,9 +15,9 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template mod_questionnaire/response_text
+    @template mod_questionnaire/question_sectiontext
 
-    Template which defines a text type question survey display.
+    Template which defines a sectiontext type question survey display.
 
     Classes required for JS:
     * /mod/questionnaire/module.js
@@ -29,11 +29,17 @@
 
     Example context (json):
     {
-        "content": "HTML for numeric"
+        "qelements": {
+            "choice": {
+                "fb": "feedback messages"
+            }
+        }
     }
     }}
-<!-- Begin HTML generated from response_text template. -->
-<div class="questionnaire_response questionnaire_text">
-    <span class="selected">{{{content}}}</span>
-</div>
-<!-- End HTML generated from response_text template. -->
+<!-- Begin HTML generated from question_sectiontext template. -->
+{{#qelements}}
+{{#choice}}
+{{{choice.fb}}}
+{{/choice}}
+{{/qelements}}
+<!-- End HTML generated from question_sectiontext template. -->

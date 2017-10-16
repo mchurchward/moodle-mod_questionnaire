@@ -15,10 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @authors Mike Churchward & Joseph Rézeau
+ * @package mod_questionnaire
+ * @copyright  2016 Mike Churchward (mike.churchward@poetgroup.org)
+ * @author Mike Churchward & Joseph Rézeau
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @package questionnaire
  */
+
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->libdir . '/formslib.php');
 
 class mod_questionnaire_edit_question_form extends moodleform {
@@ -37,7 +42,7 @@ class mod_questionnaire_edit_question_form extends moodleform {
         $mform =& $this->_form;
 
         // Each question can provide its own form elements to the provided form, or use the default ones.
-        if (!$question->edit_form($mform, $questionnaire, $this->_customdata['modcontext'])) {
+        if (!$question->edit_form($mform, $questionnaire, $this->_customdata['modcontext'], $this)) {
             print_error("Question type had an unknown error in the edit_form method.");
         }
     }

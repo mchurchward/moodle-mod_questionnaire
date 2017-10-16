@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-global $SESSION, $CFG;
 require_once("../../config.php");
 require_once($CFG->dirroot.'/mod/questionnaire/questionnaire.class.php');
 
@@ -555,10 +554,8 @@ switch ($action) {
                             '<\/option>/', '', $groupselect);
                 }
             }
-            $respinfo .= isset($groupselect) ? $groupselect : '';
+            $respinfo .= isset($groupselect) ? ($groupselect . ' ') : '';
             $currentgroupid = groups_get_activity_group($cm);
-        } else {
-            $respinfo .= '<br />';
         }
         if ($currentgroupid > 0) {
              $groupname = get_string('group').': <strong>'.groups_get_group_name($currentgroupid).'</strong>';
