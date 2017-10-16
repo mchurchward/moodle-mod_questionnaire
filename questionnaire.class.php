@@ -3487,6 +3487,7 @@ public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allr
 			$allscore = array($allscorepercent, 100 - $allscorepercent);
 		}
 		$usergraph = get_config('questionnaire', 'usergraph');
+
 		if ($usergraph && $this->survey->chart_type) {
 			$this->page->add_to_page('feedbackcharts',
 					draw_chart ($feedbacktype = 'global', $this->survey->chart_type, $labels,
@@ -3527,6 +3528,9 @@ public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allr
 	$alloppositescorepercent = array();
 	$chartlabels = array();
 	$chartscore = array();
+	// sections where all questions are unseen because of the $advdependencies
+	$nanScores = array();
+
 	for ($i = 1; $i <= $feedbacksections; $i++) {
 		$score[$i] = 0;
 		$allscore[$i] = 0;
@@ -3567,7 +3571,13 @@ public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allr
 				}
 			}
 		}
-		
+
+        // all questions of $section are unseen
+        // -> $maxscore[$section] never increased
+        // -> isset($qscore[$qid]) == false (see above)
+		if($advdependencies && $maxscore[$section] == 0){
+		    array_push($nanScores, $section);
+        }
 		$scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100);
 		$oppositescorepercent[$section] = 100 - $scorepercent[$section];
 		
@@ -3577,6 +3587,13 @@ public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allr
 		}
 		
 		if (!$allresponses) {
+		    if($advdependencies && is_nan($scorepercent[$section]) ){
+		        // all questions of $section are unseen
+		        // -> $scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100) == NAN
+                // -> $maxscore[$section] == 0 -> division by zero
+                // $DB->get_record_select(...) fails, don't show feedbackmessage
+                continue;
+            }
 			// To eliminate all potential % chars in heading text (might interfere with the sprintf function).
 			$sectionheading = str_replace('%', '', $sectionheading);
 			
@@ -3632,19 +3649,42 @@ public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allr
 		} else {
 			$sectionlabel = $chartlabels[$key];
 		}
-		if ($compare) {
-			$table->data[] = array($sectionlabel, $scorepercent[$key].'%'.$oppositescore,
-					$allscorepercent[$key].'%'.$oppositeallscore);
-		} else {
-			$table->data[] = array($sectionlabel, $allscorepercent[$key].'%'.$oppositeallscore);
-		}
+
+        if($advdependencies) {
+		    // if all questions of $section are unseen then don't show feedbackscores for this section
+            if ($compare and !is_nan($scorepercent[$key])) {
+                $table->data[] = array($sectionlabel, $scorepercent[$key] . '%' . $oppositescore,
+                    $allscorepercent[$key] . '%' . $oppositeallscore);
+            } else if (!is_nan($allscorepercent[$key])){
+                $table->data[] = array($sectionlabel, $allscorepercent[$key] . '%' . $oppositeallscore);
+            }
+        } else{
+            if ($compare) {
+                $table->data[] = array($sectionlabel, $scorepercent[$key] . '%' . $oppositescore,
+                    $allscorepercent[$key] . '%' . $oppositeallscore);
+            } else {
+                $table->data[] = array($sectionlabel, $allscorepercent[$key] . '%' . $oppositeallscore);
+            }
+        }
+
 	}
 	$usergraph = get_config('questionnaire', 'usergraph');
+
+    if ($advdependencies){
+        // don't show feedbackcharts for sections in $nanScores
+        // -> remove sections from array
+        foreach ($nanScores as $val){
+            unset($chartlabels[$val]);
+            unset($scorepercent[$val]);
+            unset($allscorepercent[$val]);
+        }
+    }
+
 	if ($usergraph && $this->survey->chart_type) {
 		$this->page->add_to_page('feedbackcharts',
 				draw_chart($feedbacktype = 'sections', $this->survey->chart_type, array_values($chartlabels),
 						array_values($scorepercent), array_values($allscorepercent), $sectionlabel, $groupname, $allresponses));
-	}
+    }
 	if ($this->survey->feedbackscores) {
 		$this->page->add_to_page('feedbackscores', html_writer::table($table));
 	}
