@@ -957,13 +957,8 @@ abstract class base {
             /* I decided to allow changing dependencies of parent questions, because forcing the editor to remove dependencies
              * bottom up, starting at the lowest child question is a pain for large questionnaires.
              * So the following "if" becomes the default and the else-branch is completely commented.
-<<<<<<< HEAD
-             * TODO Since the best way to get the list of child questions is currently to click on delete (and choose not to delete),
-             * one might consider to list the child questions in addition here.
-=======
              * TODO Since the best way to get the list of child questions is currently to click on delete (and choose not to
              * delete), one might consider to list the child questions in addition here.
->>>>>>> MOODLE_33_NEW_QUESTION_DEPENDENCIES
              */
 
             // Area for "must"-criteria.
