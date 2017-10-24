@@ -47,7 +47,7 @@ class sectiontext extends base {
         global $DB, $CFG, $PAGE;
         require_once($CFG->dirroot.'/mod/questionnaire/questionnaire.class.php');
 
-        // if !isset then normal behavior as sectiontext question
+        // If !isset then normal behavior as sectiontext question.
         if(!isset($data->questionnaire_id)){
             return '';
         }
@@ -55,7 +55,7 @@ class sectiontext extends base {
         $fbsections = $DB->get_records('questionnaire_fb_sections', array('survey_id' => $this->survey_id));
         $filteredSections = array();
 
-        // in which section(s) is this question?
+        // In which section(s) is this question?
         foreach ($fbsections as $key => $fbsection) {
             $scorecalculation = unserialize($fbsection->scorecalculation);
             if(array_key_exists($this->id, $scorecalculation)){
@@ -63,7 +63,7 @@ class sectiontext extends base {
             }
         }
 
-        // if empty then normal behavior as sectiontext question
+        // If empty then normal behavior as sectiontext question.
         if(empty($filteredSections)){
             return '';
         }
@@ -79,10 +79,10 @@ class sectiontext extends base {
         $isgroupmember = false;
         $resps = [$data->rid=>null];
         $rid = $data->rid;
-        // $filteredSections -> get the feedback messages only for this sections!
+        // For $filteredSections -> get the feedback messages only for this sections!
         $feedbackmessages = $questionnaire->response_analysis($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredSections);
 
-        // output
+        // Output.
         $questiontags = new \stdClass();
         $questiontags->qelements = new \stdClass();
         $choice = new \stdClass();
