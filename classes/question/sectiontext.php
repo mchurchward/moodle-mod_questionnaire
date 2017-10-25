@@ -48,23 +48,23 @@ class sectiontext extends base {
         require_once($CFG->dirroot.'/mod/questionnaire/questionnaire.class.php');
 
         // If !isset then normal behavior as sectiontext question.
-        if(!isset($data->questionnaire_id)){
+        if (!isset($data->questionnaire_id)) {
             return '';
         }
 
-        $fbsections = $DB->get_records('questionnaire_fb_sections', array('survey_id' => $this->survey_id));
-        $filteredSections = array();
+        $fbsections = $DB->get_records('questionnaire_fb_sections', ['survey_id' => $this->survey_id]);
+        $filteredsections = [];
 
         // In which section(s) is this question?
         foreach ($fbsections as $key => $fbsection) {
             $scorecalculation = unserialize($fbsection->scorecalculation);
-            if(array_key_exists($this->id, $scorecalculation)){
-                array_push($filteredSections, $fbsection->section);
+            if (array_key_exists($this->id, $scorecalculation)) {
+                array_push($filteredsections, $fbsection->section);
             }
         }
 
         // If empty then normal behavior as sectiontext question.
-        if(empty($filteredSections)){
+        if (empty($filteredsections)) {
             return '';
         }
 
@@ -77,10 +77,11 @@ class sectiontext extends base {
         $allresponses = false;
         $currentgroupid = 0;
         $isgroupmember = false;
-        $resps = [$data->rid=>null];
+        $resps = [$data->rid => null];
         $rid = $data->rid;
-        // For $filteredSections -> get the feedback messages only for this sections!
-        $feedbackmessages = $questionnaire->response_analysis($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid, $filteredSections);
+        // For $filteredsections -> get the feedback messages only for this sections!
+        $feedbackmessages = $questionnaire->response_analysis($rid, $resps, $compare, $isgroupmember, $allresponses,
+            $currentgroupid, $filteredsections);
 
         // Output.
         $questiontags = new \stdClass();
