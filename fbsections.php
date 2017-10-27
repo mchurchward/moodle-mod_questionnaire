@@ -247,7 +247,7 @@ foreach ($questionnaire->questions as $question) {
         }
         if ($qhasvalues || $qtype == QUESSECTIONTEXT) {
             $questionnaire->page->add_to_page('formarea',
-                $questionnaire->renderer->question_output($question, $formdata, null, $n, true));
+                $questionnaire->renderer->question_output($question, $formdata, [], $n, true));
         }
     } else {
         $questionnaire->page->add_to_page('formarea', '<div class="notifyproblem">');
