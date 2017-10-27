@@ -61,4 +61,21 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I set the field "id_feedbacknotes" to "These are the main Feedback notes"
     And I press "Save settings and edit Feedback Sections"
     Then I should see "Global Feedback heading"
+    And I set the field "id_sectionlabel" to "Global feedback label"
+    And I set the field "id_sectionheading" to "Global section heading"
+    And I set the field "id_feedbacktext_0" to "Feedback 100%"
+    And I set the field "id_feedbackboundaries_0" to "50"
+    And I set the field "id_feedbacktext_1" to "Feedback 50%"
+    And I set the field "id_feedbackboundaries_1" to "20"
+    And I set the field "id_feedbacktext_2" to "Feedback 20%"
+    And I press "Save settings"
     And I log out
+
+#  Scenario: Student completes feedback questions.
+    And I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test questionnaire"
+    And I navigate to "Answer the questions..." in current page administration
+    Then I should see "Select one choice"
+    And I set the field "Select one choice" to "Three"
+    And I press "Submit questionnaire"
