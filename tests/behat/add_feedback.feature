@@ -30,14 +30,14 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I add a "Dropdown Box" question and I fill the form with:
       | Question Name | Q1 |
       | Yes | y |
-      | Question Text | Select one choice |
+      | Question Text | Select one dropdown |
       | Possible answers | 1=One,2=Two,3=Three,4=Four |
     Then I should see "[Dropdown Box] (Q1)"
     And I add a "Radio Buttons" question and I fill the form with:
       | Question Name | Q2 |
       | Yes | y |
       | Horizontal | Checked |
-      | Question Text | Select one choice |
+      | Question Text | Select one radio |
       | Possible answers | 1=One,2=Two,3=Three,4=Four |
     Then I should see "[Radio Buttons] (Q2)"
     And I add a "Rate (scale 1..5)" question and I fill the form with:
@@ -46,12 +46,12 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
       | Nb of scale items | 4 |
       | Type of rate scale | N/A column |
       | Question Text | Rate these |
-      | Possible answers | 1=One,2=Two,3=Three,4=Four |
+      | Possible answers | 1=One,2=Two,3=Three,4=Four,Cheese,Bread,Meat,Fruit |
     Then I should see "[Rate (scale 1..5)] (Q3)"
     And I add a "Yes/No" question and I fill the form with:
       | Question Name | Q4 |
       | Yes | y |
-      | Question Text | Are you still in School? |
+      | Question Text | Yes or no |
     Then I should see "[Yes/No] (Q4)"
     And I follow "Advanced settings"
     And I should see "Feedback options"
@@ -76,6 +76,13 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I am on "Course 1" course homepage
     And I follow "Test questionnaire"
     And I navigate to "Answer the questions..." in current page administration
-    Then I should see "Select one choice"
-    And I set the field "Select one choice" to "Three"
+    Then I should see "Select one dropdown"
+    And I set the field "Select one dropdown" to "Three"
+    And I click on "Three" "radio"
+    And I click on "Choice 3 for row 1" "radio"
+    And I click on "Choice 3 for row 2" "radio"
+    And I click on "Choice 3 for row 3" "radio"
+    And I click on "Choice 3 for row 4" "radio"
+    And I click on "Yes" "radio"
     And I press "Submit questionnaire"
+    Then I should see "Thank you for completing this Questionnaire."
