@@ -326,7 +326,7 @@ foreach ($questionnaire->questions as $question) {
         if ($qhasvalues || $qtype == QUESSECTIONTEXT) {
             // Info: $n-$fb display sectiontext without a number and do not count them.
             $questionnaire->page->add_to_page('formarea',
-                $questionnaire->renderer->question_output($question, $formdata, '', $n - $fb, true));
+                $questionnaire->renderer->question_output($question, $formdata, [], $n - $fb, true));
         }
     } else {
         $questionnaire->page->add_to_page('formarea', '<div class="notifyproblem">');
