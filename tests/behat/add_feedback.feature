@@ -86,3 +86,33 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I click on "Yes" "radio"
     And I press "Submit questionnaire"
     Then I should see "Thank you for completing this Questionnaire."
+    And I follow "Continue"
+    Then I should see "Your response"
+    And I should see "These are the main Feedback notes"
+    And I should see "Global feedback label"
+    And I should see "76%"
+    And I should see "Feedback 100%"
+    And I log out
+
+#  Scenario: Another student completes feedback questions differently.
+    And I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test questionnaire"
+    And I navigate to "Answer the questions..." in current page administration
+    Then I should see "Select one dropdown"
+    And I set the field "Select one dropdown" to "One"
+    And I click on "One" "radio"
+    And I click on "Choice 2 for row 1" "radio"
+    And I click on "Choice 2 for row 2" "radio"
+    And I click on "Choice 2 for row 3" "radio"
+    And I click on "Choice 2 for row 4" "radio"
+    And I click on "Yes" "radio"
+    And I press "Submit questionnaire"
+    Then I should see "Thank you for completing this Questionnaire."
+    And I follow "Continue"
+    Then I should see "Your response"
+    And I should see "These are the main Feedback notes"
+    And I should see "Global feedback label"
+    And I should see "44%"
+    And I should see "Feedback 50%"
+    And I log out
