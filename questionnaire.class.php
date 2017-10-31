@@ -3377,31 +3377,31 @@ class questionnaire {
         foreach ($questions as $question) {
             $qid = $question->id;
             $qtype = $question->type_id;
-            $required = $question->required;
-            if ((($qtype == QUESRADIO) || ($qtype == QUESDROP) || ($qtype == QUESRATE)) && ($required == 'y')) {
-                if (!isset($qmax[$qid])) {
-                    $qmax[$qid] = 0;
-                }
-                $nbchoices = 1;
-                if ($qtype == QUESRATE) {
-                    $nbchoices = 0;
-                }
-                foreach ($question->choices as $choice) {
-                    // Testing NULL and 'NULL' because I changed the automatic null value, must be fixed later... TODO.
-                    if (isset($choice->value) && $choice->value != null && $choice->value != 'NULL') {
-                        if ($choice->value > $qmax[$qid]) {
-                            $qmax[$qid] = $choice->value;
-                        }
-                    } else {
-                        $nbchoices ++;
+            if ($question->valid_feedback() && ($question->required == 'y')) {
+                if ($qtype == QUESYESNO) {
+                    $qmax[$qid] = 1;
+                    $maxtotalscore += 1;
+                } else {
+                    if (!isset($qmax[$qid])) {
+                        $qmax[$qid] = 0;
                     }
+                    $nbchoices = 1;
+                    if ($qtype == QUESRATE) {
+                        $nbchoices = 0;
+                    }
+                    foreach ($question->choices as $choice) {
+                        // Testing NULL and 'NULL' because I changed the automatic null value, must be fixed later... TODO.
+                        if (isset($choice->value) && $choice->value != null && $choice->value != 'NULL') {
+                            if ($choice->value > $qmax[$qid]) {
+                                $qmax[$qid] = $choice->value;
+                            }
+                        } else {
+                            $nbchoices++;
+                        }
+                    }
+                    $qmax[$qid] = $qmax[$qid] * $nbchoices;
+                    $maxtotalscore += $qmax[$qid];
                 }
-                $qmax[$qid] = $qmax[$qid] * $nbchoices;
-                $maxtotalscore += $qmax[$qid];
-            }
-            if (($qtype == QUESYESNO) && ($required == 'y')) {
-                $qmax[$qid] = 1;
-                $maxtotalscore += 1;
             }
         }
         // Just in case no values have been entered in the various questions possible answers field.

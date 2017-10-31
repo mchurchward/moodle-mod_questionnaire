@@ -102,6 +102,21 @@ class behat_mod_questionnaire extends behat_base {
     }
 
     /**
+     * Selects a radio button option in the named radio button group.
+     *
+     * @Given /^I click the "([^"]*)" radio button$/
+     *
+     * @param string $radiogroupname The "id" attribute of the radio button.
+     */
+    public function i_click_the_radio_button($radioid) {
+        $session = $this->getSession();
+        $page = $session->getPage();
+//        $session->wait(5000);
+        $radios = $page->findAll('xpath', '//input[@type="radio" and @id="'.$radioid.'"]');
+        $radios[0]->click();
+    }
+
+    /**
      * Adds a questions and responses to the questionnaire with the provided name.
      *
      * @Given /^"([^"]*)" has questions and responses$/

@@ -199,7 +199,6 @@ $descendantsdata = array();
 foreach ($questionnaire->questions as $question) {
     $qtype = $question->type_id;
     $qname = $question->name;
-    $qprecise = $question->precise;
     $required = $question->required;
     $qid = $question->id;
 
@@ -212,127 +211,96 @@ foreach ($questionnaire->questions as $question) {
 
     $cannotuse = false;
     $strcannotuse = '';
-    if ($qtype != QUESSECTIONTEXT && $qtype != QUESPAGEBREAK
-        && ($qtype != QUESYESNO && $qtype != QUESRADIO && $qtype != QUESRATE
-            || $required != 'y' || $qname == '' || $question->has_dependencies())) {
-        $cannotuse = true;
-        $qn = '<strong>'.$n.'</strong>';
+    if ($question->supports_feedback() && !$question->has_dependencies()) {
+        $qn = '<strong>' . $n . '</strong>';
         if ($qname == '') {
+            $cannotuse = true;
             $strcannotuse = get_string('missingname', 'questionnaire', $qn);
         }
         if ($required != 'y') {
+            $cannotuse = true;
             if ($qname == '') {
                 $strcannotuse = get_string('missingnameandrequired', 'questionnaire', $qn);
             } else {
                 $strcannotuse = get_string('missingrequired', 'questionnaire', $qn);
             }
         }
-        if ($question->has_dependencies()) {
-            continue;
-        }
-    }
 
-    // Info: QUESSECTIONTEXT (Label), cannotuse == true -> label in feedback sections.
-    if ($qtype == QUESSECTIONTEXT) {
-        $cannotuse = false;
-        $fb++;
-    }
-
-    $qhasvalues = false;
-    if (!$cannotuse) {
-        if ($qtype == QUESRADIO || $qtype == QUESDROP) {
-            if ($choices = $DB->get_records('questionnaire_quest_choice', array('question_id' => $qid = $question->id))) {
-                foreach ($choices as $choice) {
-                    if ($choice->value != null) {
-                        $qhasvalues = true;
-                        break;
+        if (!$cannotuse) {
+            if ($question->valid_feedback()) {
+                $questionnaire->page->add_to_page('formarea', '<div id="group_'.$qid.'">');
+                $emptyisglobalfeedback = $questionnaire->survey->feedbacksections == 1 && empty($questionsinsections);
+                $questionnaire->page->add_to_page('formarea', '<div style="margin-bottom:5px;">[' . $qname . ']</div>');
+                for ($i = 0; $i < $feedbacksections; $i++) {
+                    $output = '<div style="float:left; padding-right:5px;">';
+                    if ($i != 0) {
+                        // RadioButton -> Checkbox
+                        // onclick: Section > 0 selected? -> uncheck section 0.
+                        $output .= '<div class="' . $bg . '"><input type="checkbox" style="width: 60px;" name="' . $n . '_' . $i . '"' .
+                            ' id="' . $qid . '_' . $i . '" value="' . $i . '_' . $qid . '" ' .
+                            'onclick="document.getElementsByName(\''.$n.'_0\')[0].checked=false;"';
+                    } else {
+                        // Section 0
+                        // onclick: uncheck_boxes see below.
+                        $output .= '<div class="' . $bg . '">' .
+                            '<input type="checkbox" style="width: 60px;" onclick="uncheck_boxes(\''.$n.'\');" name="' .
+                            $n . '_' . $i . '"' . ' id="' . $i . '" value="' . $i . '"';
                     }
-                }
-            }
-        }
 
-        // Valid questions in feedback sections can be of QUESNO type
-        // or of QUESRATE "normal" option type (i.e. not N/A nor nodupes).
-        if ($qtype == QUESYESNO || ($qtype == QUESRATE && ($qprecise == 0 || $qprecise == 3)) ) {
-            $qhasvalues = true;
-        }
-
-        // Info: QUESSECTIONTEXT (Label), show radio buttons -> select section for feedback ($filteredSections).
-        if ($qtype == QUESSECTIONTEXT) {
-            $qhasvalues = true;
-        }
-
-        if ($qhasvalues) {
-            $emptyisglobalfeedback = $questionnaire->survey->feedbacksections == 1 && empty($questionsinsections);
-            $questionnaire->page->add_to_page('formarea', '<div style="margin-bottom:5px;">['.$qname.']</div>');
-            for ($i = 0; $i < $feedbacksections; $i++) {
-                $output = '<div style="float:left; padding-right:5px;">';
-                if ($i != 0) {
-                    // RadioButton -> Checkbox
-                    // onclick: Section > 0 selected? -> uncheck section 0.
-                    $output .= '<div class="' . $bg . '"><input type="checkbox" style="width: 60px;" name="' . $n . '_' . $i . '"' .
-                        ' id="' . $qid . '_' . $i . '" value="' . $i . '_' . $qid . '" ' .
-                        'onclick="document.getElementsByName(\''.$n.'_0\')[0].checked=false;"';
-                } else {
-                    // Section 0
-                    // onclick: uncheck_boxes see below.
-                    $output .= '<div class="' . $bg . '">' .
-                        '<input type="checkbox" style="width: 60px;" onclick="uncheck_boxes(\''.$n.'\');" name="' .
-                        $n . '_' . $i . '"' . ' id="' . $i . '" value="' . $i . '"';
-                }
-
-                if ($i == 0 && !isset($vf[$qid])) {
-                    $output .= ' checked="checked"';
-                }
-                // Question already present in this section OR this is a Global feedback and questions are not set yet.
-                if ($emptyisglobalfeedback) {
-                    $output .= ' checked="checked"';
-                } else {
-                    // Check not only one checkbox per question.
-                    if (isset($vf[$qid])) {
-                        foreach ($vf[$qid] as $key => $value) {
-                            if ($i == $value) {
-                                $output .= ' checked="checked"';
+                    if ($i == 0 && !isset($vf[$qid])) {
+                        $output .= ' checked="checked"';
+                    }
+                    // Question already present in this section OR this is a Global feedback and questions are not set yet.
+                    if ($emptyisglobalfeedback) {
+                        $output .= ' checked="checked"';
+                    } else {
+                        // Check not only one checkbox per question.
+                        if (isset($vf[$qid])) {
+                            foreach ($vf[$qid] as $key => $value) {
+                                if ($i == $value) {
+                                    $output .= ' checked="checked"';
+                                }
                             }
                         }
                     }
-                }
-                $output .= ' />';
-                // Without last </div>, add inputfield for question in section.
-                $output .= '<label for="' . $qid . '_' . $i . '">' . '<div style="padding-left: 2px;">' . $i . '</div>' .
-                    '</label></div>';
-                // Info: $qtype != QUESSECTIONTEXT (Label) with feedback while anserwing the survey,
-                // needs only the section number(s) without weights (section == 0 -> normal behavior as Label question).
-                if ($i > 0 && $qtype != QUESSECTIONTEXT) {
-                    // Add Input fields for weights per section.
-                    if ($scorecalculationweights[$qid][$i]) {
-                        $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
-                            '" min="0.0" max="1.0" step="0.01" value="'. $scorecalculationweights[$qid][$i] .'">';
+                    $output .= ' />';
+                    // Without last </div>, add inputfield for question in section.
+                    $output .= '<label for="' . $qid . '_' . $i . '">' . '<div style="padding-left: 2px;">' . $i . '</div>' .
+                        '</label></div>';
+                    // Info: $qtype != QUESSECTIONTEXT (Label) with feedback while anserwing the survey,
+                    // needs only the section number(s) without weights (section == 0 -> normal behavior as Label question).
+                    if ($i > 0) {
+                        // Add Input fields for weights per section.
+                        if ($scorecalculationweights[$qid][$i]) {
+                            $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
+                                '" min="0.0" max="1.0" step="0.01" value="'. $scorecalculationweights[$qid][$i] .'">';
+                        } else {
+                            $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
+                                '" min="0.0" max="1.0" step="0.01" value="0">';
+                        }
+                    }
+                    // Now close div-Tag.
+                    $output .= '</div>';
+                    $questionnaire->page->add_to_page('formarea', $output);
+                    if ($bg == 'c0') {
+                        $bg = 'c1';
                     } else {
-                        $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
-                            '" min="0.0" max="1.0" step="0.01" value="0">';
+                        $bg = 'c0';
                     }
                 }
-                // Now close div-Tag.
-                $output .= '</div>';
-                $questionnaire->page->add_to_page('formarea', $output);
-                if ($bg == 'c0') {
-                    $bg = 'c1';
-                } else {
-                    $bg = 'c0';
-                }
+                $questionnaire->page->add_to_page('formarea',
+                    $questionnaire->renderer->question_output($question, $formdata, [], $n, true));
+                $questionnaire->page->add_to_page('formarea', '</div>');
+            } else if ($qtype == QUESSECTIONTEXT) {
+                $questionnaire->page->add_to_page('formarea',
+                    $questionnaire->renderer->question_output($question, $formdata, [], $n, true));
             }
+        } else {
+            $questionnaire->page->add_to_page('formarea', '<div class="notifyproblem">');
+            $questionnaire->page->add_to_page('formarea', $strcannotuse);
+            $questionnaire->page->add_to_page('formarea', '</div>');
+            $questionnaire->page->add_to_page('formarea', '<div class="qn-question">' . $question->content . '</div>');
         }
-        if ($qhasvalues || $qtype == QUESSECTIONTEXT) {
-            // Info: $n-$fb display sectiontext without a number and do not count them.
-            $questionnaire->page->add_to_page('formarea',
-                $questionnaire->renderer->question_output($question, $formdata, [], $n - $fb, true));
-        }
-    } else {
-        $questionnaire->page->add_to_page('formarea', '<div class="notifyproblem">');
-        $questionnaire->page->add_to_page('formarea', $strcannotuse);
-        $questionnaire->page->add_to_page('formarea', '</div>');
-        $questionnaire->page->add_to_page('formarea', '<div class="qn-question">'.$question->content.'</div>');
     }
 }
 
@@ -353,8 +321,8 @@ $questionnaire->page->add_to_page('formarea', $strfunc);
 
 // Submit/Cancel buttons.
 $url = $CFG->wwwroot.'/mod/questionnaire/view.php?id='.$cm->id;
-$questionnaire->page->add_to_page('formarea', '<div><input type="submit" name="savesettings" value="'.
-    get_string('feedbackeditmessages', 'questionnaire').'" /><a href="'.$url.'">'.get_string('cancel').'</a></div>');
+$questionnaire->page->add_to_page('formarea', '<div><input type="submit" name="savesettings" value="' .
+    get_string('feedbackeditmessages', 'questionnaire').'" class="btn btn-primary" /></div>');
 $questionnaire->page->add_to_page('formarea', $questionnaire->renderer->box_end());
 echo $questionnaire->renderer->header();
 echo $questionnaire->renderer->render($questionnaire->page);

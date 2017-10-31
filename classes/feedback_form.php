@@ -126,7 +126,7 @@ class feedback_form extends \moodleform {
         // Buttons.
         if ($currentsection < $feedbacksections) {
             $currentsection ++;
-            $sectionsnav = ' ('.$currentsection.'/'.$feedbacksections.')';
+            $sectionsnav = '('.$currentsection.'/'.$feedbacksections.')';
             $buttonarray[] = &$mform->createElement('submit', 'submitbutton',
                 get_string('feedbacknextsection', 'questionnaire', $sectionsnav));
         } else {

@@ -67,6 +67,13 @@ class radio extends base {
     }
 
     /**
+     * True if question type supports feedback options. False by default.
+     */
+    public function supports_feedback() {
+        return true;
+    }
+
+    /**
      * Return the context tags for the check question template.
      * @param object $data
      * @param array $dependants Array of all questions/choices depending on this question.

@@ -431,6 +431,28 @@ abstract class base {
     }
 
     /**
+     * True if question type supports feedback options. False by default.
+     */
+    public function supports_feedback() {
+        return false;
+    }
+
+    /**
+     * True if the question supports feedback and has valid settings for feedback. Override if the default logic is not enough.
+     */
+    public function valid_feedback() {
+        if ($this->supports_feedback() && $this->has_choices()) {
+            foreach ($this->choices as $choice) {
+                if ($choice->value != null) {
+                    return true;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Check question's form data for complete response.
      *
      * @param object $responsedata The data entered into the response.

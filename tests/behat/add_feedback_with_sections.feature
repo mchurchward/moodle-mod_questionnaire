@@ -1,11 +1,12 @@
 @mod @mod_questionnaire
-Feature: In questionnaire, personality tests can be constructed using feedback on specific question responses.
+Feature: In questionnaire, personality tests can be constructed using feedback on specific question responses and questions can be
+  assigned to sections.
   In order to define a feedback questionnaire
   As a teacher
-  I must add the required question types and complete the feedback options.
+  I must add the required question types and complete the feedback options with more than one section.
 
   @javascript
-  Scenario: Create a questionnaire with a rate question type and verify that feedback options exist.
+  Scenario: Create a questionnaire with a with feeback question types and add more than one feedback section.
     Given the following "users" exist:
       | username | firstname | lastname | email |
       | teacher1 | Teacher | 1 | teacher1@example.com |
@@ -23,9 +24,7 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I log in as "teacher1"
     And I am on "Course 1" course homepage
     And I follow "Test questionnaire"
-    And I navigate to "Advanced settings" in current page administration
-    Then I should not see "Feedback options"
-    And I follow "Questions"
+    And I navigate to "Questions" in current page administration
     Then I should see "Add questions"
     And I add a "Dropdown Box" question and I fill the form with:
       | Question Name | Q1 |
@@ -56,18 +55,37 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I follow "Advanced settings"
     And I should see "Feedback options"
     And I follow "Feedback options"
-    And I set the field "id_feedbacksections" to "Global Feedback"
+    And I set the field "id_feedbacksections" to "2 Feedback sections"
     And I set the field "id_feedbackscores" to "Yes"
     And I set the field "id_feedbacknotes" to "These are the main Feedback notes"
     And I press "Save settings and edit Feedback Sections"
-    Then I should see "Global Feedback heading"
-    And I set the field "id_sectionlabel" to "Global feedback label"
-    And I set the field "id_sectionheading" to "Global section heading"
-    And I set the field "id_feedbacktext_0" to "Feedback 100%"
+    Then I should see "Sections:"
+    And I should see "[Q1]"
+    And I should see "[Q2]"
+    And I should see "[Q3]"
+    And I should see "[Q4]"
+    And I click the "Q1_1" radio button
+    And I click the "Q2_1" radio button
+    And I click the "Q3_2" radio button
+    And I click the "Q4_2" radio button
+    And I press "Save Sections settings and edit Feedback Messages"
+    And I should see "Feedback heading for section 1/2"
+    And I set the field "id_sectionlabel" to "Section 1 label"
+    And I set the field "id_sectionheading" to "Section 1 heading"
+    And I set the field "id_feedbacktext_0" to "Feedback 1 100%"
     And I set the field "id_feedbackboundaries_0" to "50"
-    And I set the field "id_feedbacktext_1" to "Feedback 50%"
+    And I set the field "id_feedbacktext_1" to "Feedback 1 50%"
     And I set the field "id_feedbackboundaries_1" to "20"
-    And I set the field "id_feedbacktext_2" to "Feedback 20%"
+    And I set the field "id_feedbacktext_2" to "Feedback 1 20%"
+    And I press "Next section (2/2)"
+    And I should see "Feedback heading for section 2/2"
+    And I set the field "id_sectionlabel" to "Section 2 label"
+    And I set the field "id_sectionheading" to "Section 2 heading"
+    And I set the field "id_feedbacktext_0" to "Feedback 2 100%"
+    And I set the field "id_feedbackboundaries_0" to "50"
+    And I set the field "id_feedbacktext_1" to "Feedback 2 50%"
+    And I set the field "id_feedbackboundaries_1" to "20"
+    And I set the field "id_feedbacktext_2" to "Feedback 2 20%"
     And I press "Save settings"
     And I log out
 
@@ -89,9 +107,12 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I follow "Continue"
     Then I should see "Your response"
     And I should see "These are the main Feedback notes"
-    And I should see "Global feedback label"
+    And I should see "Section 1 label"
+    And I should see "75%"
+    And I should see "Feedback 1 100%"
+    And I should see "Section 2 label"
     And I should see "76%"
-    And I should see "Feedback 100%"
+    And I should see "Feedback 2 100%"
     And I log out
 
 #  Scenario: Another student completes feedback questions differently.
@@ -110,9 +131,11 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I press "Submit questionnaire"
     Then I should see "Thank you for completing this Questionnaire."
     And I follow "Continue"
-    Then I should see "Your response"
     And I should see "These are the main Feedback notes"
-    And I should see "Global feedback label"
-    And I should see "44%"
-    And I should see "Feedback 50%"
+    And I should see "Section 1 label"
+    And I should see "25%"
+    And I should see "Feedback 1 50%"
+    And I should see "Section 2 label"
+    And I should see "53%"
+    And I should see "Feedback 2 100%"
     And I log out
