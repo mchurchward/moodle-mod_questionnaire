@@ -60,6 +60,20 @@ class yesno extends base {
     }
 
     /**
+     * True if question type supports feedback options. False by default.
+     */
+    public function supports_feedback() {
+        return true;
+    }
+
+    /**
+     * True if the question supports feedback and has valid settings for feedback. Override if the default logic is not enough.
+     */
+    public function valid_feedback() {
+        return true;
+    }
+
+    /**
      * Returns an array of dependency options for the question as an array of id value / display value pairs. Override in specific
      * question types that support this.
      * @return array An array of valid pair options.
