@@ -64,10 +64,10 @@ Feature: In questionnaire, personality tests can be constructed using feedback o
     And I should see "[Q2]"
     And I should see "[Q3]"
     And I should see "[Q4]"
-    And I click the "Q1_1" radio button
-    And I click the "Q2_1" radio button
-    And I click the "Q3_2" radio button
-    And I click the "Q4_2" radio button
+    And I set the field "1_1" to "checked"
+    And I set the field "2_1" to "checked"
+    And I set the field "3_2" to "checked"
+    And I set the field "4_2" to "checked"
     And I press "Save Sections settings and edit Feedback Messages"
     And I should see "Feedback heading for section 1/2"
     And I set the field "id_sectionlabel" to "Section 1 label"

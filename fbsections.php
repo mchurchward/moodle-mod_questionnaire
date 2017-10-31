@@ -55,23 +55,22 @@ $errormsg = '';
          -> Checkboxes instead of RadioButtons
          -> Input for weights
    [qid][section] = weight for question (qid) in section */
-$scorecalculationweights = array();
+$scorecalculationweights = [];
 
 // Check if there are any feedbacks stored in database already to use them to check
 // the radio buttons on select questions in sections page.
-if ($fbsections = $DB->get_records('questionnaire_fb_sections',
-    array('survey_id' => $sid)) ) {
+if ($fbsections = $DB->get_records('questionnaire_fb_sections', ['survey_id' => $sid])) {
     $scorecalculation = '';
-    $questionsinsections = array();
+    $questionsinsections = [];
     for ($section = 1; $section <= $feedbacksections; $section++) {
         // Retrieve the scorecalculation formula and the section heading only once.
         foreach ($fbsections as $fbsection) {
             if (isset($fbsection->scorecalculation) && $fbsection->section == $section) {
                 $scorecalculation = unserialize($fbsection->scorecalculation);
                 foreach ($scorecalculation as $qid => $key) {
-                    if (!is_array($questionsinsections[$qid])) {
-                        $questionsinsections[$qid] = array();
-                        $scorecalculationweights[$qid] = array();
+                    if (!isset($questionsinsections[$qid]) || !is_array($questionsinsections[$qid])) {
+                        $questionsinsections[$qid] = [];
+                        $scorecalculationweights[$qid] = [];
                     }
                     array_push($questionsinsections[$qid], $section);
                     // $key != null -> 0.0 - 1.0
@@ -92,16 +91,16 @@ if (data_submitted()) {
         $action = 'savesettings';
         unset($vf['savesettings']);
     }
-    $scorecalculation = array();
-    $submittedvf = array();
-    $scorecalculationweights = array();
+    $scorecalculation = [];
+    $submittedvf = [];
+    $scorecalculationweights = [];
     foreach ($vf as $key => $value) {
         $qidsection = explode("|", $key);
         if ($qidsection[0] !== "weight") {
             continue;
         }
-        if (!is_array($scorecalculationweights[$qidsection[0]])) {
-            $scorecalculationweights[$qidsection[0]] = array();
+        if (!isset($scorecalculationweights[$qidsection[0]]) || !is_array($scorecalculationweights[$qidsection[0]])) {
+            $scorecalculationweights[$qidsection[0]] = [];
         }
         // Info: $qidsection[1] = qid;  $qidsection[2] = section.
         $scorecalculationweights[$qidsection[1]][$qidsection[2]] = $value;
@@ -194,7 +193,7 @@ $questionnaire->page->add_to_page('formarea', $questionnaire->renderer->box_star
 $questionnaire->page->add_to_page('formarea', $questionnaire->renderer->help_icon('feedbacksectionsselect', 'questionnaire'));
 $questionnaire->page->add_to_page('formarea', '<b>Sections:</b><br /><br />');
 $formdata = new stdClass();
-$descendantsdata = array();
+$descendantsdata = [];
 
 foreach ($questionnaire->questions as $question) {
     $qtype = $question->type_id;
@@ -271,7 +270,7 @@ foreach ($questionnaire->questions as $question) {
                     // needs only the section number(s) without weights (section == 0 -> normal behavior as Label question).
                     if ($i > 0) {
                         // Add Input fields for weights per section.
-                        if ($scorecalculationweights[$qid][$i]) {
+                        if (isset($scorecalculationweights[$qid][$i]) && $scorecalculationweights[$qid][$i]) {
                             $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
                                 '" min="0.0" max="1.0" step="0.01" value="'. $scorecalculationweights[$qid][$i] .'">';
                         } else {
