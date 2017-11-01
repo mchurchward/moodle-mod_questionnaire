@@ -3604,6 +3604,9 @@ class questionnaire {
         $alloppositescorepercent = array();
         $chartlabels = array();
         $chartscore = array();
+        // sections where all questions are unseen because of the $advdependencies
+        $nanScores = array();
+
         for ($i = 1; $i <= $feedbacksections; $i++) {
             $score[$i] = 0;
             $allscore[$i] = 0;
@@ -3625,12 +3628,18 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    $score[$section] += $qscore[$qid];
-                    $maxscore[$section] += $qmax[$qid];
-                    if ($compare || $allresponses) {
-                        $allscore[$section] += $allqscore[$qid];
+                    // MRC - I'm pretty sure a weight of zero should be ignored and presumed to be one.
+                    $key = ($key == 0) ? 1 : $key;
+                    $score[$section] += round($qscore[$qid] * $key);
+                    $maxscore[$section] += round($qmax[$qid] * $key);
+                    if ($compare  || $allresponses) {
+                        $allscore[$section] += round($allqscore[$qid] * $key);
                     }
                 }
+            }
+
+            if($maxscore[$section] == 0){
+                array_push($nanScores, $section);
             }
 
             $scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100);
@@ -3642,6 +3651,13 @@ class questionnaire {
             }
 
             if (!$allresponses) {
+                if(is_nan($scorepercent[$section])) {
+                    // Info: all questions of $section are unseen
+                    // -> $scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100) == NAN
+                    // -> $maxscore[$section] == 0 -> division by zero
+                    // $DB->get_record_select(...) fails, don't show feedbackmessage.
+                    continue;
+                }
                 // To eliminate all potential % chars in heading text (might interfere with the sprintf function).
                 $sectionheading = str_replace('%', '', $sectionheading);
 
@@ -3697,14 +3713,23 @@ class questionnaire {
             } else {
                 $sectionlabel = $chartlabels[$key];
             }
-            if ($compare) {
-                $table->data[] = array($sectionlabel, $scorepercent[$key].'%'.$oppositescore,
-                                $allscorepercent[$key].'%'.$oppositeallscore);
-            } else {
-                $table->data[] = array($sectionlabel, $allscorepercent[$key].'%'.$oppositeallscore);
+            // If all questions of $section are unseen then don't show feedbackscores for this section.
+            if ($compare and !is_nan($scorepercent[$key])) {
+                $table->data[] = array($sectionlabel, $scorepercent[$key] . '%' . $oppositescore,
+                    $allscorepercent[$key] . '%' . $oppositeallscore);
+            } else if (!is_nan($allscorepercent[$key])) {
+                $table->data[] = array($sectionlabel, $allscorepercent[$key] . '%' . $oppositeallscore);
             }
         }
         $usergraph = get_config('questionnaire', 'usergraph');
+
+        // Don't show feedbackcharts for sections in $nanScores -> remove sections from array.
+        foreach ($nanScores as $val){
+            unset($chartlabels[$val]);
+            unset($scorepercent[$val]);
+            unset($allscorepercent[$val]);
+        }
+
         if ($usergraph && $this->survey->chart_type) {
             $this->page->add_to_page('feedbackcharts',
                 draw_chart($feedbacktype = 'sections', $this->survey->chart_type, array_values($chartlabels),
