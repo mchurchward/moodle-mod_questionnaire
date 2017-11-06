@@ -3628,7 +3628,6 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    // MRC - I'm pretty sure a weight of zero should be ignored and presumed to be one.
                     $key = ($key == 0) ? 1 : $key;
                     $score[$section] += round($qscore[$qid] * $key);
                     $maxscore[$section] += round($qmax[$qid] * $key);
@@ -3642,11 +3641,12 @@ class questionnaire {
                 array_push($nanScores, $section);
             }
 
-            $scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100);
+            $scorepercent[$section] = ($maxscore[$section] > 0) ? (round($score[$section] / $maxscore[$section] * 100)) : 0;
             $oppositescorepercent[$section] = 100 - $scorepercent[$section];
 
             if (($compare || $allresponses) && $nbparticipants != 0) {
-                $allscorepercent[$section] = round( ($allscore[$section] / $nbparticipants) / $maxscore[$section] * 100);
+                $allscorepercent[$section] = ($maxscore[$section] > 0) ?
+                    (round(($allscore[$section] / $nbparticipants) / $maxscore[$section] * 100)) : 0;
                 $alloppositescorepercent[$section] = 100 - $allscorepercent[$section];
             }
 
