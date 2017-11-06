@@ -271,11 +271,12 @@ foreach ($questionnaire->questions as $question) {
                     if ($i > 0) {
                         // Add Input fields for weights per section.
                         if (isset($scorecalculationweights[$qid][$i]) && $scorecalculationweights[$qid][$i]) {
-                            $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
-                                '" min="0.0" max="1.0" step="0.01" value="'. $scorecalculationweights[$qid][$i] .'">';
+                            $output .= '<input type="number" style="width: 80px;" id="weight' . $qname . "_" . $i . '" ' .
+                                'name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.01" ' .
+                                'value="'. $scorecalculationweights[$qid][$i] .'">';
                         } else {
-                            $output .= '<input type="number" style="width: 80px;" name="weight|' . $qid . '|' . $i .
-                                '" min="0.0" max="1.0" step="0.01" value="0">';
+                            $output .= '<input type="number" style="width: 80px;" id="weight' . $qname . "_" . $i . '" ' .
+                                'name="weight|' . $qid . '|' . $i . '" min="0.0" max="1.0" step="0.01" value="0">';
                         }
                     }
                     // Now close div-Tag.

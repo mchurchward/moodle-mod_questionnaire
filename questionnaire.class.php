@@ -3605,7 +3605,7 @@ class questionnaire {
         $chartlabels = array();
         $chartscore = array();
         // sections where all questions are unseen because of the $advdependencies
-        $nanScores = array();
+        $nanscores = array();
 
         for ($i = 1; $i <= $feedbacksections; $i++) {
             $score[$i] = 0;
@@ -3637,21 +3637,20 @@ class questionnaire {
                 }
             }
 
-            if($maxscore[$section] == 0){
-                array_push($nanScores, $section);
+            if ($maxscore[$section] == 0) {
+                array_push($nanscores, $section);
             }
 
             $scorepercent[$section] = ($maxscore[$section] > 0) ? (round($score[$section] / $maxscore[$section] * 100)) : 0;
             $oppositescorepercent[$section] = 100 - $scorepercent[$section];
 
             if (($compare || $allresponses) && $nbparticipants != 0) {
-                $allscorepercent[$section] = ($maxscore[$section] > 0) ?
-                    (round(($allscore[$section] / $nbparticipants) / $maxscore[$section] * 100)) : 0;
+                $allscorepercent[$section] = ($maxscore[$section] > 0) ? (round(($allscore[$section] / $nbparticipants) / $maxscore[$section] * 100)) : 0;
                 $alloppositescorepercent[$section] = 100 - $allscorepercent[$section];
             }
 
             if (!$allresponses) {
-                if(is_nan($scorepercent[$section])) {
+                if (is_nan($scorepercent[$section])) {
                     // Info: all questions of $section are unseen
                     // -> $scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100) == NAN
                     // -> $maxscore[$section] == 0 -> division by zero
@@ -3723,8 +3722,8 @@ class questionnaire {
         }
         $usergraph = get_config('questionnaire', 'usergraph');
 
-        // Don't show feedbackcharts for sections in $nanScores -> remove sections from array.
-        foreach ($nanScores as $val){
+        // Don't show feedbackcharts for sections in $nanscores -> remove sections from array.
+        foreach ($nanscores as $val) {
             unset($chartlabels[$val]);
             unset($scorepercent[$val]);
             unset($allscorepercent[$val]);
