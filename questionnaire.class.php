@@ -3325,13 +3325,20 @@ class questionnaire {
 
     public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid) {
         global $DB, $CFG;
-        $action = optional_param('action', 'vall', PARAM_ALPHA);
-
         require_once($CFG->libdir.'/tablelib.php');
         require_once($CFG->dirroot.'/mod/questionnaire/drawchart.php');
-        if ($resp = $DB->get_record('questionnaire_response', array('id' => $rid)) ) {
+
+        // Find if there are any feedbacks in this questionnaire.
+        $sql = "SELECT * FROM {questionnaire_fb_sections} WHERE survey_id = ? AND section IS NOT NULL";
+        if (!$fbsections = $DB->get_records_sql($sql, [$this->survey->id])) {
+            return '';
+        }
+
+        $action = optional_param('action', 'vall', PARAM_ALPHA);
+
+        if ($resp = $DB->get_record('questionnaire_response', ['id' => $rid]) ) {
             $userid = $resp->userid;
-            if ($user = $DB->get_record('user', array('id' => $userid))) {
+            if ($user = $DB->get_record('user', ['id' => $userid])) {
                 $ruser = fullname($user);
             }
         }
@@ -3347,32 +3354,23 @@ class questionnaire {
         }
         if ($this->survey->feedbackscores) {
             $table = new html_table();
-            $table->size = array(null, null);
-            $table->align = array('left', 'right', 'right');
-            $table->head = array();
-            $table->wrap = array();
+            $table->size = [null, null];
+            $table->align = ['left', 'right', 'right'];
+            $table->head = [];
+            $table->wrap = [];
             if ($compare) {
-                $table->head = array(get_string('feedbacksection', 'questionnaire'), $ruser, $groupname);
+                $table->head = [get_string('feedbacksection', 'questionnaire'), $ruser, $groupname];
             } else {
-                $table->head = array(get_string('feedbacksection', 'questionnaire'), $groupname);
+                $table->head = [get_string('feedbacksection', 'questionnaire'), $groupname];
             }
         }
 
         $feedbacksections = $this->survey->feedbacksections;
-        $feedbackscores = $this->survey->feedbackscores;
-        $sid = $this->survey->id;
         $questions = $this->questions;
-
-        // Find if there are any feedbacks in this questionnaire.
-        $sql = "SELECT * FROM {questionnaire_fb_sections} WHERE survey_id = $sid AND section IS NOT NULL";
-        if (!$fbsections = $DB->get_records_sql($sql)) {
-            return null;
-        }
 
         $fbsectionsnb = array_keys($fbsections);
         // Calculate max score per question in questionnaire.
-        $qmax = array();
-        $totalscore = 0;
+        $qmax = [];
         $maxtotalscore = 0;
         foreach ($questions as $question) {
             $qid = $question->id;
@@ -3406,7 +3404,7 @@ class questionnaire {
         }
         // Just in case no values have been entered in the various questions possible answers field.
         if ($maxtotalscore === 0) {
-            return;
+            return '';
         }
         $feedbackmessages = array();
 
