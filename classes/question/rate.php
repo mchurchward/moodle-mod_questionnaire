@@ -187,6 +187,7 @@ class rate extends base {
             $choicetags->qelements['headerrow']['colnya'] = true;
         }
 
+        $collabel = [];
         for ($j = 0; $j < $this->length; $j++) {
             $col = [];
             if (isset($n[$j])) {
@@ -203,10 +204,12 @@ class rate extends base {
             }
             $col['colwidth'] = $colwidth;
             $col['coltext'] = $str.$val;
+            $collabel[$j] = $col['coltext'];
             $choicetags->qelements['headerrow']['cols'][] = $col;
         }
         if ($na) {
             $choicetags->qelements['headerrow']['cols'][] = ['colwidth' => $colwidth, 'coltext' => $na];
+            $collabel[$j] = $na;
         }
 
         $num = 0;
@@ -281,7 +284,7 @@ class rate extends base {
                     if (!empty($order)) {
                         $col['colinput']['onclick'] = $order;
                     }
-                    $col['colinput']['label'] = 'Choice '.$i.' for row '.$row;
+                    $col['colinput']['label'] = 'Choice '.$collabel[$j].' for row '.format_text($content, FORMAT_PLAIN);
                     if ($bg == 'c0 raterow') {
                         $bg = 'c1 raterow';
                     } else {

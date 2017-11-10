@@ -39,6 +39,11 @@ class rank extends base {
         return 'questionnaire_response_rank';
     }
 
+    /**
+     * @param int $rid
+     * @param mixed $val
+     * @return bool|int
+     */
     public function insert_response($rid, $val) {
         global $DB;
         if ($this->question->type_id == QUESRATE) {
@@ -76,7 +81,12 @@ class rank extends base {
         }
     }
 
-    protected function get_results($rids=false, $anonymous=false) {
+    /**
+     * @param bool $rids
+     * @param bool $anonymous
+     * @return array
+     */
+    public function get_results($rids=false, $anonymous=false) {
         global $DB;
 
         $rsql = '';
@@ -171,6 +181,66 @@ class rank extends base {
         }
     }
 
+    /**
+     * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
+     * @param array $rids
+     * @return array | boolean
+     */
+    public function get_feedback_scores(array $rids) {
+        global $DB;
+
+        $rsql = '';
+        $params = [$this->question->id];
+        if (!empty($rids)) {
+            list($rsql, $rparams) = $DB->get_in_or_equal($rids);
+            $params = array_merge($params, $rparams);
+            $rsql = ' AND response_id ' . $rsql;
+        }
+        $params[] = 'y';
+
+        $sql = 'SELECT r.id, r.response_id as rid, r.question_id AS qid, r.choice_id AS cid, r.rank ' .
+            'FROM {'.$this->response_table().'} r ' .
+            'INNER JOIN {questionnaire_quest_choice} c ON r.choice_id = c.id ' .
+            'WHERE r.question_id= ? ' . $rsql . ' ' .
+            'ORDER BY rid,cid ASC';
+         if (!($responses = $DB->get_recordset_sql($sql, $params))) {
+             return false;
+         }
+
+        $sql = 'SELECT id, value ' .
+            'FROM {questionnaire_quest_choice} ' .
+            'WHERE question_id = ? AND value IS NOT NULL ' .
+            'ORDER BY id ASC ';
+        if (!($scorerecs = $DB->get_records_sql($sql, $params))) {
+            return false;
+        }
+        // Reindex $scores as a zero starting array.
+        $scores = [];
+        foreach ($scorerecs as $scorerec) {
+            $scores[] = $scorerec->value;
+        }
+
+        $rid = 0;
+        $feedbackscores = [];
+        foreach ($responses as $response) {
+            if ($rid != $response->rid) {
+                $rid = $response->rid;
+                $feedbackscores[$rid] = new \stdClass();
+                $feedbackscores[$rid]->rid = $rid;
+                $feedbackscores[$rid]->score = 0;
+            }
+            $feedbackscores[$rid]->score += $scores[$response->rank];
+        }
+
+        return (!empty($feedbackscores) ? $feedbackscores : false);
+    }
+
+    /**
+     * @param bool $rids
+     * @param string $sort
+     * @param bool $anonymous
+     * @return string
+     */
     public function display_results($rids=false, $sort='', $anonymous=false) {
         $output = '';
 

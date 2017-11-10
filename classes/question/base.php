@@ -453,6 +453,20 @@ abstract class base {
     }
 
     /**
+     * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
+     * @param array $rids
+     * @return array | boolean
+     */
+    public function get_feedback_scores(array $rids) {
+        if ($this->valid_feedback() && isset($this->response) && is_object($this->response) &&
+            is_subclass_of($this->response, '\\mod_questionnaire\\response\\base')) {
+            return $this->response->get_feedback_scores($rids);
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Check question's form data for complete response.
      *
      * @param object $responsedata The data entered into the response.

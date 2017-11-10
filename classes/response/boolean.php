@@ -53,7 +53,7 @@ class boolean extends base {
         }
     }
 
-    protected function get_results($rids=false, $anonymous=false) {
+    public function get_results($rids=false, $anonymous=false) {
         global $DB;
 
         $rsql = '';
@@ -86,6 +86,37 @@ class boolean extends base {
         return $choice;
     }
 
+    /**
+     * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
+     * @param array $rids
+     * @return array | boolean
+     */
+    public function get_feedback_scores(array $rids) {
+        global $DB;
+
+        $rsql = '';
+        $params = [$this->question->id];
+        if (!empty($rids)) {
+            list($rsql, $rparams) = $DB->get_in_or_equal($rids);
+            $params = array_merge($params, $rparams);
+            $rsql = ' AND response_id ' . $rsql;
+        }
+        $params[] = 'y';
+
+        $sql = 'SELECT response_id as rid, COUNT(response_id) AS score ' .
+            'FROM {'.$this->response_table().'} ' .
+            'WHERE question_id= ? ' . $rsql . ' AND choice_id = ? ' .
+            'GROUP BY response_id ' .
+            'ORDER BY response_id ASC';
+        return $DB->get_recordset_sql($sql, $params);
+    }
+
+    /**
+     * @param bool $rids
+     * @param string $sort
+     * @param bool $anonymous
+     * @return string
+     */
     public function display_results($rids=false, $sort='', $anonymous=false) {
         $output = '';
 

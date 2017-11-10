@@ -3372,6 +3372,15 @@ class questionnaire {
         // Calculate max score per question in questionnaire.
         $qmax = [];
         $maxtotalscore = 0;
+
+        // Get all response ids for all respondents.
+        $rids = array();
+        foreach ($resps as $key => $resp) {
+            $rids[] = $key;
+        }
+        $nbparticipants = count($rids);
+        $responsescores = [];
+
         foreach ($questions as $question) {
             $qid = $question->id;
             $qtype = $question->type_id;
@@ -3401,112 +3410,39 @@ class questionnaire {
                     $maxtotalscore += $qmax[$qid];
                 }
             }
+
+            // Get all the feedback scores for this question.
+            $responsescores[$qid] = $question->get_feedback_scores($rids);
         }
         // Just in case no values have been entered in the various questions possible answers field.
         if ($maxtotalscore === 0) {
             return '';
         }
-        $feedbackmessages = array();
+        $feedbackmessages = [];
 
         // Get individual scores for each question in this responses set.
-        $qscore = array();
-        $allqscore = array();
-
-        // Get all response ids for all respondents.
-        $rids = array();
-        foreach ($resps as $key => $resp) {
-            $rids[] = $key;
-        }
-        $nbparticipants = count($rids);
+        $qscore = [];
+        $allqscore = [];
 
         if (!$allresponses && $groupmode != 0) {
             $nbparticipants = max(1, $nbparticipants - !$isgroupmember);
         }
-        foreach ($rids as $rrid) {
-            // Get responses for bool (Yes/No).
-            $sql = 'SELECT q.id, q.type_id as q_type, a.choice_id as cid '.
-                            'FROM {questionnaire_response_bool} a, {questionnaire_question} q '.
-                            'WHERE a.response_id = ? AND a.question_id=q.id ';
-            if ($responses = $DB->get_records_sql($sql, array($rrid))) {
-                foreach ($responses as $qid => $response) {
-                    $responsescore = ($response->cid == 'y' ? 1 : 0);
-                    // Individual score.
-                    // If this is current user's response OR if current user is viewing another group's results.
-                    if ($rrid == $rid || $allresponses) {
-                        if (!isset($qscore[$qid])) {
-                            $qscore[$qid] = 0;
-                        }
-                        $qscore[$qid] = $responsescore;
-                    }
-                    // Course score.
-                    if (!isset($allqscore[$qid])) {
-                        $allqscore[$qid] = 0;
-                    }
-                    // Only add current score if conditions below are met.
-                    if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
-                        $allqscore[$qid] += $responsescore;
-                    }
-                }
-            }
-
-            // Get responses for single (Radio or Dropbox).
-            $sql = 'SELECT q.id, q.type_id as q_type, c.content as ccontent,c.id as cid, c.value as score  '.
-                            'FROM {questionnaire_resp_single} a, {questionnaire_question} q, {questionnaire_quest_choice} c '.
-                            'WHERE a.response_id = ? AND a.question_id=q.id AND a.choice_id=c.id ';
-            if ($responses = $DB->get_records_sql($sql, array($rrid))) {
-                foreach ($responses as $qid => $response) {
-                    // Individual score.
-                    // If this is current user's response OR if current user is viewing another group's results.
-                    if ($rrid == $rid || $allresponses) {
-                        if (!isset($qscore[$qid])) {
-                            $qscore[$qid] = 0;
-                        }
-                        $qscore[$qid] = $response->score;
-                    }
-                    // Course score.
-                    if (!isset($allqscore[$qid])) {
-                        $allqscore[$qid] = 0;
-                    }
-                    // Only add current score if conditions below are met.
-                    if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
-                        $allqscore[$qid] += $response->score;
-                    }
-                }
-            }
-
-            // Get responses for response_rank (Rate).
-            $sql = 'SELECT a.id as aid, q.id AS qid, c.id AS cid, a.rank as arank '.
-                            'FROM {questionnaire_response_rank} a, {questionnaire_question} q, {questionnaire_quest_choice} c '.
-                            'WHERE a.response_id= ? AND a.question_id=q.id AND a.choice_id=c.id '.
-                            'ORDER BY aid, a.question_id,c.id';
-            if ($responses = $DB->get_records_sql($sql, array($rrid))) {
-                // We need to store the number of sub-questions for each rate questions.
-                $rank = array();
-                $firstcid = array();
-                foreach ($responses as $response) {
-                    $qid = $response->qid;
-                    $rank = $response->arank;
+        foreach ($responsescores as $qid => $responsescore) {
+            foreach ($responsescore as $rrid => $response) {
+                // If this is current user's response OR if current user is viewing another group's results.
+                if ($rrid == $rid || $allresponses) {
                     if (!isset($qscore[$qid])) {
                         $qscore[$qid] = 0;
-                        $allqscore[$qid] = 0;
                     }
-                    $firstcid[$qid] = $DB->get_record('questionnaire_quest_choice',
-                                    array('question_id' => $qid), 'id', IGNORE_MULTIPLE);
-                    $firstcidid = $firstcid[$qid]->id;
-                    $cidvalue = $firstcidid + $rank;
-                    $sql = "SELECT * FROM {questionnaire_quest_choice} WHERE id = $cidvalue";
-
-                    if ($value = $DB->get_record_sql($sql)) {
-                        // Individual score.
-                        // If this is current user's response OR if current user is viewing another group's results.
-                        if ($rrid == $rid || $allresponses) {
-                            $qscore[$qid] += $value->value;
-                        }
-                        // Only add current score if conditions below are met.
-                        if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
-                            $allqscore[$qid] += $value->value;
-                        }
-                    }
+                    $qscore[$qid] = $response->score;
+                }
+                // Course score.
+                if (!isset($allqscore[$qid])) {
+                    $allqscore[$qid] = 0;
+                }
+                // Only add current score if conditions below are met.
+                if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
+                    $allqscore[$qid] += $response->score;
                 }
             }
         }
