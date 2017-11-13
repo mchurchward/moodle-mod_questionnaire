@@ -3365,13 +3365,7 @@ class questionnaire {
             }
         }
 
-        $feedbacksections = $this->survey->feedbacksections;
-        $questions = $this->questions;
-
         $fbsectionsnb = array_keys($fbsections);
-        // Calculate max score per question in questionnaire.
-        $qmax = [];
-        $maxtotalscore = 0;
 
         // Get all response ids for all respondents.
         $rids = array();
@@ -3381,36 +3375,15 @@ class questionnaire {
         $nbparticipants = count($rids);
         $responsescores = [];
 
-        foreach ($questions as $question) {
+        // Calculate max score per question in questionnaire.
+        $qmax = [];
+        $maxtotalscore = 0;
+        foreach ($this->questions as $question) {
             $qid = $question->id;
-            $qtype = $question->type_id;
             if ($question->valid_feedback() && ($question->required == 'y')) {
-                if ($qtype == QUESYESNO) {
-                    $qmax[$qid] = 1;
-                    $maxtotalscore += 1;
-                } else {
-                    if (!isset($qmax[$qid])) {
-                        $qmax[$qid] = 0;
-                    }
-                    $nbchoices = 1;
-                    if ($qtype == QUESRATE) {
-                        $nbchoices = 0;
-                    }
-                    foreach ($question->choices as $choice) {
-                        // Testing NULL and 'NULL' because I changed the automatic null value, must be fixed later... TODO.
-                        if (isset($choice->value) && $choice->value != null && $choice->value != 'NULL') {
-                            if ($choice->value > $qmax[$qid]) {
-                                $qmax[$qid] = $choice->value;
-                            }
-                        } else {
-                            $nbchoices++;
-                        }
-                    }
-                    $qmax[$qid] = $qmax[$qid] * $nbchoices;
-                    $maxtotalscore += $qmax[$qid];
-                }
+                $qmax[$qid] = $question->get_feedback_maxscore();
+                $maxtotalscore += $qmax[$qid];
             }
-
             // Get all the feedback scores for this question.
             $responsescores[$qid] = $question->get_feedback_scores($rids);
         }
@@ -3453,7 +3426,7 @@ class questionnaire {
         $allscorepercent = round($alltotalscore / $nbparticipants / $maxtotalscore * 100);
 
         // No need to go further if feedback is global, i.e. only relying on total score.
-        if ($feedbacksections == 1) {
+        if ($this->survey->feedbacksections == 1) {
             $sectionid = $fbsectionsnb[0];
             $sectionlabel = $fbsections[$sectionid]->sectionlabel;
 
@@ -3541,14 +3514,14 @@ class questionnaire {
         // sections where all questions are unseen because of the $advdependencies
         $nanscores = array();
 
-        for ($i = 1; $i <= $feedbacksections; $i++) {
+        for ($i = 1; $i <= $this->survey->feedbacksections; $i++) {
             $score[$i] = 0;
             $allscore[$i] = 0;
             $maxscore[$i] = 0;
             $scorepercent[$i] = 0;
         }
 
-        for ($section = 1; $section <= $feedbacksections; $section++) {
+        for ($section = 1; $section <= $this->survey->feedbacksections; $section++) {
             foreach ($fbsections as $key => $fbsection) {
                 if ($fbsection->section == $section) {
                     $feedbacksectionid = $key;

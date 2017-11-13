@@ -467,6 +467,26 @@ abstract class base {
     }
 
     /**
+     * Get the maximum score possible for feedback if appropriate. Override if default behaviour is not correct.
+     * @return int | boolean
+     */
+    public function get_feedback_maxscore() {
+        if ($this->valid_feedback() && $this->has_choices()) {
+            $maxscore = 0;
+            foreach ($this->choices as $choice) {
+                if (isset($choice->value) && ($choice->value != null)) {
+                    if ($choice->value > $maxscore) {
+                        $maxscore = $choice->value;
+                    }
+                }
+            }
+        } else {
+            $maxscore = false;
+        }
+        return $maxscore;
+    }
+
+    /**
      * Check question's form data for complete response.
      *
      * @param object $responsedata The data entered into the response.

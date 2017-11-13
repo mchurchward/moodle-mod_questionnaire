@@ -203,17 +203,14 @@ class rank extends base {
             'INNER JOIN {questionnaire_quest_choice} c ON r.choice_id = c.id ' .
             'WHERE r.question_id= ? ' . $rsql . ' ' .
             'ORDER BY rid,cid ASC';
-         if (!($responses = $DB->get_recordset_sql($sql, $params))) {
-             return false;
-         }
+        $responses = $DB->get_recordset_sql($sql, $params);
 
         $sql = 'SELECT id, value ' .
             'FROM {questionnaire_quest_choice} ' .
             'WHERE question_id = ? AND value IS NOT NULL ' .
             'ORDER BY id ASC ';
-        if (!($scorerecs = $DB->get_records_sql($sql, $params))) {
-            return false;
-        }
+        $scorerecs = $DB->get_records_sql($sql, $params);
+
         // Reindex $scores as a zero starting array.
         $scores = [];
         foreach ($scorerecs as $scorerec) {
