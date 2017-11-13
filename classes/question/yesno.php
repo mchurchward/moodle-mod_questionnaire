@@ -74,6 +74,19 @@ class yesno extends base {
     }
 
     /**
+     * Get the maximum score possible for feedback if appropriate. Override if default behaviour is not correct.
+     * @return int | boolean
+     */
+    public function get_feedback_maxscore() {
+        if ($this->valid_feedback()) {
+            $maxscore = 1;
+        } else {
+            $maxscore = false;
+        }
+        return $maxscore;
+    }
+
+    /**
      * Returns an array of dependency options for the question as an array of id value / display value pairs. Override in specific
      * question types that support this.
      * @return array An array of valid pair options.

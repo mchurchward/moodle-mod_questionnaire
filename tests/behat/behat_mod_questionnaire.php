@@ -111,7 +111,6 @@ class behat_mod_questionnaire extends behat_base {
     public function i_click_the_radio_button($radioid) {
         $session = $this->getSession();
         $page = $session->getPage();
-//        $session->wait(5000);
         $radios = $page->findAll('xpath', '//input[@type="radio" and @id="'.$radioid.'"]');
         $radios[0]->click();
     }

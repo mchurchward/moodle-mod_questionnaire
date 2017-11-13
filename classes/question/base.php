@@ -453,6 +453,40 @@ abstract class base {
     }
 
     /**
+     * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
+     * @param array $rids
+     * @return array | boolean
+     */
+    public function get_feedback_scores(array $rids) {
+        if ($this->valid_feedback() && isset($this->response) && is_object($this->response) &&
+            is_subclass_of($this->response, '\\mod_questionnaire\\response\\base')) {
+            return $this->response->get_feedback_scores($rids);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Get the maximum score possible for feedback if appropriate. Override if default behaviour is not correct.
+     * @return int | boolean
+     */
+    public function get_feedback_maxscore() {
+        if ($this->valid_feedback() && $this->has_choices()) {
+            $maxscore = 0;
+            foreach ($this->choices as $choice) {
+                if (isset($choice->value) && ($choice->value != null)) {
+                    if ($choice->value > $maxscore) {
+                        $maxscore = $choice->value;
+                    }
+                }
+            }
+        } else {
+            $maxscore = false;
+        }
+        return $maxscore;
+    }
+
+    /**
      * Check question's form data for complete response.
      *
      * @param object $responsedata The data entered into the response.

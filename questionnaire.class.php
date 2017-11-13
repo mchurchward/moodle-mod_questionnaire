@@ -3325,13 +3325,20 @@ class questionnaire {
 
     public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid) {
         global $DB, $CFG;
-        $action = optional_param('action', 'vall', PARAM_ALPHA);
-
         require_once($CFG->libdir.'/tablelib.php');
         require_once($CFG->dirroot.'/mod/questionnaire/drawchart.php');
-        if ($resp = $DB->get_record('questionnaire_response', array('id' => $rid)) ) {
+
+        // Find if there are any feedbacks in this questionnaire.
+        $sql = "SELECT * FROM {questionnaire_fb_sections} WHERE survey_id = ? AND section IS NOT NULL";
+        if (!$fbsections = $DB->get_records_sql($sql, [$this->survey->id])) {
+            return '';
+        }
+
+        $action = optional_param('action', 'vall', PARAM_ALPHA);
+
+        if ($resp = $DB->get_record('questionnaire_response', ['id' => $rid]) ) {
             $userid = $resp->userid;
-            if ($user = $DB->get_record('user', array('id' => $userid))) {
+            if ($user = $DB->get_record('user', ['id' => $userid])) {
                 $ruser = fullname($user);
             }
         }
@@ -3347,72 +3354,18 @@ class questionnaire {
         }
         if ($this->survey->feedbackscores) {
             $table = new html_table();
-            $table->size = array(null, null);
-            $table->align = array('left', 'right', 'right');
-            $table->head = array();
-            $table->wrap = array();
+            $table->size = [null, null];
+            $table->align = ['left', 'right', 'right'];
+            $table->head = [];
+            $table->wrap = [];
             if ($compare) {
-                $table->head = array(get_string('feedbacksection', 'questionnaire'), $ruser, $groupname);
+                $table->head = [get_string('feedbacksection', 'questionnaire'), $ruser, $groupname];
             } else {
-                $table->head = array(get_string('feedbacksection', 'questionnaire'), $groupname);
+                $table->head = [get_string('feedbacksection', 'questionnaire'), $groupname];
             }
-        }
-
-        $feedbacksections = $this->survey->feedbacksections;
-        $feedbackscores = $this->survey->feedbackscores;
-        $sid = $this->survey->id;
-        $questions = $this->questions;
-
-        // Find if there are any feedbacks in this questionnaire.
-        $sql = "SELECT * FROM {questionnaire_fb_sections} WHERE survey_id = $sid AND section IS NOT NULL";
-        if (!$fbsections = $DB->get_records_sql($sql)) {
-            return null;
         }
 
         $fbsectionsnb = array_keys($fbsections);
-        // Calculate max score per question in questionnaire.
-        $qmax = array();
-        $totalscore = 0;
-        $maxtotalscore = 0;
-        foreach ($questions as $question) {
-            $qid = $question->id;
-            $qtype = $question->type_id;
-            if ($question->valid_feedback() && ($question->required == 'y')) {
-                if ($qtype == QUESYESNO) {
-                    $qmax[$qid] = 1;
-                    $maxtotalscore += 1;
-                } else {
-                    if (!isset($qmax[$qid])) {
-                        $qmax[$qid] = 0;
-                    }
-                    $nbchoices = 1;
-                    if ($qtype == QUESRATE) {
-                        $nbchoices = 0;
-                    }
-                    foreach ($question->choices as $choice) {
-                        // Testing NULL and 'NULL' because I changed the automatic null value, must be fixed later... TODO.
-                        if (isset($choice->value) && $choice->value != null && $choice->value != 'NULL') {
-                            if ($choice->value > $qmax[$qid]) {
-                                $qmax[$qid] = $choice->value;
-                            }
-                        } else {
-                            $nbchoices++;
-                        }
-                    }
-                    $qmax[$qid] = $qmax[$qid] * $nbchoices;
-                    $maxtotalscore += $qmax[$qid];
-                }
-            }
-        }
-        // Just in case no values have been entered in the various questions possible answers field.
-        if ($maxtotalscore === 0) {
-            return;
-        }
-        $feedbackmessages = array();
-
-        // Get individual scores for each question in this responses set.
-        $qscore = array();
-        $allqscore = array();
 
         // Get all response ids for all respondents.
         $rids = array();
@@ -3420,95 +3373,49 @@ class questionnaire {
             $rids[] = $key;
         }
         $nbparticipants = count($rids);
+        $responsescores = [];
+
+        // Calculate max score per question in questionnaire.
+        $qmax = [];
+        $maxtotalscore = 0;
+        foreach ($this->questions as $question) {
+            $qid = $question->id;
+            if ($question->valid_feedback() && ($question->required == 'y')) {
+                $qmax[$qid] = $question->get_feedback_maxscore();
+                $maxtotalscore += $qmax[$qid];
+            }
+            // Get all the feedback scores for this question.
+            $responsescores[$qid] = $question->get_feedback_scores($rids);
+        }
+        // Just in case no values have been entered in the various questions possible answers field.
+        if ($maxtotalscore === 0) {
+            return '';
+        }
+        $feedbackmessages = [];
+
+        // Get individual scores for each question in this responses set.
+        $qscore = [];
+        $allqscore = [];
 
         if (!$allresponses && $groupmode != 0) {
             $nbparticipants = max(1, $nbparticipants - !$isgroupmember);
         }
-        foreach ($rids as $rrid) {
-            // Get responses for bool (Yes/No).
-            $sql = 'SELECT q.id, q.type_id as q_type, a.choice_id as cid '.
-                            'FROM {questionnaire_response_bool} a, {questionnaire_question} q '.
-                            'WHERE a.response_id = ? AND a.question_id=q.id ';
-            if ($responses = $DB->get_records_sql($sql, array($rrid))) {
-                foreach ($responses as $qid => $response) {
-                    $responsescore = ($response->cid == 'y' ? 1 : 0);
-                    // Individual score.
-                    // If this is current user's response OR if current user is viewing another group's results.
-                    if ($rrid == $rid || $allresponses) {
-                        if (!isset($qscore[$qid])) {
-                            $qscore[$qid] = 0;
-                        }
-                        $qscore[$qid] = $responsescore;
-                    }
-                    // Course score.
-                    if (!isset($allqscore[$qid])) {
-                        $allqscore[$qid] = 0;
-                    }
-                    // Only add current score if conditions below are met.
-                    if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
-                        $allqscore[$qid] += $responsescore;
-                    }
-                }
-            }
-
-            // Get responses for single (Radio or Dropbox).
-            $sql = 'SELECT q.id, q.type_id as q_type, c.content as ccontent,c.id as cid, c.value as score  '.
-                            'FROM {questionnaire_resp_single} a, {questionnaire_question} q, {questionnaire_quest_choice} c '.
-                            'WHERE a.response_id = ? AND a.question_id=q.id AND a.choice_id=c.id ';
-            if ($responses = $DB->get_records_sql($sql, array($rrid))) {
-                foreach ($responses as $qid => $response) {
-                    // Individual score.
-                    // If this is current user's response OR if current user is viewing another group's results.
-                    if ($rrid == $rid || $allresponses) {
-                        if (!isset($qscore[$qid])) {
-                            $qscore[$qid] = 0;
-                        }
-                        $qscore[$qid] = $response->score;
-                    }
-                    // Course score.
-                    if (!isset($allqscore[$qid])) {
-                        $allqscore[$qid] = 0;
-                    }
-                    // Only add current score if conditions below are met.
-                    if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
-                        $allqscore[$qid] += $response->score;
-                    }
-                }
-            }
-
-            // Get responses for response_rank (Rate).
-            $sql = 'SELECT a.id as aid, q.id AS qid, c.id AS cid, a.rank as arank '.
-                            'FROM {questionnaire_response_rank} a, {questionnaire_question} q, {questionnaire_quest_choice} c '.
-                            'WHERE a.response_id= ? AND a.question_id=q.id AND a.choice_id=c.id '.
-                            'ORDER BY aid, a.question_id,c.id';
-            if ($responses = $DB->get_records_sql($sql, array($rrid))) {
-                // We need to store the number of sub-questions for each rate questions.
-                $rank = array();
-                $firstcid = array();
-                foreach ($responses as $response) {
-                    $qid = $response->qid;
-                    $rank = $response->arank;
+        foreach ($responsescores as $qid => $responsescore) {
+            foreach ($responsescore as $rrid => $response) {
+                // If this is current user's response OR if current user is viewing another group's results.
+                if ($rrid == $rid || $allresponses) {
                     if (!isset($qscore[$qid])) {
                         $qscore[$qid] = 0;
-                        $allqscore[$qid] = 0;
                     }
-                    $firstcid[$qid] = $DB->get_record('questionnaire_quest_choice',
-                                    array('question_id' => $qid), 'id', IGNORE_MULTIPLE);
-                    $firstcidid = $firstcid[$qid]->id;
-                    $cidvalue = $firstcidid + $rank;
-                    $sql = "SELECT * FROM {questionnaire_quest_choice} WHERE id = $cidvalue";
-
-                    if ($value = $DB->get_record_sql($sql)) {
-                        // Individual score.
-                        // If this is current user's response OR if current user is viewing another group's results.
-                        if ($rrid == $rid || $allresponses) {
-                            $qscore[$qid] += $value->value;
-                        }
-                        // Only add current score if conditions below are met.
-                        if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
-                            $allqscore[$qid] += $value->value;
-                        }
-                    }
+                    $qscore[$qid] = $response->score;
+                }
+                // Course score.
+                if (!isset($allqscore[$qid])) {
+                    $allqscore[$qid] = 0;
+                }
+                // Only add current score if conditions below are met.
+                if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
+                    $allqscore[$qid] += $response->score;
                 }
             }
         }
@@ -3519,7 +3426,7 @@ class questionnaire {
         $allscorepercent = round($alltotalscore / $nbparticipants / $maxtotalscore * 100);
 
         // No need to go further if feedback is global, i.e. only relying on total score.
-        if ($feedbacksections == 1) {
+        if ($this->survey->feedbacksections == 1) {
             $sectionid = $fbsectionsnb[0];
             $sectionlabel = $fbsections[$sectionid]->sectionlabel;
 
@@ -3604,14 +3511,17 @@ class questionnaire {
         $alloppositescorepercent = array();
         $chartlabels = array();
         $chartscore = array();
-        for ($i = 1; $i <= $feedbacksections; $i++) {
+        // sections where all questions are unseen because of the $advdependencies
+        $nanscores = array();
+
+        for ($i = 1; $i <= $this->survey->feedbacksections; $i++) {
             $score[$i] = 0;
             $allscore[$i] = 0;
             $maxscore[$i] = 0;
             $scorepercent[$i] = 0;
         }
 
-        for ($section = 1; $section <= $feedbacksections; $section++) {
+        for ($section = 1; $section <= $this->survey->feedbacksections; $section++) {
             foreach ($fbsections as $key => $fbsection) {
                 if ($fbsection->section == $section) {
                     $feedbacksectionid = $key;
@@ -3625,23 +3535,35 @@ class questionnaire {
                 // Just in case a question pertaining to a section has been deleted or made not required
                 // after being included in scorecalculation.
                 if (isset($qscore[$qid])) {
-                    $score[$section] += $qscore[$qid];
-                    $maxscore[$section] += $qmax[$qid];
-                    if ($compare || $allresponses) {
-                        $allscore[$section] += $allqscore[$qid];
+                    $key = ($key == 0) ? 1 : $key;
+                    $score[$section] += round($qscore[$qid] * $key);
+                    $maxscore[$section] += round($qmax[$qid] * $key);
+                    if ($compare  || $allresponses) {
+                        $allscore[$section] += round($allqscore[$qid] * $key);
                     }
                 }
             }
 
-            $scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100);
+            if ($maxscore[$section] == 0) {
+                array_push($nanscores, $section);
+            }
+
+            $scorepercent[$section] = ($maxscore[$section] > 0) ? (round($score[$section] / $maxscore[$section] * 100)) : 0;
             $oppositescorepercent[$section] = 100 - $scorepercent[$section];
 
             if (($compare || $allresponses) && $nbparticipants != 0) {
-                $allscorepercent[$section] = round( ($allscore[$section] / $nbparticipants) / $maxscore[$section] * 100);
+                $allscorepercent[$section] = ($maxscore[$section] > 0) ? (round(($allscore[$section] / $nbparticipants) / $maxscore[$section] * 100)) : 0;
                 $alloppositescorepercent[$section] = 100 - $allscorepercent[$section];
             }
 
             if (!$allresponses) {
+                if (is_nan($scorepercent[$section])) {
+                    // Info: all questions of $section are unseen
+                    // -> $scorepercent[$section] = round($score[$section] / $maxscore[$section] * 100) == NAN
+                    // -> $maxscore[$section] == 0 -> division by zero
+                    // $DB->get_record_select(...) fails, don't show feedbackmessage.
+                    continue;
+                }
                 // To eliminate all potential % chars in heading text (might interfere with the sprintf function).
                 $sectionheading = str_replace('%', '', $sectionheading);
 
@@ -3697,14 +3619,23 @@ class questionnaire {
             } else {
                 $sectionlabel = $chartlabels[$key];
             }
-            if ($compare) {
-                $table->data[] = array($sectionlabel, $scorepercent[$key].'%'.$oppositescore,
-                                $allscorepercent[$key].'%'.$oppositeallscore);
-            } else {
-                $table->data[] = array($sectionlabel, $allscorepercent[$key].'%'.$oppositeallscore);
+            // If all questions of $section are unseen then don't show feedbackscores for this section.
+            if ($compare and !is_nan($scorepercent[$key])) {
+                $table->data[] = array($sectionlabel, $scorepercent[$key] . '%' . $oppositescore,
+                    $allscorepercent[$key] . '%' . $oppositeallscore);
+            } else if (!is_nan($allscorepercent[$key])) {
+                $table->data[] = array($sectionlabel, $allscorepercent[$key] . '%' . $oppositeallscore);
             }
         }
         $usergraph = get_config('questionnaire', 'usergraph');
+
+        // Don't show feedbackcharts for sections in $nanscores -> remove sections from array.
+        foreach ($nanscores as $val) {
+            unset($chartlabels[$val]);
+            unset($scorepercent[$val]);
+            unset($allscorepercent[$val]);
+        }
+
         if ($usergraph && $this->survey->chart_type) {
             $this->page->add_to_page('feedbackcharts',
                 draw_chart($feedbacktype = 'sections', $this->survey->chart_type, array_values($chartlabels),

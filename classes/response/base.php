@@ -65,7 +65,7 @@ abstract class base {
      * @param boolean $anonymous - Whether or not responses are anonymous.
      * @return array - Array of data records.
      */
-    abstract protected function get_results($rids=false, $anonymous=false);
+    abstract public function get_results($rids=false, $anonymous=false);
 
     /**
      * Provide the result information for the specified result records.
@@ -86,6 +86,21 @@ abstract class base {
         return $choiceid;
     }
 
+    /**
+     * Provide the feedback scores for all requested response id's. This should be provided only by questions that provide feedback.
+     * @param array $rids
+     * @return array | boolean
+     */
+    public function get_feedback_scores(array $rids) {
+        return false;
+    }
+
+    /**
+     * @param $rows
+     * @param $rids
+     * @param $sort
+     * @return string
+     */
     protected function display_response_choice_results($rows, $rids, $sort) {
         $output = '';
         if (is_array($rids)) {
