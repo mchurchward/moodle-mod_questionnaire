@@ -59,14 +59,29 @@ class radio extends base {
     }
 
     /**
+     * Override this and return true if the question type allows dependent questions.
+     * @return boolean
+     */
+    public function allows_dependents() {
+        return true;
+    }
+
+    /**
+     * True if question type supports feedback options. False by default.
+     */
+    public function supports_feedback() {
+        return true;
+    }
+
+    /**
      * Return the context tags for the check question template.
      * @param object $data
-     * @param string $descendantdata
+     * @param array $dependants Array of all questions/choices depending on this question.
      * @param boolean $blankquestionnaire
      * @return object The check question context tags.
      *
      */
-    protected function question_survey_display($data, $descendantsdata, $blankquestionnaire=false) {
+    protected function question_survey_display($data, $dependants=[], $blankquestionnaire=false) {
         // Radio buttons
         global $idcounter;  // To make sure all radio buttons have unique ids. // JR 20 NOV 2007.
 
@@ -82,13 +97,17 @@ class radio extends base {
 
         // To display or hide dependent questions on Preview page.
         $onclickdepend = [];
-        if ($descendantsdata) {
-            $descendants = implode(',', $descendantsdata['descendants']);
-            foreach ($descendantsdata['choices'] as $key => $choice) {
-                $choices[$key] = implode(',', $choice);
-                $onclickdepend[$key] = 'depend(\''.$descendants.'\', \''.$choices[$key].'\')';
+        $dqids = '';
+        $choices = [];
+        foreach ($dependants as $did => $dependant) {
+            $dqids .= empty($dqids) ? 'qn-' . $did : ',qn-' . $did;
+            foreach ($dependant as $choice) {
+                $choices[$choice->id] .= isset($choices[$choice->id]) ? ',qn-' . $did : 'qn-' . $did;
             }
-        } // End dependents.
+        }
+        foreach ($choices as $key => $choice) {
+            $onclickdepend[$key] = 'depend(\''.$dqids.'\', \''.$choice.'\')';
+        }
 
         $choicetags = new \stdClass();
         $choicetags->qelements = [];
