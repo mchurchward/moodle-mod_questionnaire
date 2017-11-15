@@ -632,7 +632,7 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
     }
 
     // Converting to new dependency system.
-    if ($oldversion < 2017050102) {
+    if ($oldversion < 2017050103) {
         // MOD Multiparent Advanceddependencies START.
         // Define table questionnaire_dependency to be created.
         $table = new xmldb_table('questionnaire_dependency');
@@ -692,7 +692,7 @@ function xmldb_questionnaire_upgrade($oldversion=0) {
         }
 
         // Questionnaire savepoint reached.
-        upgrade_mod_savepoint(true, 2017050102, 'questionnaire');
+        upgrade_mod_savepoint(true, 2017050103, 'questionnaire');
     }
 
     return $result;
