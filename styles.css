@@ -41,7 +41,7 @@
 }
 
 div.qoptcontainer div.ftextarea {
-    clear: all;
+    clear: both;
     float: none;
     width: 600px;
     margin: 0 auto 10px;
@@ -278,7 +278,7 @@ td.selected {
 
 .qdepend-or {
     color: orange;
-    padding-left:5px;
+    padding-left: 5px;
     margin-bottom: 5px;
 }
 .qn-content {
