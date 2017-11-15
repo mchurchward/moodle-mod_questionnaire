@@ -118,12 +118,13 @@ class questionnaire {
         }
 
         if (!isset($this->questions)) {
-            $this->questions = array();
-            $this->questionsbysec = array();
+            $this->questions = [];
+            $this->questionsbysec = [];
         }
 
-        $select = 'survey_id = '.$sid.' AND deleted != \'y\'';
-        if ($records = $DB->get_records_select('questionnaire_question', $select, null, 'position')) {
+        $select = 'survey_id = ? AND deleted = ?';
+        $params = [$sid, 'n'];
+        if ($records = $DB->get_records_select('questionnaire_question', $select, $params, 'position')) {
             $sec = 1;
             $isbreak = false;
             foreach ($records as $record) {
@@ -1385,8 +1386,9 @@ class questionnaire {
         global $DB;
 
         $pos = $this->response_select_max_pos($rid);
-        $select = 'survey_id = \''.$this->sid.'\' AND type_id = 99 AND position < '.$pos.' AND deleted = \'n\'';
-        $max = $DB->count_records_select('questionnaire_question', $select) + 1;
+        $select = 'survey_id = ? AND type_id = ? AND position < ? AND deleted = ?';
+        $params = [$this->sid, QUESPAGEBREAK, $pos, 'n'];
+        $max = $DB->count_records_select('questionnaire_question', $select, $params) + 1;
 
         return $max;
     }
@@ -1747,8 +1749,6 @@ class questionnaire {
         global $DB;
 
         $sid = $this->survey->id;
-        $values = array();
-        $stringother = get_string('other', 'questionnaire');
         if ($col == null) {
             $col = '';
         }
@@ -1763,343 +1763,23 @@ class questionnaire {
         }
 
         // Response_bool (yes/no).
-        $sql = 'SELECT q.id '.$col.', a.choice_id '.
-               'FROM {questionnaire_response_bool} a, {questionnaire_question} q '.
-               'WHERE a.response_id= ? AND a.question_id=q.id ';
-        if ($records = $DB->get_records_sql($sql, array($rid))) {
-            foreach ($records as $qid => $row) {
-                $choice = $row->choice_id;
-                if (isset ($row->name) && $row->name == '') {
-                    $noname = true;
-                }
-                unset ($row->id);
-                unset ($row->choice_id);
-                $row = (array)$row;
-                $newrow = array();
-                foreach ($row as $key => $val) {
-                    if (!is_numeric($key)) {
-                        $newrow[] = $val;
-                    }
-                }
-                $values[$qid] = $newrow;
-                array_push($values["$qid"], ($choice == 'y') ? '1' : '0');
-                if (!$csvexport) {
-                    array_push($values["$qid"], $choice); // DEV still needed for responses display.
-                }
-            }
-        }
+        $values = \mod_questionnaire\response\boolean::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_single (radio button or dropdown).
-        $sql = 'SELECT q.id '.$col.', q.type_id as q_type, c.content as ccontent,c.id as cid '.
-               'FROM {questionnaire_resp_single} a, {questionnaire_question} q, {questionnaire_quest_choice} c '.
-               'WHERE a.response_id = ? AND a.question_id=q.id AND a.choice_id=c.id ';
-        if ($records = $DB->get_records_sql($sql, array($rid))) {
-            foreach ($records as $qid => $row) {
-                $cid = $row->cid;
-                $qtype = $row->q_type;
-                if ($csvexport) {
-                    static $i = 1;
-                    $qrecords = $DB->get_records('questionnaire_quest_choice', array('question_id' => $qid));
-                    foreach ($qrecords as $value) {
-                        if ($value->id == $cid) {
-                            $contents = questionnaire_choice_values($value->content);
-                            if ($contents->modname) {
-                                $row->ccontent = $contents->modname;
-                            } else {
-                                $content = $contents->text;
-                                if (preg_match('/^!other/', $content)) {
-                                    $row->ccontent = get_string('other', 'questionnaire');
-                                } else if (($choicecodes == 1) && ($choicetext == 1)) {
-                                    $row->ccontent = "$i : $content";
-                                } else if ($choicecodes == 1) {
-                                    $row->ccontent = "$i";
-                                } else {
-                                    $row->ccontent = $content;
-                                }
-                            }
-                            $i = 1;
-                            break;
-                        }
-                        $i++;
-                    }
-                }
-                unset($row->id);
-                unset($row->cid);
-                unset($row->q_type);
-                $arow = get_object_vars($row);
-                $newrow = array();
-                foreach ($arow as $key => $val) {
-                    if (!is_numeric($key)) {
-                        $newrow[] = $val;
-                    }
-                }
-                if (preg_match('/^!other/', $row->ccontent)) {
-                    $newrow[] = 'other_' . $cid;
-                } else {
-                    $newrow[] = (int)$cid;
-                }
-                $values[$qid] = $newrow;
-            }
-        }
+        $values += \mod_questionnaire\response\single::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_multiple.
-        $sql = 'SELECT a.id as aid, q.id as qid '.$col.',c.content as ccontent,c.id as cid '.
-               'FROM {questionnaire_resp_multiple} a, {questionnaire_question} q, {questionnaire_quest_choice} c '.
-               'WHERE a.response_id = ? AND a.question_id=q.id AND a.choice_id=c.id '.
-               'ORDER BY a.id,a.question_id,c.id';
-        $records = $DB->get_records_sql($sql, array($rid));
-        if ($csvexport) {
-            $tmp = null;
-            if (!empty($records)) {
-                $qids2 = array();
-                $oldqid = '';
-                foreach ($records as $qid => $row) {
-                    if ($row->qid != $oldqid) {
-                        $qids2[] = $row->qid;
-                        $oldqid = $row->qid;
-                    }
-                }
-                list($qsql, $params) = $DB->get_in_or_equal($qids2);
-                $sql = 'SELECT * FROM {questionnaire_quest_choice} WHERE question_id ' . $qsql . ' ORDER BY id';
-                if ($records2 = $DB->get_records_sql($sql, $params)) {
-                    foreach ($records2 as $qid => $row2) {
-                        $selected = '0';
-                        $qid2 = $row2->question_id;
-                        $cid2 = $row2->id;
-                        $c2 = $row2->content;
-                        $otherend = false;
-                        if ($c2 == '!other') {
-                            $c2 = '!other='.get_string('other', 'questionnaire');
-                        }
-                        if (preg_match('/^!other/', $c2)) {
-                            $otherend = true;
-                        } else {
-                            $contents = questionnaire_choice_values($c2);
-                            if ($contents->modname) {
-                                $c2 = $contents->modname;
-                            } else if ($contents->title) {
-                                $c2 = $contents->title;
-                            }
-                        }
-                        $sql = 'SELECT a.name as name, a.type_id as q_type, a.position as pos ' .
-                                'FROM {questionnaire_question} a WHERE id = ?';
-                        if ($currentquestion = $DB->get_records_sql($sql, array($qid2))) {
-                            foreach ($currentquestion as $question) {
-                                $name1 = $question->name;
-                                $type1 = $question->q_type;
-                            }
-                        }
-                        $newrow = array();
-                        foreach ($records as $qid => $row1) {
-                            $qid1 = $row1->qid;
-                            $cid1 = $row1->cid;
-                            // If available choice has been selected by student.
-                            if ($qid1 == $qid2 && $cid1 == $cid2) {
-                                $selected = '1';
-                            }
-                        }
-                        if ($otherend) {
-                            $newrow2 = array();
-                            $newrow2[] = $question->pos;
-                            $newrow2[] = $type1;
-                            $newrow2[] = $name1;
-                            $newrow2[] = '['.get_string('other', 'questionnaire').']';
-                            $newrow2[] = $selected;
-                            $tmp2 = $qid2.'_other';
-                            $values["$tmp2"] = $newrow2;
-                        }
-                        $newrow[] = $question->pos;
-                        $newrow[] = $type1;
-                        $newrow[] = $name1;
-                        $newrow[] = $c2;
-                        $newrow[] = $selected;
-                        $tmp = $qid2.'_'.$cid2;
-                        $values["$tmp"] = $newrow;
-                    }
-                }
-            }
-            unset($tmp);
-            unset($row);
-
-        } else {
-                $arr = array();
-                $tmp = null;
-            if (!empty($records)) {
-                foreach ($records as $aid => $row) {
-                    $qid = $row->qid;
-                    $cid = $row->cid;
-                    unset($row->aid);
-                    unset($row->qid);
-                    unset($row->cid);
-                    $arow = get_object_vars($row);
-                    $newrow = array();
-                    foreach ($arow as $key => $val) {
-                        if (!is_numeric($key)) {
-                            $newrow[] = $val;
-                        }
-                    }
-                    if (preg_match('/^!other/', $row->ccontent)) {
-                        $newrow[] = 'other_' . $cid;
-                    } else {
-                        $newrow[] = (int)$cid;
-                    }
-                    if ($tmp == $qid) {
-                        $arr[] = $newrow;
-                        continue;
-                    }
-                    if ($tmp != null) {
-                        $values["$tmp"] = $arr;
-                    }
-                    $tmp = $qid;
-                    $arr = array($newrow);
-                }
-            }
-            if ($tmp != null) {
-                $values["$tmp"] = $arr;
-            }
-            unset($arr);
-            unset($tmp);
-            unset($row);
-        }
-
-            // Response_other.
-            // This will work even for multiple !other fields within one question
-            // AND for identical !other responses in different questions JR.
-        $sql = 'SELECT c.id as cid, c.content as content, a.response as aresponse, q.id as qid, q.position as position,
-                                    q.type_id as type_id, q.name as name '.
-               'FROM {questionnaire_response_other} a, {questionnaire_question} q, {questionnaire_quest_choice} c '.
-               'WHERE a.response_id= ? AND a.question_id=q.id AND a.choice_id=c.id '.
-               'ORDER BY a.question_id,c.id ';
-        if ($records = $DB->get_records_sql($sql, array($rid))) {
-            foreach ($records as $record) {
-                $newrow = array();
-                $position = $record->position;
-                $typeid = $record->type_id;
-                $name = $record->name;
-                $cid = $record->cid;
-                $qid = $record->qid;
-                $content = $record->content;
-
-                // The !other modality with no label.
-                if ($content == '!other') {
-                    $content = '!other='.$stringother;
-                }
-                $content = substr($content, 7);
-                $aresponse = $record->aresponse;
-                // The first two empty values are needed for compatibility with "normal" (non !other) responses.
-                // They are only needed for the CSV export, in fact.
-                $newrow[] = $position;
-                $newrow[] = $typeid;
-                $newrow[] = $name;
-                $content = $stringother;
-                $newrow[] = $content;
-                $newrow[] = $aresponse;
-                $values["${qid}_${cid}"] = $newrow;
-            }
-        }
+        $values += \mod_questionnaire\response\multiple::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_rank.
-        $sql = 'SELECT a.id as aid, q.id AS qid, q.precise AS precise, c.id AS cid '.$col.', c.content as ccontent,
-                                a.rank as arank '.
-               'FROM {questionnaire_response_rank} a, {questionnaire_question} q, {questionnaire_quest_choice} c '.
-               'WHERE a.response_id= ? AND a.question_id=q.id AND a.choice_id=c.id '.
-               'ORDER BY aid, a.question_id, c.id';
-        if ($records = $DB->get_records_sql($sql, array($rid))) {
-            foreach ($records as $row) {
-                // Next two are 'qid' and 'cid', each with numeric and hash keys.
-                $osgood = false;
-                if ($row->precise == 3) {
-                    $osgood = true;
-                }
-                $qid = $row->qid.'_'.$row->cid;
-                unset($row->aid); // Get rid of the answer id.
-                unset($row->qid);
-                unset($row->cid);
-                unset($row->precise);
-                $row = (array)$row;
-                $newrow = array();
-                foreach ($row as $key => $val) {
-                    if ($key != 'content') { // No need to keep question text - ony keep choice text and rank.
-                        if ($key == 'ccontent') {
-                            if ($osgood) {
-                                list($contentleft, $contentright) = array_merge(preg_split('/[|]/', $val), array(' '));
-                                $contents = questionnaire_choice_values($contentleft);
-                                if ($contents->title) {
-                                    $contentleft = $contents->title;
-                                }
-                                $contents = questionnaire_choice_values($contentright);
-                                if ($contents->title) {
-                                    $contentright = $contents->title;
-                                }
-                                $val = strip_tags($contentleft.'|'.$contentright);
-                                $val = preg_replace("/[\r\n\t]/", ' ', $val);
-                            } else {
-                                $contents = questionnaire_choice_values($val);
-                                if ($contents->modname) {
-                                    $val = $contents->modname;
-                                } else if ($contents->title) {
-                                    $val = $contents->title;
-                                } else if ($contents->text) {
-                                    $val = strip_tags($contents->text);
-                                    $val = preg_replace("/[\r\n\t]/", ' ', $val);
-                                }
-                            }
-                        }
-                        $newrow[] = $val;
-                    }
-                }
-                $values[$qid] = $newrow;
-            }
-        }
+        $values += \mod_questionnaire\response\rank::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_text.
-        $sql = 'SELECT q.id '.$col.', a.response as aresponse '.
-               'FROM {questionnaire_response_text} a, {questionnaire_question} q '.
-               'WHERE a.response_id=\''.$rid.'\' AND a.question_id=q.id ';
-        if ($records = $DB->get_records_sql($sql)) {
-            foreach ($records as $qid => $row) {
-                unset($row->id);
-                $row = (array)$row;
-                $newrow = array();
-                foreach ($row as $key => $val) {
-                    if (!is_numeric($key)) {
-                        $newrow[] = $val;
-                    }
-                }
-                $values["$qid"] = $newrow;
-                $val = array_pop($values["$qid"]);
-                array_push($values["$qid"], $val, $val);
-            }
-        }
+        $values += \mod_questionnaire\response\text::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
 
         // Response_date.
-        $sql = 'SELECT q.id '.$col.', a.response as aresponse '.
-               'FROM {questionnaire_response_date} a, {questionnaire_question} q '.
-               'WHERE a.response_id=\''.$rid.'\' AND a.question_id=q.id ';
-        if ($records = $DB->get_records_sql($sql)) {
-            $dateformat = get_string('strfdate', 'questionnaire');
-            foreach ($records as $qid => $row) {
-                unset ($row->id);
-                $row = (array)$row;
-                $newrow = array();
-                foreach ($row as $key => $val) {
-                    if (!is_numeric($key)) {
-                        $newrow[] = $val;
-                        // Convert date from yyyy-mm-dd database format to actual questionnaire dateformat.
-                        // does not work with dates prior to 1900 under Windows.
-                        if (preg_match('/\d\d\d\d-\d\d-\d\d/', $val)) {
-                            $dateparts = preg_split('/-/', $val);
-                            $val = make_timestamp($dateparts[0], $dateparts[1], $dateparts[2]); // Unix timestamp.
-                            $val = userdate ( $val, $dateformat);
-                            $newrow[] = $val;
-                        }
-                    }
-                }
-                $values["$qid"] = $newrow;
-                $val = array_pop($values["$qid"]);
-                array_push($values["$qid"], '', '', $val);
-            }
-        }
+        $values += \mod_questionnaire\response\date::response_select($rid, $col, $csvexport, $choicecodes, $choicetext);
+
         return($values);
     }
 

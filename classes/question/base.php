@@ -614,7 +614,7 @@ abstract class base {
         $pagetags->skippedclass = $skippedclass;
         if ($this->type_id == QUESNUMERIC || $this->type_id == QUESTEXT ||
             $this->type_id == QUESDROP) {
-            $pagetags->label = (object)['for' => $this->type . $this->id];
+            $pagetags->label = (object)['for' => self::qtypename($this->type_id) . $this->id];
         }
         if ($this->type_id == QUESESSAY) {
             $pagetags->label = (object)['for' => 'edit-q' . $this->id];
