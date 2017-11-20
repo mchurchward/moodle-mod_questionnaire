@@ -1320,8 +1320,9 @@ class questionnaire {
             $record->questionid = $qidarray[$dquestion->questionid];
             $record->surveyid = $newsid;
             $record->dependquestionid = $qidarray[$dquestion->dependquestionid];
-            if ($this->questions[$dquestion->dependquestionid]->response->transform_choiceid($dquestion->dependchoiceid) ==
-                $dquestion->dependchoiceid) {
+            // The response may not use choice id's (example boolean). If not, just copy the value.
+            $response = $this->questions[$dquestion->dependquestionid]->response;
+            if ($response->transform_choiceid($dquestion->dependchoiceid) == $dquestion->dependchoiceid) {
                 $record->dependchoiceid = $cidarray[$dquestion->dependchoiceid];
             } else {
                 $record->dependchoiceid = $dquestion->dependchoiceid;
