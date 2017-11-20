@@ -155,9 +155,9 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         if (isset($data->scorecalculation)) {
             $scorecalculation = unserialize($data->scorecalculation);
             $newscorecalculation = array();
-            foreach ($scorecalculation as $key => $qid) {
-                $newqid = $this->get_mappingid('questionnaire_question', $key);
-                $newscorecalculation[$newqid] = null;
+            foreach ($scorecalculation as $qid => $val) {
+                $newqid = $this->get_mappingid('questionnaire_question', $qid);
+                $newscorecalculation[$newqid] = $val;
             }
             $data->scorecalculation = serialize($newscorecalculation);
         }

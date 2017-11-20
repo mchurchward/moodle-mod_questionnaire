@@ -1311,20 +1311,23 @@ class questionnaire {
                 $cidarray[$oldcid] = $newcid;
             }
         }
-        // Skip logic: now we need to set the new values for dependencies.
-        if ($newquestions = $DB->get_records('questionnaire_question', array('survey_id' => $newsid), 'id')) {
-            foreach ($newquestions as $question) {
-                if ($question->dependquestion != 0) {
-                    $dependqtypeid = $this->questions[$question->dependquestion]->type_id;
-                    $record = new stdClass();
-                    $record->id = $question->id;
-                    $record->dependquestion = $qidarray[$question->dependquestion];
-                    if ($dependqtypeid != 1) {
-                        $record->dependchoice = $cidarray[$question->dependchoice];
-                    }
-                    $DB->update_record('questionnaire_question', $record);
-                }
+
+        // Replicate all dependency data.
+        $dependquestions = $DB->get_records('questionnaire_dependency', ['surveyid' => $this->survey->id], 'questionid');
+        foreach ($dependquestions as $dquestion) {
+            $record = new stdClass();
+            $record->questionid = $qidarray[$dquestion->questionid];
+            $record->surveyid = $newsid;
+            $record->dependquestionid = $qidarray[$dquestion->dependquestionid];
+            if ($this->questions[$dquestion->dependquestionid]->response->transform_choiceid($dquestion->dependchoiceid) ==
+                $dquestion->dependchoiceid) {
+                $record->dependchoiceid = $cidarray[$dquestion->dependchoiceid];
+            } else {
+                $record->dependchoiceid = $dquestion->dependchoiceid;
             }
+            $record->dependlogic = $dquestion->dependlogic;
+            $record->dependandor = $dquestion->dependandor;
+            $DB->insert_record('questionnaire_dependency', $record);
         }
 
         // Replicate any feedback data.
