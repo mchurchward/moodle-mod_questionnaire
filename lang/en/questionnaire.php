@@ -314,12 +314,12 @@ $string['numberscaleitems'] = 'Nb of scale items';
 $string['numberscaleitems_help'] = 'Nb of scale items is the *number of items* to be used in your rate scale. You would normally use a value of 3 to 5. Default value: **5**.';
 $string['numeric'] = 'Numeric';
 $string['numeric_help'] = 'Use this question type if you expect the response to be a correctly formatted number.';
-$string['obligatory'] = 'Obligatory - At least one of this dependencies has to be fulfilled.';
 $string['of'] = 'of';
 $string['opendate'] = 'Use Open Date';
 $string['opendate_help'] = 'You can specify a date to open the questionnaire here. Check the check box, and select the date and time you want.
  Users will not be able to fill out the questionnaire before that date. If this is not selected, it will be open immediately.';
 $string['option'] = 'option {$a}';
+$string['optional'] = 'Optional - At least one of this dependencies has to be fulfilled.';
 $string['optionalname'] = 'Question Name';
 $string['optionalname_help'] = 'The Question Name is only used when you export responses to CSV/Excel format.
  If you never export to CSV, then you needn\'t worry about Question names at all.

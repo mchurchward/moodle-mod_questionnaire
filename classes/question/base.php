@@ -1034,8 +1034,8 @@ abstract class base {
                 'numdependencies_and', 'adddependencies_and', 2, null, true);
 
             // Area for "can"-criteria.
-            $mform->addElement('static', 'obligatory', '',
-                '<div class="dimmed_text">' . get_string('obligatory', 'questionnaire') . '</div>');
+            $mform->addElement('static', 'optional', '',
+                '<div class="dimmed_text">' . get_string('optional', 'questionnaire') . '</div>');
             $selector = $mform->createElement('select', 'dependlogic_or', get_string('condition', 'questionnaire'),
                 [get_string('answernotgiven', 'questionnaire'), get_string('answergiven', 'questionnaire')]);
             $selector->setSelected('1');
