@@ -131,7 +131,7 @@ class restore_questionnaire_activity_structure_step extends restore_activity_str
         $newitemid = $DB->insert_record('questionnaire_question', $data);
         $this->set_mapping('questionnaire_question', $oldid, $newitemid, true);
 
-        if (isset($data->dependquestion)) {
+        if (isset($data->dependquestion) && ($data->dependquestion > 0)) {
             // Questions using the old dependency system will need to be processed and restored using the new system.
             // See CONTRIB-6787.
             $this->olddependquestions[$newitemid] = $data->dependquestion;
