@@ -87,7 +87,7 @@ class rate extends base {
      * @return int | boolean
      */
     public function get_feedback_maxscore() {
-        if ($this->valid_feedback() && $this->has_choices()) {
+        if ($this->valid_feedback()) {
             $maxscore = 0;
             $nbchoices = 0;
             foreach ($this->choices as $choice) {
@@ -495,7 +495,7 @@ class rate extends base {
 
         if ($num == 0) {
             if (!$this->has_dependencies()) {
-                if ($this->required == 'y') {
+                if ($this->required()) {
                     $complete = false;
                 }
             }

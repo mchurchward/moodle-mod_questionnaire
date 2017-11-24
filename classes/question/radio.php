@@ -124,7 +124,7 @@ class radio extends base {
                     $radio->onclick = $onclickdepend[$id];
                 } else {
                     // In case this dependchoice is not used by any child question.
-                    $radio->onclick = 'depend(\''.$descendants.'\', \'\')';
+                    $radio->onclick = 'depend(\''.$dependants.'\', \'\')';
                 }
 
             } else {
@@ -182,7 +182,7 @@ class radio extends base {
         }
 
         // CONTRIB-846.
-        if ($this->required == 'n') {
+        if (!$this->required()) {
             $radio = new \stdClass();
             $id = '';
             $htmlid = 'auto-rb'.sprintf('%04d', ++$idcounter);
@@ -193,7 +193,7 @@ class radio extends base {
             // To display or hide dependent questions on Preview page.
             $onclick = '';
             if ($onclickdepend) {
-                $onclick = 'depend(\''.$descendants.'\', \'\')';
+                $onclick = 'depend(\''.$dependants.'\', \'\')';
             } else {
                 $onclick = 'other_check_empty(name, value)';
             } // End dependents.
@@ -269,7 +269,7 @@ class radio extends base {
      * @return boolean
      */
     public function response_complete($responsedata) {
-        if (isset($responsedata->{'q'.$this->id}) && ($this->required == 'y') &&
+        if (isset($responsedata->{'q'.$this->id}) && ($this->required()) &&
                 (strpos($responsedata->{'q'.$this->id}, 'other_') !== false)) {
             return !empty($responsedata->{'q'.$this->id.''.substr($responsedata->{'q'.$this->id}, 5)});
         } else {
