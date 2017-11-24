@@ -108,7 +108,7 @@ if (data_submitted()) {
     foreach ($vf as $qs) {
         $sectionqid = explode("_", $qs);
         if ($sectionqid[0] != 0) {
-            if (isset($sectionqid[1])) {
+            if (isset($sectionqid[1]) && isset($scorecalculationweights[$sectionqid[1]][$sectionqid[0]])) {
                 // Info: $scorecalculation[$sectionqid[0]][$sectionqid[1]] != null.
                 $scorecalculation[$sectionqid[0]][$sectionqid[1]] = $scorecalculationweights[$sectionqid[1]][$sectionqid[0]];
             }
@@ -198,7 +198,6 @@ $descendantsdata = [];
 foreach ($questionnaire->questions as $question) {
     $qtype = $question->type_id;
     $qname = $question->name;
-    $required = $question->required;
     $qid = $question->id;
 
     // Questions to be included in feedback sections must be required, have a name
@@ -210,13 +209,13 @@ foreach ($questionnaire->questions as $question) {
 
     $cannotuse = false;
     $strcannotuse = '';
-    if ($question->supports_feedback() && !$question->has_dependencies()) {
+    if ($question->supports_feedback()) {
         $qn = '<strong>' . $n . '</strong>';
         if ($qname == '') {
             $cannotuse = true;
             $strcannotuse = get_string('missingname', 'questionnaire', $qn);
         }
-        if ($required != 'y') {
+        if (!$question->required()) {
             $cannotuse = true;
             if ($qname == '') {
                 $strcannotuse = get_string('missingnameandrequired', 'questionnaire', $qn);
@@ -231,6 +230,7 @@ foreach ($questionnaire->questions as $question) {
                 $emptyisglobalfeedback = $questionnaire->survey->feedbacksections == 1 && empty($questionsinsections);
                 $questionnaire->page->add_to_page('formarea', '<div style="margin-bottom:5px;">[' . $qname . ']</div>');
                 for ($i = 0; $i < $feedbacksections; $i++) {
+                    // TODO - Add renderer for feedback section select.
                     $output = '<div style="float:left; padding-right:5px;">';
                     if ($i != 0) {
                         // RadioButton -> Checkbox
@@ -266,9 +266,8 @@ foreach ($questionnaire->questions as $question) {
                     // Without last </div>, add inputfield for question in section.
                     $output .= '<label for="' . $qid . '_' . $i . '">' . '<div style="padding-left: 2px;">' . $i . '</div>' .
                         '</label></div>';
-                    // Info: $qtype != QUESSECTIONTEXT (Label) with feedback while anserwing the survey,
-                    // needs only the section number(s) without weights (section == 0 -> normal behavior as Label question).
-                    if ($i > 0) {
+                    // TODO - Add renderer for feedback weight select.
+                    if (($i > 0) && $question->supports_feedback_scores()) {
                         // Add Input fields for weights per section.
                         if (isset($scorecalculationweights[$qid][$i]) && $scorecalculationweights[$qid][$i]) {
                             $output .= '<input type="number" style="width: 80px;" id="weight' . $qname . "_" . $i . '" ' .

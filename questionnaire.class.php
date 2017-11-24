@@ -586,13 +586,13 @@ class questionnaire {
             return false;
         } else if ($section <= 0) {
             foreach ($this->questions as $question) {
-                if ($question->required == 'y') {
+                if ($question->required()) {
                     return true;
                 }
             }
         } else {
             foreach ($this->questionsbysec[$section] as $question) {
-                if ($question->required == 'y') {
+                if ($question->required()) {
                     return true;
                 }
             }
@@ -3062,12 +3062,12 @@ class questionnaire {
         $maxtotalscore = 0;
         foreach ($this->questions as $question) {
             $qid = $question->id;
-            if ($question->valid_feedback() && ($question->required == 'y')) {
+            if ($question->valid_feedback()) {
                 $qmax[$qid] = $question->get_feedback_maxscore();
                 $maxtotalscore += $qmax[$qid];
+                // Get all the feedback scores for this question.
+                $responsescores[$qid] = $question->get_feedback_scores($rids);
             }
-            // Get all the feedback scores for this question.
-            $responsescores[$qid] = $question->get_feedback_scores($rids);
         }
         // Just in case no values have been entered in the various questions possible answers field.
         if ($maxtotalscore === 0) {
@@ -3083,21 +3083,23 @@ class questionnaire {
             $nbparticipants = max(1, $nbparticipants - !$isgroupmember);
         }
         foreach ($responsescores as $qid => $responsescore) {
-            foreach ($responsescore as $rrid => $response) {
-                // If this is current user's response OR if current user is viewing another group's results.
-                if ($rrid == $rid || $allresponses) {
-                    if (!isset($qscore[$qid])) {
-                        $qscore[$qid] = 0;
+            if (!empty($responsescore)) {
+                foreach ($responsescore as $rrid => $response) {
+                    // If this is current user's response OR if current user is viewing another group's results.
+                    if ($rrid == $rid || $allresponses) {
+                        if (!isset($qscore[$qid])) {
+                            $qscore[$qid] = 0;
+                        }
+                        $qscore[$qid] = $response->score;
                     }
-                    $qscore[$qid] = $response->score;
-                }
-                // Course score.
-                if (!isset($allqscore[$qid])) {
-                    $allqscore[$qid] = 0;
-                }
-                // Only add current score if conditions below are met.
-                if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
-                    $allqscore[$qid] += $response->score;
+                    // Course score.
+                    if (!isset($allqscore[$qid])) {
+                        $allqscore[$qid] = 0;
+                    }
+                    // Only add current score if conditions below are met.
+                    if ($groupmode == 0 || $isgroupmember || (!$isgroupmember && $rrid != $rid) || $allresponses) {
+                        $allqscore[$qid] += $response->score;
+                    }
                 }
             }
         }

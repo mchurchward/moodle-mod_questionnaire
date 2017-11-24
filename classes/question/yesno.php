@@ -70,7 +70,7 @@ class yesno extends base {
      * True if the question supports feedback and has valid settings for feedback. Override if the default logic is not enough.
      */
     public function valid_feedback() {
-        return true;
+        return $this->required();
     }
 
     /**
@@ -170,7 +170,7 @@ class yesno extends base {
             $choicetags->qelements->choice[] = $option;
         }
         // CONTRIB-846.
-        if ($this->required == 'n') {
+        if (!$this->required()) {
             $id = '';
             $htmlid = 'auto-rb'.sprintf('%04d', ++$idcounter);
             $content = get_string('noanswer', 'questionnaire');
@@ -183,7 +183,7 @@ class yesno extends base {
                 $option->checked = true;
             }
             if ($onclickdepend) {
-                $option->onclick = 'depend(\''.$descendants.'\', \'\')';
+                $option->onclick = 'depend(\''.$dependants.'\', \'\')';
             }
             $choicetags->qelements->choice[] = $option;
         }

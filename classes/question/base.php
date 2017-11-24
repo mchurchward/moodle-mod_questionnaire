@@ -227,6 +227,14 @@ abstract class base {
     }
 
     /**
+     * Return true if this question has been marked as required.
+     * @return boolean
+     */
+    public function required() {
+        return ($this->required == 'y');
+    }
+
+    /**
      * Return true if the question has defined dependencies.
      * @return boolean
      */
@@ -438,10 +446,17 @@ abstract class base {
     }
 
     /**
+     * True if question type supports feedback scores and weights. Same as supports_feedback() by default.
+     */
+    public function supports_feedback_scores() {
+        return $this->supports_feedback();
+    }
+
+    /**
      * True if the question supports feedback and has valid settings for feedback. Override if the default logic is not enough.
      */
     public function valid_feedback() {
-        if ($this->supports_feedback() && $this->has_choices()) {
+        if ($this->supports_feedback() && $this->has_choices() && $this->required()) {
             foreach ($this->choices as $choice) {
                 if ($choice->value != null) {
                     return true;
@@ -471,7 +486,7 @@ abstract class base {
      * @return int | boolean
      */
     public function get_feedback_maxscore() {
-        if ($this->valid_feedback() && $this->has_choices()) {
+        if ($this->valid_feedback()) {
             $maxscore = 0;
             foreach ($this->choices as $choice) {
                 if (isset($choice->value) && ($choice->value != null)) {
@@ -493,7 +508,7 @@ abstract class base {
      * @return boolean
      */
     public function response_complete($responsedata) {
-        return !(($this->required == 'y') && ($this->deleted == 'n') &&
+        return !($this->required() && ($this->deleted == 'n') &&
                  (!isset($responsedata->{'q'.$this->id}) || $responsedata->{'q'.$this->id} == ''));
     }
 
@@ -818,7 +833,7 @@ abstract class base {
                 $pagetags->qnum = $qnum;
             }
             $required = '';
-            if ($this->required == 'y') {
+            if ($this->required()) {
                 $required = html_writer::start_tag('div', ['class' => 'accesshide']);
                 $required .= get_string('required', 'questionnaire');
                 $required .= html_writer::end_tag('div');
@@ -857,7 +872,7 @@ abstract class base {
                 }
             }
         }
-        if ( ($this->required == 'y') &&  empty($data->{'q'.$this->id}) ) {
+        if ($this->required() &&  empty($data->{'q'.$this->id}) ) {
             return ('*');
         } else {
             return ('&nbsp;');

@@ -199,7 +199,7 @@ if ($action == 'main') {
             // value in the <input> tag.
 
             $qid = key($qformdata->requiredbutton);
-            if ($questionnaire->questions[$qid]->required == 'y') {
+            if ($questionnaire->questions[$qid]->required()) {
                 $questionnaire->questions[$qid]->set_required(false);
 
             } else {

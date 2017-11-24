@@ -36,6 +36,35 @@ class sectiontext extends base {
     }
 
     /**
+     * Return true if this question has been marked as required.
+     * @return boolean
+     */
+    public function required() {
+        return true;
+    }
+
+    /**
+     * True if question type supports feedback options. False by default.
+     */
+    public function supports_feedback() {
+        return true;
+    }
+
+    /**
+     * True if question type supports feedback scores and weights. Same as supports_feedback() by default.
+     */
+    public function supports_feedback_scores() {
+        return false;
+    }
+
+    /**
+     * True if the question supports feedback and has valid settings for feedback. Override if the default logic is not enough.
+     */
+    public function valid_feedback() {
+        return true;
+    }
+
+    /**
      * Override and return a form template if provided. Output of question_survey_display is iterpreted based on this.
      * @return boolean | string
      */
