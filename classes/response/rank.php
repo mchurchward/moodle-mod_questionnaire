@@ -226,7 +226,7 @@ class rank extends base {
                 $feedbackscores[$rid]->rid = $rid;
                 $feedbackscores[$rid]->score = 0;
             }
-            $feedbackscores[$rid]->score += $scores[$response->rank];
+            $feedbackscores[$rid]->score += isset($scores[$response->rank]) ? $scores[$response->rank] : 0;
         }
 
         return (!empty($feedbackscores) ? $feedbackscores : false);
