@@ -155,7 +155,6 @@ abstract class base {
                 $this->get_choices();
             }
             // Added for dependencies.
-            // TODO - Should questions identify whether or not they support dependencies?
             $this->get_dependencies();
         }
         $this->context = $context;
@@ -996,7 +995,6 @@ abstract class base {
 
         $children = [];
         if (isset($this->qid)) {
-            // TODO this should be placed in locallib, see "questionnaire_get_descendants".
             // Use also for the delete dialogue later.
             foreach ($questions as $questionlistitem) {
                 if ($questionlistitem->has_dependencies()) {
@@ -1033,7 +1031,6 @@ abstract class base {
              */
 
             // Area for "must"-criteria.
-            // TODO Replace static strings and set language variables.
             $mform->addElement('static', 'mandatory', '',
                 '<div class="dimmed_text">' . get_string('mandatory', 'questionnaire') . '</div>');
             $selectand = $mform->createElement('select', 'dependlogic_and', get_string('condition', 'questionnaire'),

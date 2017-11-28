@@ -56,23 +56,22 @@ $errormsg = '';
          -> Input for weights
    [qid][section] = weight for question (qid) in section */
 $scorecalculationweights = [];
+$questionsinsections = false;
 
 // Check if there are any feedbacks stored in database already to use them to check
 // the radio buttons on select questions in sections page.
+// TODO - This section appears to depend on the order of records being in the same order as the "section" field.
 if ($fbsections = $DB->get_records('questionnaire_fb_sections', ['survey_id' => $sid])) {
-    $scorecalculation = '';
-    $questionsinsections = [];
     for ($section = 1; $section <= $feedbacksections; $section++) {
         // Retrieve the scorecalculation formula and the section heading only once.
         foreach ($fbsections as $fbsection) {
             if (isset($fbsection->scorecalculation) && $fbsection->section == $section) {
                 $scorecalculation = unserialize($fbsection->scorecalculation);
                 foreach ($scorecalculation as $qid => $key) {
-                    if (!isset($questionsinsections[$qid]) || !is_array($questionsinsections[$qid])) {
-                        $questionsinsections[$qid] = [];
+                    if (!isset($scorecalculationweights[$qid])) {
                         $scorecalculationweights[$qid] = [];
                     }
-                    array_push($questionsinsections[$qid], $section);
+                    $questionsinsections = true;
                     // $key != null -> 0.0 - 1.0
                     $scorecalculationweights[$qid][$section] = $key;
                 }
@@ -80,11 +79,8 @@ if ($fbsections = $DB->get_records('questionnaire_fb_sections', ['survey_id' => 
             }
         }
     }
-    // If Global Feedback (only 1 section) and no questions have yet been put in section 1 check all questions.
-    if (!empty($questionsinsections)) {
-        $vf = $questionsinsections;
-    }
 }
+
 if (data_submitted()) {
     $vf = (array)$viewform;
     if (isset($vf['savesettings'])) {
@@ -227,7 +223,7 @@ foreach ($questionnaire->questions as $question) {
         if (!$cannotuse) {
             if ($question->valid_feedback()) {
                 $questionnaire->page->add_to_page('formarea', '<div id="group_'.$qid.'">');
-                $emptyisglobalfeedback = $questionnaire->survey->feedbacksections == 1 && empty($questionsinsections);
+                $emptyisglobalfeedback = ($questionnaire->survey->feedbacksections == 1) && !$questionsinsections;
                 $questionnaire->page->add_to_page('formarea', '<div style="margin-bottom:5px;">[' . $qname . ']</div>');
                 for ($i = 0; $i < $feedbacksections; $i++) {
                     // TODO - Add renderer for feedback section select.
