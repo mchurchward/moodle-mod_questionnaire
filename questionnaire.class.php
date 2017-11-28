@@ -3325,7 +3325,8 @@ class questionnaire {
         return false;
     }
 
-    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid) {
+    public function response_analysis ($rid, $resps, $compare, $isgroupmember, $allresponses, $currentgroupid,
+                                       $filteredsections = null) {
         global $DB, $CFG;
         require_once($CFG->libdir.'/tablelib.php');
         require_once($CFG->dirroot.'/mod/questionnaire/drawchart.php');
@@ -3526,6 +3527,10 @@ class questionnaire {
         }
 
         for ($section = 1; $section <= $this->survey->feedbacksections; $section++) {
+            // get feedback messages only for this sections
+            if(($filteredsections != null) && !in_array($section, $filteredsections)){
+                continue;
+            }
             foreach ($fbsections as $key => $fbsection) {
                 if ($fbsection->section == $section) {
                     $feedbacksectionid = $key;
@@ -3613,22 +3618,24 @@ class questionnaire {
         }
 
         foreach ($allscore as $key => $sc) {
-            $lb = explode("|", $chartlabels[$key]);
-            $oppositescore = '';
-            $oppositeallscore = '';
-            if (count($lb) > 1) {
-                $sectionlabel = $lb[0].' | '.$lb[1];
-                $oppositescore = ' | '.$oppositescorepercent[$key].'%';
-                $oppositeallscore = ' | '.$alloppositescorepercent[$key].'%';
-            } else {
-                $sectionlabel = $chartlabels[$key];
-            }
-            // If all questions of $section are unseen then don't show feedbackscores for this section.
-            if ($compare and !is_nan($scorepercent[$key])) {
-                $table->data[] = array($sectionlabel, $scorepercent[$key] . '%' . $oppositescore,
-                    $allscorepercent[$key] . '%' . $oppositeallscore);
-            } else if (!is_nan($allscorepercent[$key])) {
-                $table->data[] = array($sectionlabel, $allscorepercent[$key] . '%' . $oppositeallscore);
+            if (isset($chartlabels[$key])) {
+                $lb = explode("|", $chartlabels[$key]);
+                $oppositescore = '';
+                $oppositeallscore = '';
+                if (count($lb) > 1) {
+                    $sectionlabel = $lb[0] . ' | ' . $lb[1];
+                    $oppositescore = ' | ' . $oppositescorepercent[$key] . '%';
+                    $oppositeallscore = ' | ' . $alloppositescorepercent[$key] . '%';
+                } else {
+                    $sectionlabel = $chartlabels[$key];
+                }
+                // If all questions of $section are unseen then don't show feedbackscores for this section.
+                if ($compare && !is_nan($scorepercent[$key])) {
+                    $table->data[] = array($sectionlabel, $scorepercent[$key] . '%' . $oppositescore,
+                        $allscorepercent[$key] . '%' . $oppositeallscore);
+                } else if (isset($allscorepercent[$key]) && !is_nan($allscorepercent[$key])) {
+                    $table->data[] = array($sectionlabel, $allscorepercent[$key] . '%' . $oppositeallscore);
+                }
             }
         }
         $usergraph = get_config('questionnaire', 'usergraph');

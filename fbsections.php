@@ -76,6 +76,8 @@ if (data_submitted()) {
             if (isset($sectionqid[1]) && isset($scorecalculationweights[$sectionqid[1]][$sectionqid[0]])) {
                 // Info: $scorecalculation[$sectionqid[0]][$sectionqid[1]] != null.
                 $scorecalculation[$sectionqid[0]][$sectionqid[1]] = $scorecalculationweights[$sectionqid[1]][$sectionqid[0]];
+            } else if (isset($sectionqid[1])) {
+                $scorecalculation[$sectionqid[0]][$sectionqid[1]] = 0;
             }
             if (count($sectionqid) == 2) {
                 // Info: [1] - id; [0] - section.
